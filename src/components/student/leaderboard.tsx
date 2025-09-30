@@ -159,7 +159,7 @@ export function Leaderboard() {
                     )}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {team.xp.toLocaleString()}
+                    {new Intl.NumberFormat('es-ES').format(team.xp)}
                   </TableCell>
                 </TableRow>
               ))}

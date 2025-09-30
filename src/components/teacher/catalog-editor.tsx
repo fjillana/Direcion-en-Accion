@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -242,7 +243,7 @@ export function CatalogEditor({
                   </TableCell>
                   {type === "investment" && isInvestment(item) && 'cost' in item && (
                     <TableCell className="text-right font-mono">
-                      {(item as any).cost.toLocaleString()}
+                      {new Intl.NumberFormat('es-ES').format((item as any).cost)}
                     </TableCell>
                   )}
                   {type === "investment" && isInvestment(item) && !('cost' in item) && (
@@ -294,7 +295,7 @@ export function CatalogEditor({
                    { 'cost' in selectedItem && selectedItem.cost !== undefined &&
                     <div className="p-3 bg-muted/50 rounded-md">
                       <p className="font-medium">Coste (CC)</p>
-                      <p className="text-sm text-muted-foreground mt-1">{selectedItem.cost.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{new Intl.NumberFormat('es-ES').format(selectedItem.cost)}</p>
                     </div>
                   }
                   { 'costRange' in selectedItem &&

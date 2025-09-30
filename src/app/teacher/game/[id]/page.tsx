@@ -367,7 +367,7 @@ export default function GameDetailsPage() {
                           ${team.price}
                         </TableCell>
                         <TableCell className="text-right">
-                          ${team.marketing.toLocaleString()}
+                          ${new Intl.NumberFormat('es-ES').format(team.marketing)}
                         </TableCell>
                       </TableRow>
                     ))}

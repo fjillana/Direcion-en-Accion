@@ -119,7 +119,7 @@ const teamsData: Team[] = [
 ].sort((a, b) => b.xp - a.xp);
 
 const kpiConfig = {
-  cash: { label: "Saldo de tesorería", unit: "CC", format: (v: number) => v.toLocaleString() },
+  cash: { label: "Saldo de tesorería", unit: "CC", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
   personnelCost: { label: "Coste personal / Ingresos", unit: "%", format: (v: number) => `${v}%` },
   nma: { label: "Nota Media Alumnado", unit: "", format: (v: number) => v.toFixed(1) },
   marketShare: { label: "Cuota de mercado", unit: "%", format: (v: number) => `${v}%` },
@@ -197,7 +197,7 @@ export default function TeacherLeaderboardPage() {
                       <TableCell className="font-bold text-lg">{index + 1}</TableCell>
                       <TableCell className="font-medium">{team.name}</TableCell>
                       <TableCell className="text-right font-mono">
-                        {team.xp.toLocaleString()}
+                        {new Intl.NumberFormat('es-ES').format(team.xp)}
                       </TableCell>
                       <TableCell className="text-right">{team.kpis.morale}%</TableCell>
                       <TableCell className="text-right">{team.kpis.nma.toFixed(1)}</TableCell>

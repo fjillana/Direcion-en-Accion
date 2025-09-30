@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +88,12 @@ export function CatalogEditor({
     setSelectedItem(item);
     setDetailDialogOpen(true);
   };
+  
+  const handleDelete = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    setItems(items.filter(item => item.id !== itemId));
+  };
+
 
   const isCrisis = (item: CatalogItem): item is Crisis => {
     return 'options' in item;
@@ -146,7 +152,24 @@ export function CatalogEditor({
               <Label htmlFor="description" className="text-right">Descripción</Label>
               <Textarea id="description" className="col-span-3" />
             </div>
-            {/* Form fields for options/effects would go here */}
+            {type === 'crisis' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="options" className="text-right">Opciones</Label>
+                <Textarea id="options" className="col-span-3" placeholder="Añade 5 opciones, separadas por saltos de línea" />
+              </div>
+            )}
+            {type === 'investment' && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="costRange" className="text-right">Rango de Coste</Label>
+                  <Input id="costRange" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="effect" className="text-right">Efecto</Label>
+                  <Input id="effect" className="col-span-3" />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button type="submit">Guardar</Button>
@@ -211,13 +234,10 @@ export function CatalogEditor({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                         <DropdownMenuItem onClick={() => handleRowClick(item)}>
+                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRowClick(item); }}>
                            <Eye className="mr-2 h-4 w-4" /> Ver
                          </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem className="text-destructive" onClick={(e) => handleDelete(e, item.id)}>
                           <Trash2 className="mr-2 h-4 w-4" /> Borrar
                         </DropdownMenuItem>
                       </DropdownMenuContent>

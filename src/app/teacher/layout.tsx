@@ -1,5 +1,10 @@
 import { TeacherLayout } from "@/components/teacher/teacher-layout";
+import { GamesProvider } from "@/hooks/use-games";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <TeacherLayout>{children}</TeacherLayout>;
+  return (
+    <GamesProvider>
+      <TeacherLayout>{children}</TeacherLayout>
+    </GamesProvider>
+  );
 }

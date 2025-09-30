@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GameConfigForm, GameConfig } from "@/components/teacher/game-config-form";
+import { GameConfigForm, GameConfig }_from "@/components/teacher/game-config-form";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import {
@@ -22,41 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-
-const initialGames: Game[] = [
-  {
-    id: "1",
-    name: "Simulación de Negocios 101",
-    round: 3,
-    teams: 5,
-    status: "En curso",
-  },
-  {
-    id: "2",
-    name: "Marketing Avanzado",
-    round: 5,
-    teams: 4,
-    status: "En curso",
-  },
-  {
-    id: "3",
-    name: "Gestión Financiera",
-    round: 8,
-    teams: 6,
-    status: "Finalizado",
-  },
-];
-
-interface Game {
-  id: string;
-  name: string;
-  round: number;
-  teams: number;
-  status: "En curso" | "Finalizado";
-}
+import { useGames } from "@/hooks/use-games";
+import type { Game } from "@/hooks/use-games";
 
 export default function TeacherDashboard() {
-  const [games, setGames] = useState<Game[]>(initialGames);
+  const { games, addGame } = useGames();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleCreateGame = (data: GameConfig) => {
@@ -67,7 +37,7 @@ export default function TeacherDashboard() {
       teams: data.numTeams,
       status: "En curso",
     };
-    setGames((prevGames) => [...prevGames, newGame]);
+    addGame(newGame);
     setDialogOpen(false);
   };
 

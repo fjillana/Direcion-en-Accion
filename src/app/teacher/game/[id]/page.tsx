@@ -33,6 +33,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useParams } from 'next/navigation'
+
 
 type TeamDecision = {
   investments: { name: string; cost: number }[];
@@ -55,7 +57,9 @@ type Team = {
 };
 
 
-export default function GameDetailsPage({ params }: { params: { id: string } }) {
+export default function GameDetailsPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
@@ -298,8 +302,6 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
     },
   ];
   
-  const id = params.id;
-
   return (
     <>
       <div className="space-y-6">

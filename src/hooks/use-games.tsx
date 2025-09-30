@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 export interface Game {
   id: string;
@@ -42,7 +42,26 @@ const initialGames: Game[] = [
 ];
 
 export function GamesProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<Game[]>(initialGames);
+  const [games, setGames] = useState<Game[]>(() => {
+    if (typeof window === 'undefined') {
+      return initialGames;
+    }
+    try {
+      const item = window.localStorage.getItem('games');
+      return item ? JSON.parse(item) : initialGames;
+    } catch (error) {
+      console.error(error);
+      return initialGames;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('games', JSON.stringify(games));
+    } catch (error) {
+      console.error(error);
+    }
+  }, [games]);
 
   const addGame = (game: Game) => {
     setGames((prevGames) => [...prevGames, game]);

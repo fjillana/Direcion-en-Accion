@@ -36,7 +36,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Separator } from "../ui/separator";
+import { ScrollArea } from "../ui/scroll-area";
+import { Checkbox } from "../ui/checkbox";
 
 export type Investment = {
   id: string;
@@ -66,6 +67,8 @@ interface CatalogEditorProps {
   description: string;
   data: CatalogItem[];
   type: "investment" | "crisis";
+  isGameCatalog?: boolean;
+  fullCatalog?: CatalogItem[];
 }
 
 export function CatalogEditor({
@@ -73,6 +76,8 @@ export function CatalogEditor({
   description,
   data,
   type,
+  isGameCatalog = false,
+  fullCatalog = []
 }: CatalogEditorProps) {
   const [items, setItems] = useState(data);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -85,12 +90,71 @@ export function CatalogEditor({
   };
 
   const isCrisis = (item: CatalogItem): item is Crisis => {
-    return type === 'crisis' && 'options' in item;
+    return 'options' in item;
   }
   
   const isInvestment = (item: CatalogItem): item is Investment => {
-    return type === 'investment' && 'costRange' in item;
+    return 'costRange' in item;
   }
+
+  const AddFromCatalogDialog = () => (
+    <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Añadir {type === 'crisis' ? 'Crisis' : 'Inversiones'} desde el Catálogo</DialogTitle>
+          <DialogDescription>
+            Selecciona los elementos que quieres añadir a esta partida.
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="h-96">
+          <div className="space-y-4 p-4">
+            {fullCatalog.map((item) => (
+              <div key={item.id} className="flex items-start space-x-3">
+                <Checkbox id={`cat-${item.id}`} className="mt-1"/>
+                <div className="grid gap-1.5 leading-none">
+                  <label htmlFor={`cat-${item.id}`} className="font-medium cursor-pointer">
+                    {item.name}
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setAddDialogOpen(false)}>Añadir Seleccionados</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const AddNewDialog = () => (
+     <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Añadir Nuevo Evento de {type === 'crisis' ? 'Crisis' : 'Inversión'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">Nombre</Label>
+              <Input id="name" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">Descripción</Label>
+              <Textarea id="description" className="col-span-3" />
+            </div>
+            {/* Form fields for options/effects would go here */}
+          </div>
+          <DialogFooter>
+            <Button type="submit">Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+  );
+
 
   return (
     <>
@@ -114,7 +178,7 @@ export function CatalogEditor({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableHead className="text-right">Rango de Coste (CC)</TableHead>
+                  <TableHead>Coste (CC)</TableHead>
                 )}
                 <TableHead className="w-[50px]">
                   <span className="sr-only">Actions</span>
@@ -128,8 +192,13 @@ export function CatalogEditor({
                   <TableCell className="text-muted-foreground">
                     {item.description}
                   </TableCell>
-                  {type === "investment" && isInvestment(item) && (
+                  {type === "investment" && isInvestment(item) && 'cost' in item && (
                     <TableCell className="text-right font-mono">
+                      {(item as any).cost.toLocaleString()}
+                    </TableCell>
+                  )}
+                  {type === "investment" && isInvestment(item) && !('cost' in item) && (
+                     <TableCell className="text-right font-mono">
                       {item.costRange}
                     </TableCell>
                   )}
@@ -161,28 +230,7 @@ export function CatalogEditor({
         </CardContent>
       </Card>
       
-      {/* Add/Edit Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Añadir Nuevo Evento de {type === 'crisis' ? 'Crisis' : 'Inversión'}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Nombre</Label>
-              <Input id="name" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Descripción</Label>
-              <Textarea id="description" className="col-span-3" />
-            </div>
-            {/* Form fields for options/effects would go here */}
-          </div>
-          <DialogFooter>
-            <Button type="submit">Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isGameCatalog ? <AddFromCatalogDialog /> : <AddNewDialog />}
       
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setDetailDialogOpen}>
@@ -198,10 +246,18 @@ export function CatalogEditor({
               
               {isInvestment(selectedItem) && (
                 <div className="space-y-4 py-4">
-                  <div className="p-3 bg-muted/50 rounded-md">
-                    <p className="font-medium">Coste (CC)</p>
-                    <p className="text-sm text-muted-foreground mt-1">{selectedItem.costRange}</p>
-                  </div>
+                   { 'cost' in selectedItem &&
+                    <div className="p-3 bg-muted/50 rounded-md">
+                      <p className="font-medium">Coste (CC)</p>
+                      <p className="text-sm text-muted-foreground mt-1">{(selectedItem as any).cost.toLocaleString()}</p>
+                    </div>
+                  }
+                  { 'costRange' in selectedItem &&
+                    <div className="p-3 bg-muted/50 rounded-md">
+                      <p className="font-medium">Rango de Coste (CC)</p>
+                      <p className="text-sm text-muted-foreground mt-1">{selectedItem.costRange}</p>
+                    </div>
+                  }
                   <div className="p-3 bg-muted/50 rounded-md">
                     <p className="font-medium">Efecto en XP / Moral</p>
                     <p className="text-sm text-muted-foreground mt-1">{selectedItem.effect}</p>

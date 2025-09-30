@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -23,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { PlayCircle, Loader2 } from "lucide-react";
 import { AIReportForm } from "@/components/teacher/ai-report-form";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +35,7 @@ import { useParams } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
+import type { Game } from "@/hooks/use-games";
 
 
 type TeamDecision = {
@@ -63,10 +63,17 @@ export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { games } = useGames();
-  const game = games.find((g) => g.id === id);
 
+  const [game, setGame] = useState<Game | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+
+  useEffect(() => {
+    const foundGame = games.find((g) => g.id === id);
+    if (foundGame) {
+      setGame(foundGame);
+    }
+  }, [games, id]);
 
   const handleProcessRound = () => {
     setIsProcessing(true);
@@ -235,8 +242,10 @@ export default function GameDetailsPage() {
                         <TableCell className="font-medium">{team.name}</TableCell>
                         <TableCell className="text-right">
                           {team.peb}%{" "}
-                          {team.peb > 100 && (
+                          {team.peb > 100 ? (
                             <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-500/80">Sobre cumplimiento</Badge>
+                          ) : (
+                            team.peb < 90 && <Badge variant="destructive">Bajo rendimiento</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">{team.xp}</TableCell>
@@ -318,3 +327,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

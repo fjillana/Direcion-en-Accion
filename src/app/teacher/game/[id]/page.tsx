@@ -35,6 +35,7 @@ import {
 import { useParams } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
+import { useGames } from "@/hooks/use-games";
 
 
 type TeamDecision = {
@@ -61,6 +62,9 @@ type Team = {
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
+  const { games } = useGames();
+  const game = games.find((g) => g.id === id);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
@@ -184,10 +188,10 @@ export default function GameDetailsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-headline">
-              Simulación de Negocios 101
+              {game?.name || "Cargando..."}
             </h1>
             <p className="text-muted-foreground">
-              Ronda 3 - Juego ID: {id}
+              Ronda {game?.round || 'N/A'} - Juego ID: {id}
             </p>
           </div>
           <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
@@ -232,7 +236,7 @@ export default function GameDetailsPage() {
                         <TableCell className="text-right">
                           {team.peb}%{" "}
                           {team.peb > 100 && (
-                            <Badge variant="destructive">Sobrecarga</Badge>
+                            <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-500/80">Sobre cumplimiento</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">{team.xp}</TableCell>

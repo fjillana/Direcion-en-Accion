@@ -69,8 +69,6 @@ interface CatalogEditorProps {
   description: string;
   data: CatalogItem[];
   type: "investment" | "crisis";
-  isGameCatalog?: boolean;
-  fullCatalog?: CatalogItem[];
 }
 
 export function CatalogEditor({
@@ -78,14 +76,11 @@ export function CatalogEditor({
   description,
   data,
   type,
-  isGameCatalog = false,
-  fullCatalog = []
 }: CatalogEditorProps) {
   const [items, setItems] = useState(data);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
-  const [selectedCatalogItems, setSelectedCatalogItems] = useState<string[]>([]);
 
   const handleRowClick = (item: CatalogItem) => {
     setSelectedItem(item);
@@ -105,63 +100,6 @@ export function CatalogEditor({
   const isInvestment = (item: CatalogItem): item is Investment => {
     return 'costRange' in item;
   }
-
-  const handleAddSelected = () => {
-    const itemsToAdd = fullCatalog.filter(item => selectedCatalogItems.includes(item.id));
-    const newItems = itemsToAdd.filter(itemToAdd => !items.some(existingItem => existingItem.id === itemToAdd.id));
-    setItems(prevItems => [...prevItems, ...newItems]);
-    setSelectedCatalogItems([]);
-    setAddDialogOpen(false);
-  };
-
-  const handleCheckboxChange = (itemId: string, checked: boolean) => {
-    setSelectedCatalogItems(prev => 
-      checked ? [...prev, itemId] : prev.filter(id => id !== itemId)
-    );
-  };
-
-
-  const AddFromCatalogDialog = () => (
-    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if(!open) setSelectedCatalogItems([]); }}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Añadir {type === 'crisis' ? 'Crisis' : 'Inversiones'} desde el Catálogo</DialogTitle>
-          <DialogDescription>
-            Selecciona los elementos que quieres añadir a esta partida.
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="h-96">
-          <div className="space-y-4 p-4">
-            {fullCatalog.map((item) => {
-              const isInGame = items.some(gameItem => gameItem.id === item.id);
-              return (
-              <div key={item.id} className="flex items-start space-x-3">
-                <Checkbox 
-                  id={`cat-${item.id}`} 
-                  className="mt-1"
-                  onCheckedChange={(checked) => handleCheckboxChange(item.id, !!checked)}
-                  checked={selectedCatalogItems.includes(item.id)}
-                  disabled={isInGame}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label htmlFor={`cat-${item.id}`} className={`font-medium cursor-pointer ${isInGame ? 'text-muted-foreground' : ''}`}>
-                    {item.name} {isInGame && "(ya en la partida)"}
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            )})}
-          </div>
-        </ScrollArea>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleAddSelected}>Añadir Seleccionados</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   const AddNewDialog = () => (
      <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -227,7 +165,7 @@ export function CatalogEditor({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableHead>Coste (CC)</TableHead>
+                  <TableHead>Rango de Coste</TableHead>
                 )}
                 <TableHead className="w-[50px]">
                   <span className="sr-only">Actions</span>
@@ -241,13 +179,8 @@ export function CatalogEditor({
                   <TableCell className="text-muted-foreground">
                     {item.description}
                   </TableCell>
-                  {type === "investment" && isInvestment(item) && 'cost' in item && (
-                    <TableCell className="text-right font-mono">
-                      {new Intl.NumberFormat('es-ES').format((item as any).cost)}
-                    </TableCell>
-                  )}
-                  {type === "investment" && isInvestment(item) && !('cost' in item) && (
-                     <TableCell className="text-right font-mono">
+                  {type === "investment" && isInvestment(item) && (
+                     <TableCell className="font-mono">
                       {item.costRange}
                     </TableCell>
                   )}
@@ -276,7 +209,7 @@ export function CatalogEditor({
         </CardContent>
       </Card>
       
-      {isGameCatalog ? <AddFromCatalogDialog /> : <AddNewDialog />}
+      <AddNewDialog />
       
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setDetailDialogOpen}>

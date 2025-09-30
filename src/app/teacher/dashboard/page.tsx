@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GameConfigForm, GameConfig }_from "@/components/teacher/game-config-form";
+import { GameConfigForm, GameConfig } from "@/components/teacher/game-config-form";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import {

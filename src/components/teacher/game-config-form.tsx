@@ -21,6 +21,7 @@ const formSchema = z.object({
   numTeams: z.number().min(2).max(10),
   numRounds: z.number().min(1).max(20),
   initialFunds: z.number().min(1000),
+  newStudentsPerRound: z.number().min(0),
   aiDifficulty: z.number().min(1).max(5),
   publicLeaderboard: z.boolean(),
 });
@@ -39,6 +40,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
       numTeams: 4,
       numRounds: 8,
       initialFunds: 50000,
+      newStudentsPerRound: 50,
       aiDifficulty: 3,
       publicLeaderboard: true,
     },
@@ -105,23 +107,46 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="initialFunds"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fondos Iniciales</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="initialFunds"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fondos Iniciales</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value, 10))
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="newStudentsPerRound"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Alumnos nuevos / ronda</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value, 10))
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="aiDifficulty"

@@ -28,6 +28,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TeamKPIs = {
   cash: number;
@@ -118,6 +125,12 @@ function GoalComplianceIcon({ value, goal }: { value: number; goal: StrategicGoa
 export default function TeacherLeaderboardPage() {
   const [teams] = useState<Team[]>(teamsData);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [filteredTeam, setFilteredTeam] = useState("all");
+
+  const teamsForStrategicView =
+    filteredTeam === "all"
+      ? teams
+      : teams.filter((team) => team.name === filteredTeam);
 
   return (
     <div className="space-y-6">
@@ -167,10 +180,27 @@ export default function TeacherLeaderboardPage() {
         <TabsContent value="strategic">
            <Card>
             <CardHeader>
-              <CardTitle>Análisis de Cumplimiento Estratégico</CardTitle>
-              <CardDescription>
-                Comparativa de los KPIs actuales contra los objetivos de la Ronda 0.
-              </CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Análisis de Cumplimiento Estratégico</CardTitle>
+                        <CardDescription>
+                            Comparativa de los KPIs actuales contra los objetivos de la Ronda 0.
+                        </CardDescription>
+                    </div>
+                    <div className="w-[200px]">
+                        <Select value={filteredTeam} onValueChange={setFilteredTeam}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filtrar por equipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos los equipos</SelectItem>
+                                {teams.map(team => (
+                                    <SelectItem key={team.name} value={team.name}>{team.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -184,7 +214,7 @@ export default function TeacherLeaderboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teams.flatMap(team =>
+                  {teamsForStrategicView.flatMap(team =>
                      Object.entries(team.strategicGoals).map(([key, goal]) => {
                        const kpiKey = key as keyof TeamKPIs;
                        const kpiInfo = kpiConfig[kpiKey];

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -13,52 +15,240 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+
+type TeamKPIs = {
+  cash: number;
+  personnelCost: number;
+  nma: number;
+  marketShare: number;
+  morale: number;
+  studentTeacherRatio: number;
+};
+
+type StrategicGoal = {
+  target: number;
+  operator: "min" | "max" | "range";
+  range_max?: number;
+};
+
+type Team = {
+  rank: number;
+  name: string;
+  xp: number;
+  kpis: TeamKPIs;
+  strategicGoals: { [key in keyof TeamKPIs]?: StrategicGoal };
+};
+
+const teamsData: Team[] = [
+  {
+    rank: 1,
+    name: "Equipo Delta",
+    xp: 1800,
+    kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5 },
+    strategicGoals: { cash: { target: 40000, operator: "min" }, nma: { target: 8.5, operator: "min" }, morale: { target: 80, operator: "min" } },
+  },
+  {
+    rank: 2,
+    name: "Equipo Beta",
+    xp: 1500,
+    kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0 },
+    strategicGoals: { personnelCost: { target: 75, operator: "max" }, studentTeacherRatio: { target: 24, operator: "max" } },
+  },
+  {
+    rank: 3,
+    name: "Equipo Alfa",
+    xp: 1200,
+    kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1 },
+    strategicGoals: { cash: { target: 16000, operator: "range", range_max: 32000 }, morale: { target: 70, operator: "min" } },
+  },
+  {
+    rank: 4,
+    name: "Equipo Gamma",
+    xp: 950,
+    kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8 },
+    strategicGoals: { nma: { target: 8.0, operator: "min" }, personnelCost: { target: 80, operator: "max" } },
+  },
+].sort((a, b) => b.xp - a.xp);
+
+const kpiConfig = {
+  cash: { label: "Saldo de tesorería", unit: "CC", format: (v: number) => v.toLocaleString() },
+  personnelCost: { label: "Coste personal / Ingresos", unit: "%", format: (v: number) => `${v}%` },
+  nma: { label: "Nota Media Alumnado", unit: "", format: (v: number) => v.toFixed(1) },
+  marketShare: { label: "Cuota de mercado", unit: "%", format: (v: number) => `${v}%` },
+  morale: { label: "Moral del personal", unit: "%", format: (v: number) => `${v}%` },
+  studentTeacherRatio: { label: "Ratio Alumnos/Profesor", unit: "", format: (v: number) => v.toFixed(1) },
+};
+
+function getProgress(value: number, goal: StrategicGoal): number {
+  if (goal.operator === 'min') {
+    return Math.min((value / goal.target) * 100, 100);
+  }
+  if (goal.operator === 'max') {
+    return Math.min((goal.target / value) * 100, 100);
+  }
+  if (goal.operator === 'range' && goal.range_max) {
+      if(value < goal.target) return 0;
+      if(value > goal.range_max) return 0;
+      return 100;
+  }
+  return 0;
+}
+
+function GoalComplianceIcon({ value, goal }: { value: number; goal: StrategicGoal }) {
+    const progress = getProgress(value, goal);
+    if (progress === 100) return <ArrowUp className="text-green-500" />;
+    if (progress < 50) return <ArrowDown className="text-red-500" />;
+    return <Minus className="text-yellow-500" />;
+}
+
 
 export default function TeacherLeaderboardPage() {
-  const teams = [
-    { rank: 1, name: "Equipo Delta", xp: 1800, peb: 110, grade: 9.8, rounds: 5 },
-    { rank: 2, name: "Equipo Beta", xp: 1500, peb: 105, grade: 9.2, rounds: 5 },
-    { rank: 3, name: "Equipo Alfa", xp: 1200, peb: 95, grade: 8.5, rounds: 5 },
-    { rank: 4, name: "Equipo Gamma", xp: 950, peb: 88, grade: 7.8, rounds: 5 },
-  ].sort((a, b) => b.xp - a.xp);
+  const [teams] = useState<Team[]>(teamsData);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Leaderboard General</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Clasificación de todos los juegos</CardTitle>
-          <CardDescription>
-            Rendimiento global de los equipos. Puedes filtrar por juego.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Ranking</TableHead>
-                <TableHead>Equipo</TableHead>
-                <TableHead className="text-right">XP Total</TableHead>
-                <TableHead className="text-right">PEB Medio</TableHead>
-                <TableHead className="text-right">Nota Media</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teams.map((team, index) => (
-                <TableRow key={team.name}>
-                  <TableCell className="font-bold text-lg">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {team.xp.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">{team.peb}%</TableCell>
-                  <TableCell className="text-right">{team.grade}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+      <Tabs defaultValue="general">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="general">Clasificación General</TabsTrigger>
+          <TabsTrigger value="strategic">Cumplimiento Estratégico</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>Clasificación de todos los juegos</CardTitle>
+              <CardDescription>
+                Rendimiento global de los equipos. Haz clic para ver KPIs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Ranking</TableHead>
+                    <TableHead>Equipo</TableHead>
+                    <TableHead className="text-right">XP Total</TableHead>
+                    <TableHead className="text-right">Moral</TableHead>
+                    <TableHead className="text-right">Nota Media</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teams.map((team, index) => (
+                    <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
+                      <TableCell className="font-bold text-lg">{index + 1}</TableCell>
+                      <TableCell className="font-medium">{team.name}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {team.xp.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">{team.kpis.morale}%</TableCell>
+                      <TableCell className="text-right">{team.kpis.nma.toFixed(1)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="strategic">
+           <Card>
+            <CardHeader>
+              <CardTitle>Análisis de Cumplimiento Estratégico</CardTitle>
+              <CardDescription>
+                Comparativa de los KPIs actuales contra los objetivos de la Ronda 0.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Equipo</TableHead>
+                    <TableHead>KPI</TableHead>
+                    <TableHead>Objetivo</TableHead>
+                    <TableHead>Actual</TableHead>
+                    <TableHead className="w-[150px]">Progreso</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teams.flatMap(team =>
+                     Object.entries(team.strategicGoals).map(([key, goal]) => {
+                       const kpiKey = key as keyof TeamKPIs;
+                       const kpiInfo = kpiConfig[kpiKey];
+                       const currentValue = team.kpis[kpiKey];
+                       const progress = getProgress(currentValue, goal!);
+
+                       return (
+                         <TableRow key={`${team.name}-${key}`}>
+                           <TableCell className="font-medium">{team.name}</TableCell>
+                           <TableCell>{kpiInfo.label}</TableCell>
+                           <TableCell className="font-mono">{goal!.operator === 'range' ? `${kpiInfo.format(goal!.target)} - ${kpiInfo.format(goal!.range_max!)}` : `${goal!.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal!.target)}`}</TableCell>
+                           <TableCell className="font-mono">{kpiInfo.format(currentValue)}</TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-2">
+                               <Progress value={progress} className="w-full" />
+                               <span className="text-xs font-mono text-muted-foreground">{Math.round(progress)}%</span>
+                             </div>
+                           </TableCell>
+                         </TableRow>
+                       )
+                     })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
+        <DialogContent className="sm:max-w-md">
+          {selectedTeam && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Detalle de KPIs: {selectedTeam.name}</DialogTitle>
+                <DialogDescription>
+                  Indicadores clave de rendimiento para la ronda actual.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableBody>
+                    {Object.entries(selectedTeam.kpis).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell className="font-medium">
+                           {kpiConfig[key as keyof TeamKPIs].label}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                           {kpiConfig[key as keyof TeamKPIs].format(value)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedTeam(null)}>
+                  Cerrar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

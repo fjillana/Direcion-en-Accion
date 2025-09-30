@@ -57,30 +57,13 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
   ];
 
   const investments = [
-    {
-      id: "inv1",
-      name: "Mejora de maquinaria",
-      cost: 15000,
-      description: "Aumenta la eficiencia de producción.",
-    },
-    {
-      id: "inv2",
-      name: "Campaña de marketing digital",
-      cost: 8000,
-      description: "Mejora la reputación de la marca.",
-    },
+    { id: 'F1', name: 'Implantación de ERP', cost: 22500, description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes administrativos un 2 %.' },
+    { id: 'R2', name: 'Inversión en TIC', cost: 42500, description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA y la moral.' },
+    { id: 'P1', name: 'Formación docente', cost: 10000, description: 'Cursos de actualización, metodologías innovadoras.' },
   ];
   const crises = [
-    {
-      id: "crisis1",
-      name: "Huelga de trabajadores",
-      description: "Los trabajadores exigen mejores condiciones laborales.",
-    },
-    {
-      id: "crisis2",
-      name: "Fallo en la cadena de suministro",
-      description: "Un proveedor clave ha quebrado.",
-    },
+    { id: 'C1', name: 'Huelga docente', description: 'La moral ha caído por debajo de 50 y los docentes convocan una huelga.' },
+    { id: 'C4', name: 'Accidente en el centro', description: 'Un accidente leve genera críticas en redes sociales.' },
   ];
 
   return (
@@ -157,16 +140,16 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
         </TabsContent>
         <TabsContent value="investments">
           <CatalogEditor
-            title="Inversiones"
-            description="Gestiona las inversiones disponibles para los estudiantes."
+            title="Inversiones de la Partida"
+            description="Gestiona las inversiones disponibles para esta partida."
             data={investments}
             type="investment"
           />
         </TabsContent>
         <TabsContent value="crises">
           <CatalogEditor
-            title="Crisis"
-            description="Gestiona los eventos de crisis que pueden ocurrir."
+            title="Crisis de la Partida"
+            description="Gestiona los eventos de crisis que pueden ocurrir en esta partida."
             data={crises}
             type="crisis"
           />

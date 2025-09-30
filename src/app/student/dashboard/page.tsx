@@ -16,24 +16,26 @@ export default function StudentDashboard() {
           Resumen del Equipo Beta
         </h1>
         <p className="text-muted-foreground">
-          Ronda 3 - ¡Tus decisiones marcarán la diferencia!
+          Ronda 1 - ¡Tus decisiones marcarán la diferencia!
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard title="Fondos" value="$85,320" trend="up" change="+5.2%" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <KpiCard title="Saldo de tesorería" value="25,000 CC" trend="up" change="+2.5%" />
         <KpiCard
-          title="Reputación"
-          value="78"
+          title="Coste personal / Ingresos"
+          value="75%"
           trend="down"
-          change="-2.1%"
+          change="-1.0%"
         />
-        <KpiCard title="PEB" value="105%" trend="up" change="+3%" />
+        <KpiCard title="Nota Media Alumnado" value="7.5" trend="up" change="+0.1" />
         <KpiCard
-          title="Experiencia (XP)"
-          value="1500"
+          title="Cuota de mercado"
+          value="12.5%"
           trend="up"
-          change="+250"
+          change="+0.5%"
         />
+        <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
+        <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -42,15 +44,10 @@ export default function StudentDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
-              El mercado está experimentando un crecimiento inesperado en el
-              sector tecnológico. Los consumidores demandan productos más
-              innovadores y están dispuestos a pagar un extra por la calidad.
-              Sin embargo, los costos de las materias primas también han
-              aumentado, lo que presiona los márgenes de beneficio.
+              Bienvenidos, equipos directivos. Lideráis un colegio concertado con 800 alumnos y 32 docentes. Vuestro reto es equilibrar la viabilidad financiera, la reputación y el ambiente del personal a lo largo de cuatro rondas.
             </p>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              Vuestra tarea es capitalizar el auge del mercado sin comprometer
-              la salud financiera de la empresa. ¡Buena suerte!
+              En esta ronda inicial, debéis analizar vuestra situación y tomar las primeras decisiones estratégicas. ¡Buena suerte!
             </p>
           </CardContent>
         </Card>

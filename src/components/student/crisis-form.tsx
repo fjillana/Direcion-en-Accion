@@ -14,27 +14,23 @@ import { Label } from "@/components/ui/label";
 
 export function CrisisForm() {
   const crisisOptions = [
-    { id: "op1", label: "Negociar con el sindicato (Costo: $5,000)" },
-    { id: "op2", label: "Contratar trabajadores temporales (Costo: $8,000)" },
-    {
-      id: "op3",
-      label: "Ignorar las demandas (Costo: $0, Riesgo de huelga prolongada)",
-    },
-    { id: "op4", label: "Ofrecer un bono único (Costo: $12,000)" },
-    { id: "op5", label: "Mejorar beneficios no salariales (Costo: $6,000)" },
+    { id: 'op1', label: 'Aceptar todas las demandas (+30 moral, -25k CC)' },
+    { id: 'op2', label: 'Negociar un acuerdo parcial (+20 moral, -15k CC)' },
+    { id: 'op3', label: 'Mantener la postura (huelga 2 rondas, -20 XP all)' },
+    { id: 'op4', label: 'Recurrir a mediadores externos (+15 moral, -8k CC)' },
+    { id: 'op5', label: 'Despedir a los líderes del sindicato (-30 moral, -10k CC)' },
   ];
   return (
     <Card className="bg-destructive/5 border-destructive/20">
       <CardHeader>
         <CardTitle className="text-destructive">¡Evento de Crisis!</CardTitle>
         <CardDescription className="text-destructive/80">
-          Una huelga de trabajadores amenaza con paralizar la producción. Debes
-          tomar decisiones rápidas.
+          C1 - Huelga docente: La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Selecciona una o más opciones:</Label>
+          <Label>Selecciona una opción:</Label>
           {crisisOptions.map((option) => (
             <div key={option.id} className="flex items-center space-x-2">
               <Checkbox id={option.id} />

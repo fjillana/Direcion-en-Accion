@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z
@@ -26,6 +28,8 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,9 +40,18 @@ export function LoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock login logic
-    console.log(values);
-    // Here you would typically call Firebase Auth
+    // Mock login logic with test users
+    if (values.email === "estudiante@test.com" && values.password === "password") {
+      router.push("/student/dashboard");
+    } else if (values.email === "profesor@test.com" && values.password === "password") {
+      router.push("/teacher/dashboard");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error de autenticación",
+        description: "Correo electrónico o contraseña incorrectos.",
+      });
+    }
   }
 
   const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (

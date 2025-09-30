@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -64,7 +65,7 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
     setTimeout(() => {
       // In a real scenario, this would be re-enabled
       // once all teams have submitted their new decisions.
-      // For now, we'll just keep it disabled.
+      setIsProcessing(false);
     }, 5000);
   };
 
@@ -296,6 +297,8 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
       ]
     },
   ];
+  
+  const id = params.id;
 
   return (
     <>
@@ -306,7 +309,7 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
               Simulación de Negocios 101
             </h1>
             <p className="text-muted-foreground">
-              Ronda 3 - Juego ID: {params.id}
+              Ronda 3 - Juego ID: {id}
             </p>
           </div>
           <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
@@ -448,4 +451,3 @@ export default function GameDetailsPage({ params }: { params: { id: string } }) 
     </>
   );
 }
-

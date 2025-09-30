@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   Card,
   CardContent,
@@ -14,20 +17,48 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import { Separator } from "../ui/separator";
 
-type CatalogItem = {
+type Investment = {
   id: string;
   name: string;
   description: string;
   cost?: number;
 };
+
+type CrisisOption = {
+  label: string;
+  effect: string;
+};
+
+export type Crisis = {
+  id: string;
+  name: string;
+  description: string;
+  options: CrisisOption[];
+  cost?: never; // Ensure crisis doesn't have a cost property
+};
+
+type CatalogItem = Investment | Crisis;
 
 interface CatalogEditorProps {
   title: string;
@@ -42,69 +73,143 @@ export function CatalogEditor({
   data,
   type,
 }: CatalogEditorProps) {
+  const [items, setItems] = useState(data);
+  const [isAddDialogOpen, setAddDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+
+  const handleRowClick = (item: CatalogItem) => {
+    if (type === "crisis") {
+      setSelectedItem(item);
+      setDetailDialogOpen(true);
+    }
+  };
+
+  const isCrisis = (item: CatalogItem): item is Crisis => {
+    return type === 'crisis' && 'options' in item;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>{description}</CardDescription>
+            </div>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Añadir Nuevo
+            </Button>
           </div>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Añadir Nuevo
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripción</TableHead>
-              {type === "investment" && (
-                <TableHead className="text-right">Costo</TableHead>
-              )}
-              <TableHead className="w-[50px]">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {item.description}
-                </TableCell>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableCell className="text-right">
-                    ${item.cost?.toLocaleString()}
-                  </TableCell>
+                  <TableHead className="text-right">Costo</TableHead>
                 )}
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" /> Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Borrar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                <TableHead className="w-[50px]">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id} onClick={() => handleRowClick(item)} className={type === 'crisis' ? 'cursor-pointer' : ''}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {item.description}
+                  </TableCell>
+                  {type === "investment" && 'cost' in item && (
+                    <TableCell className="text-right">
+                      ${item.cost?.toLocaleString()}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                         {type === 'crisis' && <DropdownMenuItem onClick={() => handleRowClick(item)}>
+                           <Eye className="mr-2 h-4 w-4" /> Ver
+                         </DropdownMenuItem>}
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" /> Borrar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      
+      {/* Add/Edit Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Añadir Nuevo Evento de Crisis</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">Nombre</Label>
+              <Input id="name" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">Descripción</Label>
+              <Textarea id="description" className="col-span-3" />
+            </div>
+            {/* Form fields for options would go here */}
+          </div>
+          <DialogFooter>
+            <Button type="submit">Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Detail Dialog for Crisis */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          {selectedItem && isCrisis(selectedItem) && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedItem.name}</DialogTitle>
+                <DialogDescription>
+                  {selectedItem.description}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <h4 className="font-semibold">Opciones de Respuesta:</h4>
+                <div className="space-y-3">
+                  {selectedItem.options.map((option, index) => (
+                    <div key={index} className="p-3 bg-muted/50 rounded-md">
+                      <p className="font-medium">{index + 1}. {option.label}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+               <DialogFooter>
+                <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>Cerrar</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

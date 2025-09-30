@@ -25,8 +25,14 @@ const formSchema = z.object({
   publicLeaderboard: z.boolean(),
 });
 
-export function GameConfigForm() {
-  const form = useForm<z.infer<typeof formSchema>>({
+export type GameConfig = z.infer<typeof formSchema>;
+
+interface GameConfigFormProps {
+  onCreateGame: (data: GameConfig) => void;
+}
+
+export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
+  const form = useForm<GameConfig>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       gameName: "",
@@ -38,9 +44,8 @@ export function GameConfigForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Here you would typically create the game in the database
+  function onSubmit(values: GameConfig) {
+    onCreateGame(values);
   }
 
   return (

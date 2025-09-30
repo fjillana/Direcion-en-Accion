@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GameConfigForm } from "@/components/teacher/game-config-form";
+import { GameConfigForm, GameConfig } from "@/components/teacher/game-config-form";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import {
@@ -19,31 +21,55 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+
+const initialGames: Game[] = [
+  {
+    id: "1",
+    name: "Simulación de Negocios 101",
+    round: 3,
+    teams: 5,
+    status: "En curso",
+  },
+  {
+    id: "2",
+    name: "Marketing Avanzado",
+    round: 5,
+    teams: 4,
+    status: "En curso",
+  },
+  {
+    id: "3",
+    name: "Gestión Financiera",
+    round: 8,
+    teams: 6,
+    status: "Finalizado",
+  },
+];
+
+interface Game {
+  id: string;
+  name: string;
+  round: number;
+  teams: number;
+  status: "En curso" | "Finalizado";
+}
 
 export default function TeacherDashboard() {
-  const games = [
-    {
-      id: "1",
-      name: "Simulación de Negocios 101",
-      round: 3,
-      teams: 5,
+  const [games, setGames] = useState<Game[]>(initialGames);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleCreateGame = (data: GameConfig) => {
+    const newGame: Game = {
+      id: (games.length + 1).toString(),
+      name: data.gameName,
+      round: 1,
+      teams: data.numTeams,
       status: "En curso",
-    },
-    {
-      id: "2",
-      name: "Marketing Avanzado",
-      round: 5,
-      teams: 4,
-      status: "En curso",
-    },
-    {
-      id: "3",
-      name: "Gestión Financiera",
-      round: 8,
-      teams: 6,
-      status: "Finalizado",
-    },
-  ];
+    };
+    setGames((prevGames) => [...prevGames, newGame]);
+    setDialogOpen(false);
+  };
 
   return (
     <>
@@ -51,7 +77,7 @@ export default function TeacherDashboard() {
         <h1 className="text-2xl font-bold tracking-tight font-headline">
           Mis Juegos
         </h1>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -65,7 +91,7 @@ export default function TeacherDashboard() {
                 Define los parámetros para tu nueva simulación de negocios.
               </DialogDescription>
             </DialogHeader>
-            <GameConfigForm />
+            <GameConfigForm onCreateGame={handleCreateGame} />
           </DialogContent>
         </Dialog>
       </div>

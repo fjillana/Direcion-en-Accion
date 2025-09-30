@@ -38,11 +38,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Separator } from "../ui/separator";
 
-type Investment = {
+export type Investment = {
   id: string;
   name: string;
   description: string;
-  cost?: number;
+  costRange: string;
+  effect: string;
 };
 
 type CrisisOption = {
@@ -79,14 +80,16 @@ export function CatalogEditor({
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
 
   const handleRowClick = (item: CatalogItem) => {
-    if (type === "crisis") {
-      setSelectedItem(item);
-      setDetailDialogOpen(true);
-    }
+    setSelectedItem(item);
+    setDetailDialogOpen(true);
   };
 
   const isCrisis = (item: CatalogItem): item is Crisis => {
     return type === 'crisis' && 'options' in item;
+  }
+  
+  const isInvestment = (item: CatalogItem): item is Investment => {
+    return type === 'investment' && 'costRange' in item;
   }
 
   return (
@@ -111,7 +114,7 @@ export function CatalogEditor({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableHead className="text-right">Costo</TableHead>
+                  <TableHead className="text-right">Rango de Coste (CC)</TableHead>
                 )}
                 <TableHead className="w-[50px]">
                   <span className="sr-only">Actions</span>
@@ -120,28 +123,28 @@ export function CatalogEditor({
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item.id} onClick={() => handleRowClick(item)} className={type === 'crisis' ? 'cursor-pointer' : ''}>
+                <TableRow key={item.id} onClick={() => handleRowClick(item)} className="cursor-pointer">
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {item.description}
                   </TableCell>
-                  {type === "investment" && 'cost' in item && (
-                    <TableCell className="text-right">
-                      ${item.cost?.toLocaleString()}
+                  {type === "investment" && isInvestment(item) && (
+                    <TableCell className="text-right font-mono">
+                      {item.costRange}
                     </TableCell>
                   )}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                         {type === 'crisis' && <DropdownMenuItem onClick={() => handleRowClick(item)}>
+                         <DropdownMenuItem onClick={() => handleRowClick(item)}>
                            <Eye className="mr-2 h-4 w-4" /> Ver
-                         </DropdownMenuItem>}
+                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
@@ -162,7 +165,7 @@ export function CatalogEditor({
       <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Añadir Nuevo Evento de Crisis</DialogTitle>
+            <DialogTitle>Añadir Nuevo Evento de {type === 'crisis' ? 'Crisis' : 'Inversión'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -173,7 +176,7 @@ export function CatalogEditor({
               <Label htmlFor="description" className="text-right">Descripción</Label>
               <Textarea id="description" className="col-span-3" />
             </div>
-            {/* Form fields for options would go here */}
+            {/* Form fields for options/effects would go here */}
           </div>
           <DialogFooter>
             <Button type="submit">Guardar</Button>
@@ -181,10 +184,10 @@ export function CatalogEditor({
         </DialogContent>
       </Dialog>
       
-      {/* Detail Dialog for Crisis */}
+      {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="sm:max-w-2xl">
-          {selectedItem && isCrisis(selectedItem) && (
+          {selectedItem && (
             <>
               <DialogHeader>
                 <DialogTitle>{selectedItem.name}</DialogTitle>
@@ -192,17 +195,33 @@ export function CatalogEditor({
                   {selectedItem.description}
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <h4 className="font-semibold">Opciones de Respuesta:</h4>
-                <div className="space-y-3">
-                  {selectedItem.options.map((option, index) => (
-                    <div key={index} className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">{index + 1}. {option.label}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
-                    </div>
-                  ))}
+              
+              {isInvestment(selectedItem) && (
+                <div className="space-y-4 py-4">
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <p className="font-medium">Coste (CC)</p>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedItem.costRange}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <p className="font-medium">Efecto en XP / Moral</p>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedItem.effect}</p>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {isCrisis(selectedItem) && (
+                <div className="space-y-4 py-4">
+                  <h4 className="font-semibold">Opciones de Respuesta:</h4>
+                  <div className="space-y-3">
+                    {selectedItem.options.map((option, index) => (
+                      <div key={index} className="p-3 bg-muted/50 rounded-md">
+                        <p className="font-medium">{index + 1}. {option.label}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
                <DialogFooter>
                 <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>Cerrar</Button>
               </DialogFooter>

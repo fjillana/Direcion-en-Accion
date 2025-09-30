@@ -45,6 +45,7 @@ export type Investment = {
   description: string;
   costRange: string;
   effect: string;
+  cost?: number;
 };
 
 type CrisisOption = {
@@ -83,6 +84,7 @@ export function CatalogEditor({
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+  const [selectedCatalogItems, setSelectedCatalogItems] = useState<string[]>([]);
 
   const handleRowClick = (item: CatalogItem) => {
     setSelectedItem(item);
@@ -103,8 +105,23 @@ export function CatalogEditor({
     return 'costRange' in item;
   }
 
+  const handleAddSelected = () => {
+    const itemsToAdd = fullCatalog.filter(item => selectedCatalogItems.includes(item.id));
+    const newItems = itemsToAdd.filter(itemToAdd => !items.some(existingItem => existingItem.id === itemToAdd.id));
+    setItems(prevItems => [...prevItems, ...newItems]);
+    setSelectedCatalogItems([]);
+    setAddDialogOpen(false);
+  };
+
+  const handleCheckboxChange = (itemId: string, checked: boolean) => {
+    setSelectedCatalogItems(prev => 
+      checked ? [...prev, itemId] : prev.filter(id => id !== itemId)
+    );
+  };
+
+
   const AddFromCatalogDialog = () => (
-    <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
+    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if(!open) setSelectedCatalogItems([]); }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Añadir {type === 'crisis' ? 'Crisis' : 'Inversiones'} desde el Catálogo</DialogTitle>
@@ -114,24 +131,32 @@ export function CatalogEditor({
         </DialogHeader>
         <ScrollArea className="h-96">
           <div className="space-y-4 p-4">
-            {fullCatalog.map((item) => (
+            {fullCatalog.map((item) => {
+              const isInGame = items.some(gameItem => gameItem.id === item.id);
+              return (
               <div key={item.id} className="flex items-start space-x-3">
-                <Checkbox id={`cat-${item.id}`} className="mt-1"/>
+                <Checkbox 
+                  id={`cat-${item.id}`} 
+                  className="mt-1"
+                  onCheckedChange={(checked) => handleCheckboxChange(item.id, !!checked)}
+                  checked={selectedCatalogItems.includes(item.id)}
+                  disabled={isInGame}
+                />
                 <div className="grid gap-1.5 leading-none">
-                  <label htmlFor={`cat-${item.id}`} className="font-medium cursor-pointer">
-                    {item.name}
+                  <label htmlFor={`cat-${item.id}`} className={`font-medium cursor-pointer ${isInGame ? 'text-muted-foreground' : ''}`}>
+                    {item.name} {isInGame && "(ya en la partida)"}
                   </label>
                   <p className="text-sm text-muted-foreground">
                     {item.description}
                   </p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </ScrollArea>
         <DialogFooter>
           <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={() => setAddDialogOpen(false)}>Añadir Seleccionados</Button>
+          <Button onClick={handleAddSelected}>Añadir Seleccionados</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -266,10 +291,10 @@ export function CatalogEditor({
               
               {isInvestment(selectedItem) && (
                 <div className="space-y-4 py-4">
-                   { 'cost' in selectedItem &&
+                   { 'cost' in selectedItem && selectedItem.cost !== undefined &&
                     <div className="p-3 bg-muted/50 rounded-md">
                       <p className="font-medium">Coste (CC)</p>
-                      <p className="text-sm text-muted-foreground mt-1">{(selectedItem as any).cost.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{selectedItem.cost.toLocaleString()}</p>
                     </div>
                   }
                   { 'costRange' in selectedItem &&

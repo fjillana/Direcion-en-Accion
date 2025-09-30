@@ -65,28 +65,56 @@ const teamsData: Team[] = [
     name: "Equipo Delta",
     xp: 1800,
     kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5 },
-    strategicGoals: { cash: { target: 40000, operator: "min" }, nma: { target: 8.5, operator: "min" }, morale: { target: 80, operator: "min" } },
+    strategicGoals: { 
+      cash: { target: 40000, operator: "min" }, 
+      personnelCost: { target: 70, operator: "max" },
+      nma: { target: 8.5, operator: "min" },
+      marketShare: { target: 14, operator: "min" },
+      morale: { target: 80, operator: "min" },
+      studentTeacherRatio: { target: 24, operator: "max" }
+    },
   },
   {
     rank: 2,
     name: "Equipo Beta",
     xp: 1500,
     kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0 },
-    strategicGoals: { personnelCost: { target: 75, operator: "max" }, studentTeacherRatio: { target: 24, operator: "max" } },
+    strategicGoals: { 
+      cash: { target: 25000, operator: "min" },
+      personnelCost: { target: 75, operator: "max" },
+      nma: { target: 8.2, operator: "min" },
+      marketShare: { target: 12, operator: "min" },
+      morale: { target: 75, operator: "min" },
+      studentTeacherRatio: { target: 24.5, operator: "max" }
+    },
   },
   {
     rank: 3,
     name: "Equipo Alfa",
     xp: 1200,
     kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1 },
-    strategicGoals: { cash: { target: 16000, operator: "range", range_max: 32000 }, morale: { target: 70, operator: "min" } },
+    strategicGoals: { 
+      cash: { target: 16000, operator: "range", range_max: 32000 }, 
+      personnelCost: { target: 78, operator: "max" },
+      nma: { target: 8.0, operator: "min" },
+      marketShare: { target: 11, operator: "min" },
+      morale: { target: 70, operator: "min" },
+      studentTeacherRatio: { target: 25, operator: "max" }
+    },
   },
   {
     rank: 4,
     name: "Equipo Gamma",
     xp: 950,
     kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8 },
-    strategicGoals: { nma: { target: 8.0, operator: "min" }, personnelCost: { target: 80, operator: "max" } },
+    strategicGoals: { 
+      cash: { target: 10000, operator: "min" },
+      personnelCost: { target: 80, operator: "max" },
+      nma: { target: 8.0, operator: "min" },
+      marketShare: { target: 10, operator: "min" },
+      morale: { target: 68, operator: "min" },
+      studentTeacherRatio: { target: 26, operator: "max" }
+    },
   },
 ].sort((a, b) => b.xp - a.xp);
 
@@ -104,7 +132,10 @@ function getProgress(value: number, goal: StrategicGoal): number {
     return Math.min((value / goal.target) * 100, 100);
   }
   if (goal.operator === 'max') {
-    return Math.min((goal.target / value) * 100, 100);
+    if (value > goal.target) {
+        return Math.max(100 - ((value - goal.target) / goal.target) * 100, 0)
+    }
+    return 100;
   }
   if (goal.operator === 'range' && goal.range_max) {
       if(value < goal.target) return 0;
@@ -216,20 +247,21 @@ export default function TeacherLeaderboardPage() {
                 <TableBody>
                   {teamsForStrategicView.flatMap(team =>
                      Object.entries(team.strategicGoals).map(([key, goal]) => {
+                       if (!goal) return null;
                        const kpiKey = key as keyof TeamKPIs;
                        const kpiInfo = kpiConfig[kpiKey];
                        const currentValue = team.kpis[kpiKey];
-                       const progress = getProgress(currentValue, goal!);
+                       const progress = getProgress(currentValue, goal);
 
                        return (
                          <TableRow key={`${team.name}-${key}`}>
                            <TableCell className="font-medium">{team.name}</TableCell>
                            <TableCell>{kpiInfo.label}</TableCell>
-                           <TableCell className="font-mono">{goal!.operator === 'range' ? `${kpiInfo.format(goal!.target)} - ${kpiInfo.format(goal!.range_max!)}` : `${goal!.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal!.target)}`}</TableCell>
+                           <TableCell className="font-mono">{goal.operator === 'range' ? `${kpiInfo.format(goal.target)} - ${kpiInfo.format(goal.range_max!)}` : `${goal.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal.target)}`}</TableCell>
                            <TableCell className="font-mono">{kpiInfo.format(currentValue)}</TableCell>
                            <TableCell>
                              <div className="flex items-center gap-2">
-                               <Progress value={progress} className="w-full" />
+                               <Progress value={progress} className="w-[100px]" />
                                <span className="text-xs font-mono text-muted-foreground">{Math.round(progress)}%</span>
                              </div>
                            </TableCell>
@@ -282,3 +314,5 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
+
+    

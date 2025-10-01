@@ -35,7 +35,7 @@ export default function Home() {
             <AuthPage />
         </div>
       </div>
-      <div className="hidden lg:block relative">
+      <div className="relative hidden lg:block">
         <Image
           src="https://picsum.photos/seed/business-landing/1200/1800"
           alt="Business simulation"

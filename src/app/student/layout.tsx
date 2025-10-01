@@ -22,7 +22,8 @@ import {
   Briefcase,
   Award,
   DollarSign,
-  HeartHandshake
+  HeartHandshake,
+  Inbox
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/decisions", label: "Decisiones", icon: ClipboardList },
     { href: "/student/report", label: "Reporte de Ronda", icon: Library },
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
+    { href: "/student/inbox", label: "Inbox", icon: Inbox },
   ];
 
   return (

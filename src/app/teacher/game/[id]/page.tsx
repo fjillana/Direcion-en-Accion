@@ -263,12 +263,11 @@ export default function GameDetailsPage() {
   
   useEffect(() => {
     if (game && parseInt(currentRoundTab) <= game.round) {
-      if (game.performance && game.performance[parseInt(currentRoundTab)]) {
-        setMonitoringData(game.performance[parseInt(currentRoundTab)]);
+      const performanceForRound = game.performance?.[parseInt(currentRoundTab)];
+      if (performanceForRound) {
+        setMonitoringData(performanceForRound);
       } else {
-        // Fallback to initial data for rounds that might not have been processed, for demo purposes
-        const shuffledData = [...initialTeamsData].sort(() => Math.random() - 0.5);
-        setMonitoringData(shuffledData);
+        setMonitoringData([]);
       }
     } else {
       setMonitoringData([]);
@@ -438,7 +437,7 @@ export default function GameDetailsPage() {
             </Card>
           </TabsContent>
           <TabsContent value="reports">
-            <AIReportForm teamsData={initialTeamsData} />
+            <AIReportForm teamsData={monitoringData} />
           </TabsContent>
           <TabsContent value="config">
              <RoundConfig

@@ -126,7 +126,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   useEffect(() => {
     if (activeGame && selectedTeam) {
         const gameData = getGameById(activeGame.id);
-        const report = gameData?.reports?.[activeGame.round]?.[selectedTeam];
+        const report = gameData?.reports?.[activeGame.round-1]?.[selectedTeam];
         if (report) {
             setQualitativeAnalysis(report.qualitativeAnalysis || "");
             setDebriefingQuestions(report.debriefingQuestions || []);
@@ -138,8 +138,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             setDebriefingQuestions([]);
             setPedagogicalSuggestions("");
         }
+    } else if (teamsData.length > 0) {
+        setSelectedTeam(teamsData[0].name);
+    } else {
+        setSelectedTeam("");
     }
-  }, [selectedTeam, activeGame, getGameById]);
+  }, [selectedTeam, activeGame, getGameById, teamsData]);
 
 
   const handleGenerateReport = async () => {
@@ -152,7 +156,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     try {
       const result = await generateRoundReport({
         gameId: activeGame.id,
-        roundNumber: activeGame.round,
+        roundNumber: activeGame.round -1,
         teamPerformanceData: JSON.stringify(teamPerformance, null, 2),
         marketConditions: "Mercado estable, 50 nuevos alumnos disponibles.",
       });
@@ -187,10 +191,10 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       qualitativeAnalysis: qualitativeAnalysis,
       debriefingQuestions: debriefingQuestions,
       pedagogicalSuggestions: pedagogicalSuggestions,
-      round: activeGame.round,
+      round: activeGame.round - 1,
     };
     
-    updateReport(activeGame.id, activeGame.round, selectedTeam, fullReportData);
+    updateReport(activeGame.id, activeGame.round - 1, selectedTeam, fullReportData);
 
     toast({
       title: "Reporte Publicado",
@@ -211,7 +215,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {activeGame?.round || 'N/A'}.
+              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {activeGame?.round ? activeGame.round -1 : 'anterior'}.
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">

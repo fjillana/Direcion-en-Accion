@@ -188,8 +188,8 @@ export default function TeacherLeaderboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Ranking</TableHead>
                     <TableHead>Equipo</TableHead>
+                    <TableHead className="w-[80px]">Ranking en el mercado</TableHead>
                     <TableHead className="text-right">Alumnos</TableHead>
                     <TableHead className="text-right">Matrícula</TableHead>
                     <TableHead className="text-right">XP Total</TableHead>
@@ -199,8 +199,8 @@ export default function TeacherLeaderboardPage() {
                 <TableBody>
                   {teams.map((team, index) => (
                     <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
-                      <TableCell className="font-bold text-lg">{index + 1}</TableCell>
                       <TableCell className="font-medium">{team.name}</TableCell>
+                      <TableCell className="font-bold text-lg">{index + 1}</TableCell>
                       <TableCell className="text-right font-mono">{team.kpis.currentStudents}</TableCell>
                       <TableCell className="text-right font-mono">{team.kpis.tuitionPrice} CC</TableCell>
                       <TableCell className="text-right font-mono">
@@ -320,3 +320,5 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
+
+    

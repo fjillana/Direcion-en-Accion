@@ -39,22 +39,34 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(GAMES_STORAGE_KEY);
-      setGames(item ? JSON.parse(item) : initialGames);
-      const activeId = window.localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-      setActiveGameIdState(activeId ? JSON.parse(activeId) : null);
-    } catch (error) {
-      console.error(error);
-      setGames(initialGames);
+    // Ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+        try {
+            const item = window.localStorage.getItem(GAMES_STORAGE_KEY);
+            if (item) {
+                setGames(JSON.parse(item));
+            } else {
+                setGames(initialGames);
+            }
+            const activeId = window.localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+            setActiveGameIdState(activeId ? JSON.parse(activeId) : null);
+        } catch (error) {
+            console.error(error);
+            setGames(initialGames);
+        }
     }
   }, []);
 
   useEffect(() => {
-    try {
-        window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
-    } catch (error) {
-        console.error("Failed to save games to localStorage:", error);
+    if (typeof window !== 'undefined') {
+        try {
+            // Do not overwrite stored games with an empty array on initial render
+            if (games.length > 0 || localStorage.getItem(GAMES_STORAGE_KEY)) {
+                window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
+            }
+        } catch (error) {
+            console.error("Failed to save games to localStorage:", error);
+        }
     }
   }, [games]);
 
@@ -96,10 +108,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const setActiveGameId = useCallback((gameId: string | null) => {
     try {
-      if (gameId) {
-        window.localStorage.setItem(ACTIVE_GAME_ID_STORAGE_KEY, JSON.stringify(gameId));
-      } else {
-        window.localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
+      if (typeof window !== 'undefined') {
+        if (gameId) {
+          window.localStorage.setItem(ACTIVE_GAME_ID_STORAGE_KEY, JSON.stringify(gameId));
+        } else {
+          window.localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
+        }
       }
       setActiveGameIdState(gameId);
     } catch (error) {

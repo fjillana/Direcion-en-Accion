@@ -92,13 +92,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          <div className="mt-auto p-2">
+          <div className="mt-auto flex justify-center p-2">
             {studentGame?.status === 'joined' && (
                   <AlertDialog>
                       <AlertDialogTrigger asChild>
-                         <Button variant="destructive" className="w-full">
-                              <LogOut className="mr-2 h-4 w-4" />
-                              Abandonar Partida
+                         <Button variant="destructive" size="icon">
+                              <LogOut className="h-4 w-4" />
                           </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

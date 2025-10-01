@@ -1,4 +1,6 @@
 
+"use client";
+
 import {
   Card,
   CardContent,
@@ -6,10 +8,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm } from "@/components/student/crisis-form";
+import { useState } from "react";
+import { Lock } from "lucide-react";
 
 export default function StudentDashboard() {
+  const [roundConfirmed, setRoundConfirmed] = useState(false);
+
   return (
     <div className="space-y-6">
       <div>
@@ -38,8 +56,45 @@ export default function StudentDashboard() {
         <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
         <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
       </div>
-      <div>
-        <CrisisForm />
+      <Card>
+        <CardHeader>
+          <CardTitle>Finalizar Ronda</CardTitle>
+          <CardDescription>
+            Una vez que hayas tomado todas tus decisiones de inversión y respondido a la crisis, puedes finalizar la ronda. Esta acción es irreversible.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {roundConfirmed ? (
+             <div className="flex items-center justify-center p-8 rounded-lg bg-muted border border-dashed">
+                <div className="text-center">
+                    <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">Decisiones Enviadas</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Has confirmado tus decisiones para esta ronda. Espera a que el profesor procese los resultados.</p>
+                </div>
+            </div>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button className="w-full" size="lg">Finalizar y Confirmar Ronda</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro de que quieres finalizar la ronda?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción es irreversible. Una vez confirmes, no podrás cambiar tus decisiones de inversión ni tu respuesta a la crisis para esta ronda. Tus decisiones se enviarán al profesor para su procesamiento.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => setRoundConfirmed(true)}>Sí, finalizar ronda</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </CardContent>
+      </Card>
+      <div className="w-full">
+        <CrisisForm disabled={roundConfirmed} />
       </div>
     </div>
   );

@@ -13,7 +13,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-export function CrisisForm() {
+interface CrisisFormProps {
+  disabled?: boolean;
+}
+
+export function CrisisForm({ disabled = false }: CrisisFormProps) {
   const crisisOptions = [
     { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
     { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
@@ -29,31 +33,33 @@ export function CrisisForm() {
           C1 - Huelga docente: La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Selecciona una opción:</Label>
-          {crisisOptions.map((option) => (
-            <div key={option.id} className="flex items-center space-x-2">
-              <Checkbox id={option.id} />
-              <Label htmlFor={option.id} className="font-normal cursor-pointer">
-                {option.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="justification">Justifica tu elección:</Label>
-          <Textarea
-            id="justification"
-            placeholder="Explica el razonamiento detrás de tus decisiones..."
-          />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full" variant="destructive">
-          Confirmar Respuesta a la Crisis
-        </Button>
-      </CardFooter>
+      <fieldset disabled={disabled} className="group">
+        <CardContent className="space-y-4 group-disabled:opacity-50">
+          <div className="space-y-2">
+            <Label>Selecciona una opción:</Label>
+            {crisisOptions.map((option) => (
+              <div key={option.id} className="flex items-center space-x-2">
+                <Checkbox id={option.id} />
+                <Label htmlFor={option.id} className="font-normal cursor-pointer">
+                  {option.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="justification">Justifica tu elección:</Label>
+            <Textarea
+              id="justification"
+              placeholder="Explica el razonamiento detrás de tus decisiones..."
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="group-disabled:opacity-50">
+          <Button className="w-full" variant="destructive">
+            Confirmar Respuesta a la Crisis
+          </Button>
+        </CardFooter>
+      </fieldset>
     </Card>
   );
 }

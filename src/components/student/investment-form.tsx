@@ -26,7 +26,11 @@ const availableInvestments = [
 
 const teamCash = 65000;
 
-export function InvestmentForm() {
+interface InvestmentFormProps {
+  disabled?: boolean;
+}
+
+export function InvestmentForm({ disabled = false }: InvestmentFormProps) {
   const [selectedInvestments, setSelectedInvestments] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -39,7 +43,7 @@ export function InvestmentForm() {
   const canAfford = remainingCash >= 0;
 
   const handleCheckboxChange = (investmentId: string, checked: boolean) => {
-    if (confirmed) return;
+    if (confirmed || disabled) return;
     setSelectedInvestments(prev =>
       checked ? [...prev, investmentId] : prev.filter(id => id !== investmentId)
     );
@@ -54,9 +58,11 @@ export function InvestmentForm() {
     setConfirmed(false);
   };
 
+  const isEffectivelyDisabled = disabled || confirmed;
+
   return (
     <>
-      {confirmed && (
+      {confirmed && !disabled && (
         <Alert variant="default" className="mb-6 bg-emerald-50 border-emerald-200">
            <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
           <AlertTitle className="text-emerald-800">Decisiones Confirmadas</AlertTitle>
@@ -75,70 +81,71 @@ export function InvestmentForm() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Catálogo de Inversiones</CardTitle>
-            <CardDescription>
-              Selecciona las inversiones que tu equipo realizará en esta ronda.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {availableInvestments.map((inv) => (
-              <div
-                key={inv.id}
-                className={cn("flex items-start space-x-3 rounded-md border p-4", confirmed && 'bg-muted/50 opacity-70')}
-              >
-                <Checkbox
-                  id={inv.id}
-                  checked={selectedInvestments.includes(inv.id)}
-                  onCheckedChange={(checked) => handleCheckboxChange(inv.id, !!checked)}
-                  disabled={confirmed}
-                />
-                <div className="grid flex-1 gap-1.5 leading-none">
-                  <label htmlFor={inv.id} className="font-medium cursor-pointer">
-                    {inv.name}
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    Efecto: {inv.effect}
-                  </p>
+      <fieldset disabled={isEffectivelyDisabled} className="group">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 group-disabled:opacity-50">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Catálogo de Inversiones</CardTitle>
+              <CardDescription>
+                Selecciona las inversiones que tu equipo realizará en esta ronda.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {availableInvestments.map((inv) => (
+                <div
+                  key={inv.id}
+                  className={cn("flex items-start space-x-3 rounded-md border p-4", confirmed && 'bg-muted/50')}
+                >
+                  <Checkbox
+                    id={inv.id}
+                    checked={selectedInvestments.includes(inv.id)}
+                    onCheckedChange={(checked) => handleCheckboxChange(inv.id, !!checked)}
+                  />
+                  <div className="grid flex-1 gap-1.5 leading-none">
+                    <label htmlFor={inv.id} className="font-medium cursor-pointer">
+                      {inv.name}
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Efecto: {inv.effect}
+                    </p>
+                  </div>
+                  <div className="font-mono text-right">
+                      {inv.cost.toLocaleString('es-ES')} CC
+                  </div>
                 </div>
-                <div className="font-mono text-right">
-                    {inv.cost.toLocaleString('es-ES')} CC
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Resumen Financiero</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tesorería Disponible:</span>
-                        <span className="font-mono">{teamCash.toLocaleString('es-ES')} CC</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Coste Total Inversiones:</span>
-                        <span className="font-mono text-red-600">- {totalCost.toLocaleString('es-ES')} CC</span>
-                    </div>
-                     <div className="flex justify-between font-bold text-base pt-2 border-t">
-                        <span>Tesorería Restante:</span>
-                        <span className={cn("font-mono", !canAfford && "text-destructive")}>{remainingCash.toLocaleString('es-ES')} CC</span>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex-col gap-2">
-                    {confirmed ? (
-                        <Button onClick={handleRevert} className="w-full" variant="outline">Revertir Decisiones</Button>
-                    ) : (
-                        <Button onClick={handleConfirm} className="w-full" disabled={!canAfford || selectedInvestments.length === 0}>Confirmar Decisiones</Button>
-                    )}
-                </CardFooter>
-            </Card>
+              ))}
+            </CardContent>
+          </Card>
+          <div className="space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Resumen Financiero</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                      <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tesorería Disponible:</span>
+                          <span className="font-mono">{teamCash.toLocaleString('es-ES')} CC</span>
+                      </div>
+                       <div className="flex justify-between">
+                          <span className="text-muted-foreground">Coste Total Inversiones:</span>
+                          <span className="font-mono text-red-600">- {totalCost.toLocaleString('es-ES')} CC</span>
+                      </div>
+                       <div className="flex justify-between font-bold text-base pt-2 border-t">
+                          <span>Tesorería Restante:</span>
+                          <span className={cn("font-mono", !canAfford && "text-destructive")}>{remainingCash.toLocaleString('es-ES')} CC</span>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="flex-col gap-2">
+                      {confirmed ? (
+                          <Button onClick={handleRevert} className="w-full" variant="outline">Revertir Decisiones</Button>
+                      ) : (
+                          <Button onClick={handleConfirm} className="w-full" disabled={!canAfford || selectedInvestments.length === 0}>Confirmar Decisiones</Button>
+                      )}
+                  </CardFooter>
+              </Card>
+          </div>
         </div>
-      </div>
+      </fieldset>
     </>
   );
 }

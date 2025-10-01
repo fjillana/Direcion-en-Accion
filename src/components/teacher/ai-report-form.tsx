@@ -113,7 +113,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName>(teamsData.length > 0 ? teamsData[0].name : "");
+  const humanTeams = teamsData.filter(t => t.type === 'H');
+
+  const [selectedTeam, setSelectedTeam] = useState<TeamName>(humanTeams.length > 0 ? humanTeams[0].name : "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -128,7 +130,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   useEffect(() => {
     if (activeGame && selectedTeam) {
         const gameData = getGameById(activeGame.id);
-        const report = gameData?.reports?.[activeGame.round-1]?.[selectedTeam];
+        const round = activeGame.round ? activeGame.round - 1 : 0;
+        const report = gameData?.reports?.[round]?.[selectedTeam];
         if (report) {
             setQualitativeAnalysis(report.qualitativeAnalysis || "");
             setDebriefingQuestions(report.debriefingQuestions || []);
@@ -142,12 +145,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             setPedagogicalSuggestions("");
             setReportData(null);
         }
-    } else if (teamsData.length > 0) {
-        setSelectedTeam(teamsData[0].name);
+    } else if (humanTeams.length > 0) {
+        setSelectedTeam(humanTeams[0].name);
     } else {
         setSelectedTeam("");
     }
-  }, [selectedTeam, activeGame, getGameById, teamsData]);
+  }, [selectedTeam, activeGame, getGameById, humanTeams]);
 
 
   const handleGenerateReport = async () => {
@@ -168,7 +171,18 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       setQualitativeAnalysis(result.reporteCualitativo);
       setDebriefingQuestions(result.preguntasMayeuticas);
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
+      
+      const newReportData = {
+          ...initialReportData,
+          qualitativeAnalysis: result.reporteCualitativo,
+          debriefingQuestions: result.preguntasMayeuticas,
+          pedagogicalSuggestions: result.sugerenciasPedagogicas,
+          round: activeGame.round - 1,
+      };
+
+      setReportData(newReportData);
       setHasReport(true);
+
     } catch (error) {
       console.error("Error generating report:", error);
       toast({
@@ -189,13 +203,11 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const handlePublishReport = () => {
     if (!activeGame || !selectedTeam) return;
     
-    // We assemble the full report data to be saved.
     const fullReportData = {
-      ...initialReportData, // Using this as a base, should be dynamic in a real scenario
+      ...reportData,
       qualitativeAnalysis: qualitativeAnalysis,
       debriefingQuestions: debriefingQuestions,
       pedagogicalSuggestions: pedagogicalSuggestions,
-      round: activeGame.round - 1,
     };
     
     updateReport(activeGame.id, activeGame.round - 1, selectedTeam, fullReportData);
@@ -228,11 +240,11 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 <SelectValue placeholder="Seleccionar equipo" />
               </SelectTrigger>
               <SelectContent>
-                {teamsData.map((team) => (
-                  <SelectItem key={team.name} value={team.name} disabled={team.type === 'IA'}>
+                {humanTeams.length > 0 ? humanTeams.map((team) => (
+                  <SelectItem key={team.name} value={team.name}>
                     {team.name}
                   </SelectItem>
-                ))}
+                )) : <SelectItem value="" disabled>No hay equipos humanos</SelectItem>}
               </SelectContent>
             </Select>
           </div>
@@ -321,7 +333,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 ) : (
                 <div className="text-center py-10">
                     <p className="text-muted-foreground mb-4">
-                    Aún no se ha generado un reporte para {selectedTeam}.
+                    {selectedTeam ? `Aún no se ha generado un reporte para ${selectedTeam}.` : "Selecciona un equipo para generar un reporte."}
                     </p>
                     <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam}>
                     {isGenerating ? (
@@ -347,5 +359,3 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     </Card>
   );
 }
-
-    

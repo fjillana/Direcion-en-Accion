@@ -27,6 +27,9 @@ import { Label } from "@/components/ui/label";
 import { Wand2, Edit, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DebriefingQuestions } from "./debriefing-questions";
+
 
 type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
 
@@ -126,10 +129,10 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Wand2 className="text-primary" />
-              Reporte y Sugerencias (IA)
+              Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera o edita el informe de rendimiento para cada equipo para la Ronda {initialReportData.round}.
+              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {initialReportData.round}.
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">
@@ -149,155 +152,168 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {hasReport ? (
-          <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5']} className="w-full space-y-4">
-            
-            {/* Resumen Financiero */}
-            <AccordionItem value="item-1" className="border rounded-lg">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <h3 className="font-semibold text-lg">Resumen Financiero</h3>
-              </AccordionTrigger>
-              <AccordionContent className="px-4">
-                <div className="rounded-lg border p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><span>Ingresos:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.income)}</span></div>
-                  <div className="flex justify-between"><span>Coste Personal:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.personnelCost)}</span></div>
-                  <div className="flex justify-between"><span>Inversiones:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.investmentsCost)}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-2"><span>Resultado Ronda:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.roundResult)}</span></div>
-                  <div className="flex justify-between font-bold"><span>Tesorería Final:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.cashFlow)}</span></div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            {/* Detalle Financiero */}
-            <AccordionItem value="item-2" className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                    <h3 className="font-semibold text-lg">Detalle Financiero</h3>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 space-y-4">
-                    <div>
-                        <h4 className="font-medium mb-2">Ingresos</h4>
-                        <p className="text-sm text-muted-foreground">
-                            {initialReportData.financialDetail.numStudents} alumnos x {formatCurrency(initialReportData.financialDetail.tuitionPrice)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.income)}</span>
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="font-medium mb-2">Coste de Personal</h4>
-                        <p className="text-sm text-muted-foreground">
-                            {initialReportData.financialDetail.numTeachers} profesores x {formatCurrency(initialReportData.financialDetail.teacherCost)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.personnelCost)}</span>
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="font-medium mb-2">Inversiones Realizadas</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                            {initialReportData.financialDetail.investments.map(inv => (
-                                <li key={inv.name}>
-                                    <span className="font-semibold">{inv.name}</span> ({formatCurrency(inv.cost)}): <span className="text-muted-foreground">Impacto -> {inv.effect}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
+        <Tabs defaultValue="analysis" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="analysis">Análisis de Ronda</TabsTrigger>
+                <TabsTrigger value="debriefing">Debriefing IA</TabsTrigger>
+            </TabsList>
+            <TabsContent value="analysis">
+                 {hasReport ? (
+                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5']} className="w-full space-y-4 pt-4">
+                        
+                        {/* Resumen Financiero */}
+                        <AccordionItem value="item-1" className="border rounded-lg">
+                        <AccordionTrigger className="px-4 hover:no-underline">
+                            <h3 className="font-semibold text-lg">Resumen Financiero</h3>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4">
+                            <div className="rounded-lg border p-4 space-y-2 text-sm">
+                            <div className="flex justify-between"><span>Ingresos:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.income)}</span></div>
+                            <div className="flex justify-between"><span>Coste Personal:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.personnelCost)}</span></div>
+                            <div className="flex justify-between"><span>Inversiones:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.investmentsCost)}</span></div>
+                            <div className="flex justify-between font-bold border-t pt-2"><span>Resultado Ronda:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.roundResult)}</span></div>
+                            <div className="flex justify-between font-bold"><span>Tesorería Final:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.cashFlow)}</span></div>
+                            </div>
+                        </AccordionContent>
+                        </AccordionItem>
+                        
+                        {/* Detalle Financiero */}
+                        <AccordionItem value="item-2" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline">
+                                <h3 className="font-semibold text-lg">Detalle Financiero</h3>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                <div>
+                                    <h4 className="font-medium mb-2">Ingresos</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {initialReportData.financialDetail.numStudents} alumnos x {formatCurrency(initialReportData.financialDetail.tuitionPrice)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.income)}</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <h4 className="font-medium mb-2">Coste de Personal</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {initialReportData.financialDetail.numTeachers} profesores x {formatCurrency(initialReportData.financialDetail.teacherCost)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.personnelCost)}</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <h4 className="font-medium mb-2">Inversiones Realizadas</h4>
+                                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                                        {initialReportData.financialDetail.investments.map(inv => (
+                                            <li key={inv.name}>
+                                                <span className="font-semibold">{inv.name}</span> ({formatCurrency(inv.cost)}): <span className="text-muted-foreground">Impacto -> {inv.effect}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
 
-             {/* KPIs */}
-            <AccordionItem value="item-3" className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                    <h3 className="font-semibold text-lg">Análisis de KPIs</h3>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 space-y-4">
-                    {Object.entries(initialReportData.kpiAnalysis).map(([key, value]) => (
-                        <div key={key}>
-                            <h4 className="font-medium flex items-center gap-2 flex-wrap">
-                                {key === 'personnelCost' && 'Coste Personal / Ingresos'}
-                                {key === 'nma' && 'Nota Media Alumnado'}
-                                {key === 'marketShare' && 'Cuota de Mercado'}
-                                {key === 'morale' && 'Moral del Personal'}
-                                {key === 'studentTeacherRatio' && 'Ratio Alumnos/Profesor'}
-                                <Badge variant="secondary">{value.value}</Badge>
-                                {value.calculation && <Badge variant="outline" className="font-mono">{value.calculation}</Badge>}
-                            </h4>
-                            <p className="text-sm text-muted-foreground mt-1">{value.analysis}</p>
-                        </div>
-                    ))}
-                </AccordionContent>
-            </AccordionItem>
-            
-            {/* Captación y Capacidad */}
-            <AccordionItem value="item-4" className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                    <h3 className="font-semibold text-lg">Captación y Capacidad (IAM)</h3>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 space-y-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <p className="text-sm text-muted-foreground">IAM</p>
-                            <p className="text-2xl font-bold">{initialReportData.marketAttractiveness.iam}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Alumnos Captados</p>
-                            <p className="text-2xl font-bold text-emerald-600">{initialReportData.marketAttractiveness.newStudents}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Alumnos Perdidos</p>
-                            <p className="text-2xl font-bold text-red-600">{initialReportData.marketAttractiveness.lostStudents}</p>
-                        </div>
-                    </div>
-                     <div>
-                        <h4 className="font-medium">Análisis de Mercado</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{initialReportData.marketAttractiveness.analysis}</p>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
+                        {/* KPIs */}
+                        <AccordionItem value="item-3" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline">
+                                <h3 className="font-semibold text-lg">Análisis de KPIs</h3>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                {Object.entries(initialReportData.kpiAnalysis).map(([key, value]) => (
+                                    <div key={key}>
+                                        <h4 className="font-medium flex items-center gap-2 flex-wrap">
+                                            {key === 'personnelCost' && 'Coste Personal / Ingresos'}
+                                            {key === 'nma' && 'Nota Media Alumnado'}
+                                            {key === 'marketShare' && 'Cuota de Mercado'}
+                                            {key === 'morale' && 'Moral del Personal'}
+                                            {key === 'studentTeacherRatio' && 'Ratio Alumnos/Profesor'}
+                                            <Badge variant="secondary">{value.value}</Badge>
+                                            {value.calculation && <Badge variant="outline" className="font-mono">{value.calculation}</Badge>}
+                                        </h4>
+                                        <p className="text-sm text-muted-foreground mt-1">{value.analysis}</p>
+                                    </div>
+                                ))}
+                            </AccordionContent>
+                        </AccordionItem>
+                        
+                        {/* Captación y Capacidad */}
+                        <AccordionItem value="item-4" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline">
+                                <h3 className="font-semibold text-lg">Captación y Capacidad (IAM)</h3>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                <div className="grid grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">IAM</p>
+                                        <p className="text-2xl font-bold">{initialReportData.marketAttractiveness.iam}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Alumnos Captados</p>
+                                        <p className="text-2xl font-bold text-emerald-600">{initialReportData.marketAttractiveness.newStudents}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Alumnos Perdidos</p>
+                                        <p className="text-2xl font-bold text-red-600">{initialReportData.marketAttractiveness.lostStudents}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="font-medium">Análisis de Mercado</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">{initialReportData.marketAttractiveness.analysis}</p>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
 
-            {/* AI Qualitative Analysis */}
-            <AccordionItem value="item-5" className="border rounded-lg">
-                <AccordionTrigger className="px-4 hover:no-underline">
-                     <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias</h3>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="qualitative-analysis" className="text-base font-semibold sr-only">
-                            Análisis Cualitativo (sugerido por IA)
-                        </Label>
-                        <Textarea
-                            id="qualitative-analysis"
-                            value={reportText}
-                            onChange={(e) => setReportText(e.target.value)}
-                            readOnly={!isEditing}
-                            className="min-h-[150px] leading-relaxed bg-muted/50"
-                        />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                    {isEditing ? (
-                        <Button onClick={() => setIsEditing(false)}>
-                        <Check className="mr-2 h-4 w-4" /> Guardar Cambios
-                        </Button>
+                        {/* AI Qualitative Analysis */}
+                        <AccordionItem value="item-5" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline">
+                                <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias</h3>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="qualitative-analysis" className="text-base font-semibold sr-only">
+                                        Análisis Cualitativo (sugerido por IA)
+                                    </Label>
+                                    <Textarea
+                                        id="qualitative-analysis"
+                                        value={reportText}
+                                        onChange={(e) => setReportText(e.target.value)}
+                                        readOnly={!isEditing}
+                                        className="min-h-[150px] leading-relaxed bg-muted/50"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                {isEditing ? (
+                                    <Button onClick={() => setIsEditing(false)}>
+                                    <Check className="mr-2 h-4 w-4" /> Guardar Cambios
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" onClick={() => setIsEditing(true)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Editar
+                                    </Button>
+                                )}
+                                <Button>Publicar Reporte al Equipo</Button>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                ) : (
+                <div className="text-center py-10">
+                    <p className="text-muted-foreground mb-4">
+                    Aún no se ha generado un reporte para {selectedTeam}.
+                    </p>
+                    <Button onClick={handleGenerateReport} disabled={isGenerating}>
+                    {isGenerating ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                        <Button variant="outline" onClick={() => setIsEditing(true)}>
-                        <Edit className="mr-2 h-4 w-4" /> Editar
-                        </Button>
+                        <Wand2 className="mr-2 h-4 w-4" />
                     )}
-                    <Button>Publicar Reporte al Equipo</Button>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        ) : (
-          <div className="text-center py-10">
-            <p className="text-muted-foreground mb-4">
-              Aún no se ha generado un reporte para {selectedTeam}.
-            </p>
-            <Button onClick={handleGenerateReport} disabled={isGenerating}>
-              {isGenerating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="mr-2 h-4 w-4" />
-              )}
-              {isGenerating ? "Generando..." : `Generar Reporte para ${selectedTeam}`}
-            </Button>
-          </div>
-        )}
+                    {isGenerating ? "Generando..." : `Generar Reporte para ${selectedTeam}`}
+                    </Button>
+                </div>
+                )}
+            </TabsContent>
+            <TabsContent value="debriefing">
+                <DebriefingQuestions />
+            </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
 }
+
+    

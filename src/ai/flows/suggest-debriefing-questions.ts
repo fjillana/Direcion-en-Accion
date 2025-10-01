@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -25,7 +26,7 @@ export type SuggestDebriefingQuestionsInput = z.infer<
 const SuggestDebriefingQuestionsOutputSchema = z.object({
   debriefingQuestions: z
     .array(z.string())
-    .describe('A list of thought-provoking debriefing questions.'),
+    .describe('A list of 3-4 thought-provoking mayeutic questions.'),
   pedagogicalSuggestions: z
     .string()
     .describe('Pedagogical suggestions for the teacher.'),
@@ -44,11 +45,13 @@ const prompt = ai.definePrompt({
   name: 'suggestDebriefingQuestionsPrompt',
   input: {schema: SuggestDebriefingQuestionsInputSchema},
   output: {schema: SuggestDebriefingQuestionsOutputSchema},
-  prompt: `You are an experienced business educator. Based on the following simulation results, suggest thought-provoking debriefing questions and pedagogical suggestions for the teacher.
+  prompt: `You are an experienced business educator. Based on the following simulation results, suggest 3-4 thought-provoking mayeutic questions and pedagogical suggestions for the teacher.
+
+The questions should be open-ended and encourage students to reflect on their decisions, analyze the consequences, and connect them to business management concepts.
 
 Simulation Results: {{{simulationResults}}}
 
-Debriefing Questions: (list 3-5 questions to encourage reflection and deeper understanding)
+Debriefing Questions: (list 3-4 questions)
 Pedagogical Suggestions: (Provide suggestions on how the teacher can use the simulation results to improve their teaching methods)`,
 });
 
@@ -63,3 +66,5 @@ const suggestDebriefingQuestionsFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

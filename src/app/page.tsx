@@ -5,7 +5,7 @@ import { Briefcase, Target, Users, Wand2 } from "lucide-react";
 export default function Home() {
   return (
     <main className="flex min-h-screen">
-      <div className="flex-1 lg:w-1/2 flex flex-col items-center justify-center p-8 bg-background">
+      <div className="lg:w-1/2 flex flex-col items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-4">
                 <div className="flex items-center justify-center size-14 rounded-2xl bg-primary text-primary-foreground">

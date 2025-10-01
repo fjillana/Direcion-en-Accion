@@ -33,6 +33,7 @@ import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
 import { XpSummary, XpData } from "@/components/student/xp-summary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useStudentGame } from "@/hooks/useStudentGame";
 
 const kpiHistoryData = {
   cash: [
@@ -162,27 +163,12 @@ const currentCrisis: CrisisProps = {
 };
 
 export default function StudentDashboard() {
+  const { studentGame, setRoundDecisions } = useStudentGame();
   const [roundConfirmed, setRoundConfirmed] = useState(false);
-  const [selectedInvestments, setSelectedInvestments] = useState<string[]>([]);
-  const [selectedCenterActions, setSelectedCenterActions] = useState<string[]>([]);
-  const [tuitionPrice, setTuitionPrice] = useState(120);
 
-  const centerActionsCosts = {
-    'P2': 7500, // Contratar Docente
-    'P7': 7500, // Despedir Docente
-    'F5': 50000, // Ampliación de Aulas
-  };
-
-  const investmentCosts = selectedInvestments.reduce((acc, id) => {
-    const investment = availableInvestments.find(inv => inv.id === id);
-    return acc + (investment?.cost || 0);
-  }, 0);
-  
-  const centerActionCosts = selectedCenterActions.reduce((acc, id) => {
-    return acc + (centerActionsCosts[id as keyof typeof centerActionsCosts] || 0);
-  }, 0);
-
-  const totalCost = investmentCosts + centerActionCosts;
+  // All decision state is now managed by the useStudentGame hook
+  const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
+  const tuitionPrice = studentGame?.decisions?.tuitionPrice || 120;
   
   return (
     <StudentGate>
@@ -343,18 +329,11 @@ export default function StudentDashboard() {
         <CenterDataForm 
           disabled={roundConfirmed} 
           selectedActions={selectedCenterActions}
-          onActionChange={setSelectedCenterActions}
+          onActionChange={(actions) => setRoundDecisions({ selectedCenterActions: actions })}
           tuitionPrice={tuitionPrice}
-          onPriceChange={setTuitionPrice}
+          onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
         />
         
-        <InvestmentForm 
-          disabled={roundConfirmed}
-          selectedInvestments={selectedInvestments}
-          onInvestmentChange={setSelectedInvestments}
-          totalOtherCosts={centerActionCosts}
-        />
-
         <div className="w-full">
           <CrisisForm disabled={roundConfirmed} {...currentCrisis} />
         </div>

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
@@ -10,6 +11,12 @@ const CURRENT_USER_ID = "student-beta";
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
+interface RoundDecisions {
+  selectedInvestments: string[];
+  selectedCenterActions: string[];
+  tuitionPrice: number;
+}
+
 export interface StudentGameState {
   userId: string;
   status: StudentGameStatus;
@@ -17,6 +24,7 @@ export interface StudentGameState {
   gameName: string | null;
   teamName: string | null;
   round?: number;
+  decisions?: RoundDecisions;
 }
 
 interface StudentGameContextType {
@@ -27,6 +35,7 @@ interface StudentGameContextType {
   checkGameStatus: () => void;
   updateStudentGame: (userId: string, updatedState: Partial<StudentGameState>) => void;
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
+  setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
 }
 
 const StudentGameContext = createContext<StudentGameContextType | undefined>(undefined);
@@ -39,6 +48,11 @@ const initialStudentState: StudentGameState = {
   gameId: null,
   gameName: null,
   teamName: null,
+  decisions: {
+    selectedInvestments: [],
+    selectedCenterActions: [],
+    tuitionPrice: 120,
+  }
 };
 
 export function StudentGameProvider({ children }: { children: ReactNode }) {
@@ -69,11 +83,27 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return null;
   }, []);
 
+  const setRoundDecisions = (decisions: Partial<RoundDecisions>) => {
+    setStudentGame(prev => {
+      if (!prev) return null;
+      const newDecisions = { ...(prev.decisions || initialStudentState.decisions), ...decisions };
+      const newState = { ...prev, decisions: newDecisions };
+      localStorage.setItem(STUDENT_GAME_STORAGE_KEY, JSON.stringify(newState));
+      return newState;
+    });
+  };
+
 
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(STUDENT_GAME_STORAGE_KEY);
-      setStudentGame(item ? JSON.parse(item) : initialStudentState);
+      const storedState = item ? JSON.parse(item) : initialStudentState;
+      // Ensure decisions object exists
+      if (!storedState.decisions) {
+        storedState.decisions = initialStudentState.decisions;
+      }
+      setStudentGame(storedState);
+
     } catch (error) {
       console.error(error);
       setStudentGame(initialStudentState);
@@ -84,6 +114,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const requestToJoinGame = (gameId: string, gameName: string, teamName: string) => {
     const newState: StudentGameState = {
+      ...initialStudentState,
       userId: CURRENT_USER_ID,
       status: 'pending',
       gameId,
@@ -122,7 +153,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <StudentGameContext.Provider value={{ studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId }}>
+    <StudentGameContext.Provider value={{ studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions }}>
       {children}
     </StudentGameContext.Provider>
   );

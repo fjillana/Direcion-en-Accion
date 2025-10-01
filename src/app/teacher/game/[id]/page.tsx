@@ -36,6 +36,9 @@ import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
 import type { Game } from "@/hooks/use-games";
+import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 
 type TeamDecision = {
@@ -48,15 +51,116 @@ type TeamDecision = {
   };
 };
 
-type Team = {
+type TeamPerformance = {
   name: "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta";
-  peb: number;
-  xp: number;
-  grade: number;
-  price: number;
-  marketing: number;
+  finances: { peb: number; xp: number; pebBreakdown: string[] };
+  reputation: { peb: number; xp: number; pebBreakdown: string[] };
+  morale: { peb: number; xp: number; pebBreakdown: string[] };
+  totalXp: number;
   decisions: TeamDecision;
+  strategicPlan: {
+    kpiTargets: string[];
+    rankingGoal: string;
+    pricingPolicy: string;
+  }
 };
+
+const teamsData: TeamPerformance[] = [
+  {
+    name: "Equipo Alfa",
+    finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 98 PEB"] },
+    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 95 PEB", "Cuota Mercado (12%): 85 PEB"] },
+    morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
+    totalXp: 51,
+    decisions: {
+      investments: [
+        { name: "Formación docente", cost: 10000 },
+        { name: "Campaña publicitaria en redes", cost: 5000 },
+      ],
+      tuitionPrice: 125,
+      crisisResponse: {
+        crisisName: "Huelga docente",
+        option: "Recurrir a mediadores externos",
+        justification: "Buscamos una solución negociada y menos costosa a corto plazo para no impactar la tesorería."
+      }
+    },
+    strategicPlan: {
+      kpiTargets: ["Tesorería > 20k", "Coste Personal < 80%", "NMA > 8.0"],
+      rankingGoal: "Top 3",
+      pricingPolicy: "Premium, por encima de la media"
+    }
+  },
+  {
+    name: "Equipo Beta",
+    finances: { peb: 105, xp: 21, pebBreakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"] },
+    reputation: { peb: 110, xp: 22, pebBreakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"] },
+    morale: { peb: 98, xp: 20, pebBreakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"] },
+    totalXp: 63,
+    decisions: {
+      investments: [
+        { name: "Inversión en TIC", cost: 25000 },
+      ],
+      tuitionPrice: 118,
+      crisisResponse: {
+        crisisName: "Huelga docente",
+        option: "Negociar un acuerdo parcial",
+        justification: "Preferimos una solución intermedia para subir la moral sin comprometer demasiado el presupuesto de la ronda."
+      }
+    },
+    strategicPlan: {
+        kpiTargets: ["Tesorería > 30k", "Coste Personal < 75%", "NMA > 8.5"],
+        rankingGoal: "Top 2",
+        pricingPolicy: "Competitiva, en línea con la media"
+    }
+  },
+  {
+    name: "Equipo Gamma",
+    finances: { peb: 88, xp: 18, pebBreakdown: ["Tesorería (4%): 80 PEB", "Coste Personal (79%): 96 PEB"] },
+    reputation: { peb: 92, xp: 18, pebBreakdown: ["NMA (7.8): 90 PEB", "Cuota Mercado (11%): 94 PEB"] },
+    morale: { peb: 65, xp: 13, pebBreakdown: ["Moral (65%): 65 PEB", "Ratio Alumno/Prof (25.8): 92 PEB"] },
+    totalXp: 49,
+    decisions: {
+      investments: [
+        { name: "Mejora de instalaciones (patios, laboratorios)", cost: 15000 },
+      ],
+      tuitionPrice: 130,
+      crisisResponse: {
+        crisisName: "Huelga docente",
+        option: "Mantener la postura",
+        justification: "Creemos que ceder a las demandas sentaría un precedente negativo para futuras negociaciones."
+      }
+    },
+    strategicPlan: {
+        kpiTargets: ["Tesorería > 15k", "Coste Personal < 82%", "NMA > 7.8"],
+        rankingGoal: "No ser último",
+        pricingPolicy: "Premium, la más alta"
+    }
+  },
+  {
+    name: "Equipo Delta",
+    finances: { peb: 110, xp: 22, pebBreakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"] },
+    reputation: { peb: 115, xp: 23, pebBreakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"] },
+    morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"] },
+    totalXp: 65,
+    decisions: {
+      investments: [
+        { name: "Implantación de ERP", cost: 20000 },
+        { name: "Incremento salarial global (5-10 %)", cost: 12000 },
+      ],
+      tuitionPrice: 115,
+      crisisResponse: {
+        crisisName: "Huelga docente",
+        option: "Aceptar todas las demandas",
+        justification: "La moral es clave para la calidad educativa. Preferimos hacer la inversión para resolver la crisis de raíz y evitar futuras huelgas."
+      }
+    },
+    strategicPlan: {
+        kpiTargets: ["Tesorería > 50k", "Coste Personal < 70%", "NMA > 9.0"],
+        rankingGoal: "Ganar",
+        pricingPolicy: "Bajo coste para ganar mercado"
+    }
+  },
+];
 
 
 export default function GameDetailsPage() {
@@ -66,7 +170,10 @@ export default function GameDetailsPage() {
 
   const [game, setGame] = useState<Game | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<TeamPerformance | null>(null);
+  const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
+  const [isPebDetailOpen, setPebDetailOpen] = useState(false);
+  const [teacherNotes, setTeacherNotes] = useState("");
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
@@ -74,118 +181,45 @@ export default function GameDetailsPage() {
       setGame(foundGame);
     }
   }, [games, id]);
+  
+  useEffect(() => {
+    if (selectedTeam) {
+        // Here you would typically fetch notes for the selected team,
+        // for now we'll just reset it or load from a mock map.
+        setTeacherNotes(`Notas para ${selectedTeam.name}...`);
+    }
+  }, [selectedTeam])
 
   const handleProcessRound = () => {
     setIsProcessing(true);
     // Simulate processing time
     setTimeout(() => {
-      // In a real scenario, this would be re-enabled
-      // once all teams have submitted their new decisions.
-      // setIsProcessing(false);
+      // setIsProcessing(false); // Disabled for demo purposes
     }, 5000);
   };
+  
+  const handleTeamRowClick = (team: TeamPerformance) => {
+    setSelectedTeam(team);
+    // We can decide which dialog to open, or have separate triggers.
+    // For now, let's assume clicking the row shows PEB details.
+    setPebDetailOpen(true);
+  };
 
-  const teams: Team[] = [
-    {
-      name: "Equipo Alfa",
-      peb: 95,
-      xp: 1200,
-      grade: 8.5,
-      price: 102,
-      marketing: 5000,
-      decisions: {
-        investments: [
-          { name: "Formación docente", cost: 10000 },
-          { name: "Campaña publicitaria en redes", cost: 5000 },
-        ],
-        tuitionPrice: 125,
-        crisisResponse: {
-          crisisName: "Huelga docente",
-          option: "Recurrir a mediadores externos",
-          justification: "Buscamos una solución negociada y menos costosa a corto plazo para no impactar la tesorería."
-        }
-      }
-    },
-    {
-      name: "Equipo Beta",
-      peb: 105,
-      xp: 1500,
-      grade: 9.2,
-      price: 98,
-      marketing: 6000,
-      decisions: {
-        investments: [
-          { name: "Inversión en TIC", cost: 25000 },
-        ],
-        tuitionPrice: 118,
-        crisisResponse: {
-          crisisName: "Huelga docente",
-          option: "Negociar un acuerdo parcial",
-          justification: "Preferimos una solución intermedia para subir la moral sin comprometer demasiado el presupuesto de la ronda."
-        }
-      }
-    },
-    {
-      name: "Equipo Gamma",
-      peb: 88,
-      xp: 950,
-      grade: 7.8,
-      price: 110,
-      marketing: 4000,
-      decisions: {
-        investments: [
-          { name: "Mejora de instalaciones (patios, laboratorios)", cost: 15000 },
-        ],
-        tuitionPrice: 130,
-        crisisResponse: {
-          crisisName: "Huelga docente",
-          option: "Mantener la postura",
-          justification: "Creemos que ceder a las demandas sentaría un precedente negativo para futuras negociaciones."
-        }
-      }
-    },
-    {
-      name: "Equipo Delta",
-      peb: 110,
-      xp: 1800,
-      grade: 9.8,
-      price: 95,
-      marketing: 7500,
-      decisions: {
-        investments: [
-          { name: "Implantación de ERP", cost: 20000 },
-          { name: "Incremento salarial global (5-10 %)", cost: 12000 },
-        ],
-        tuitionPrice: 115,
-        crisisResponse: {
-          crisisName: "Huelga docente",
-          option: "Aceptar todas las demandas",
-          justification: "La moral es clave para la calidad educativa. Preferimos hacer la inversión para resolver la crisis de raíz y evitar futuras huelgas."
-        }
-      }
-    },
-  ];
-
+  const getPebColor = (peb: number) => {
+    if (peb > 100) return "text-emerald-600";
+    if (peb < 90) return "text-red-600";
+    return "text-foreground";
+  };
+  
   const fullInvestments: Investment[] = [
     { id: 'F1', name: 'Implantación de ERP', costRange: '15.000-30.000', description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes administrativos un 2 %.', effect: '+5 a +10 XP Finanzas' },
-    { id: 'F2', name: 'Contratación de asesoría financiera', costRange: '8.000-12.000', description: 'Apoyo experto para elaborar presupuestos y evaluar inversiones. Se contrata por ronda.', effect: '+3 a +8 XP Finanzas' },
     { id: 'R1', name: 'Campaña publicitaria en redes', costRange: '5.000-20.000', description: 'Mejora la visibilidad y atrae alumnos privados. Aumenta la cuota de mercado.', effect: '+2 a +10 XP Reputación' },
-    { id: 'R2', name: 'Inversión en TIC', costRange: '10.000-75.000', description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA y la moral.', effect: '+3 a +15 XP Reputación, +3 XP Personal' },
     { id: 'P1', name: 'Formación docente', costRange: '5.000-15.000', description: 'Cursos de actualización, metodologías innovadoras. Cuanto mayor es la inversión, mayor el impacto.', effect: '+5 XP Personal, +10-20 puntos de moral' },
-    { id: 'P2', name: 'Contratación docente', costRange: '7.500 por ronda', description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes.', effect: '+10 XP Personal, +15 puntos de moral' },
   ];
   const fullCrises: Crisis[] = [
     {
       id: 'C1', name: 'Huelga docente', description: 'La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza.',
       options: [ { label: 'Aceptar todas las demandas', effect: 'Impacto: −25.000 CC, +30 puntos de moral, la huelga termina inmediatamente; +5 XP Personal, −5 XP Finanzas' }, { label: 'Negociar un acuerdo parcial', effect: 'Impacto: −15.000 CC, +20 puntos de moral; huelga termina esta ronda; +3 XP Personal, −3 XP Finanzas' }, { label: 'Mantener la postura', effect: 'Impacto: huelga dura dos rondas; −20 XP en todas las áreas; moral se fija en 40; penalización severa en reputación' } ]
-    },
-    {
-      id: 'C4', name: 'Accidente en el centro', description: 'Un accidente leve (caída en el patio, inundación en un aula) genera críticas en redes sociales y preocupación de las familias.',
-      options: [ { label: 'Ignorar el incidente', effect: 'Impacto: −5 XP Reputación; −10 puntos de moral; muestra falta de transparencia' }, { label: 'Informar y pedir disculpas públicamente', effect: 'Impacto: −2 XP Reputación; +2 XP Personal por honestidad; reduce el impacto negativo' } ]
-    },
-     {
-      id: 'C7', name: 'Caso de redes sociales / ciberbullying', description: 'Se viraliza en redes sociales un caso de ciberbullying entre estudiantes del centro. Se acusa al colegio de no actuar con rapidez.',
-      options: [ { label: 'Minimizar el caso', effect: 'Impacto: −8 XP Reputación; la moral baja 5 puntos; puede afectar al IAM la próxima ronda' }, { label: 'Implementar un programa anti‑bullying', effect: 'Impacto: −5.000 CC, +5 XP Reputación, +3 XP Personal; mejora la NMA a largo plazo' } ]
     },
   ];
   
@@ -195,10 +229,10 @@ export default function GameDetailsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-headline">
-              {game?.name || "Cargando..."}
+              {game?.name ?? "Cargando..."}
             </h1>
             <p className="text-muted-foreground">
-              Ronda {game?.round || 'N/A'} - Juego ID: {id}
+              Ronda {game?.round ?? 'N/A'} - Juego ID: {id}
             </p>
           </div>
           <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
@@ -221,7 +255,7 @@ export default function GameDetailsPage() {
               <CardHeader>
                 <CardTitle>Progreso de Equipos</CardTitle>
                 <CardDescription>
-                  Vista general del rendimiento de cada equipo en la ronda actual. Haz clic para ver sus decisiones.
+                  Vista general del rendimiento por áreas en la ronda actual. Haz clic en un equipo para ver el detalle.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -229,32 +263,29 @@ export default function GameDetailsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Equipo</TableHead>
-                      <TableHead className="text-right">PEB (%)</TableHead>
-                      <TableHead className="text-right">XP</TableHead>
-                      <TableHead className="text-right">Nota Media</TableHead>
-                      <TableHead className="text-right">Precio Relativo</TableHead>
-                      <TableHead className="text-right">Inv. Marketing</TableHead>
+                      <TableHead className="text-center">PEB Finanzas</TableHead>
+                      <TableHead className="text-center">XP Finanzas</TableHead>
+                      <TableHead className="text-center">PEB Reputación</TableHead>
+                      <TableHead className="text-center">XP Reputación</TableHead>
+                      <TableHead className="text-center">PEB Moral</TableHead>
+                      <TableHead className="text-center">XP Moral</TableHead>
+                      <TableHead className="text-right">Total XP</TableHead>
+                      <TableHead className="w-[100px] text-center">Decisiones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {teams.map((team) => (
-                      <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
+                    {teamsData.map((team) => (
+                      <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
                         <TableCell className="font-medium">{team.name}</TableCell>
-                        <TableCell className="text-right">
-                          {team.peb}%{" "}
-                          {team.peb > 100 ? (
-                            <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-500/80">Sobre cumplimiento</Badge>
-                          ) : (
-                            team.peb < 90 && <Badge variant="destructive">Bajo rendimiento</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{team.xp}</TableCell>
-                        <TableCell className="text-right">{team.grade}</TableCell>
-                        <TableCell className="text-right">
-                          ${team.price}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ${new Intl.NumberFormat('es-ES').format(team.marketing)}
+                        <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
+                        <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
+                        <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
+                        <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
+                        <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
+                        <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
+                        <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -262,21 +293,87 @@ export default function GameDetailsPage() {
                 </Table>
               </CardContent>
             </Card>
+
+            {selectedTeam && (
+               <Card className="mt-6">
+                <CardHeader>
+                    <CardTitle>Plan Estratégico (Ronda 0) - {selectedTeam.name}</CardTitle>
+                    <CardDescription>Objetivos iniciales definidos por el equipo.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-3 gap-6 text-sm">
+                    <div className="space-y-2">
+                        <h4 className="font-semibold">Objetivos de KPIs</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={i}>{target}</li>)}
+                        </ul>
+                    </div>
+                     <div className="space-y-2">
+                        <h4 className="font-semibold">Objetivo de Ranking</h4>
+                        <p className="text-muted-foreground">{selectedTeam.strategicPlan.rankingGoal}</p>
+                    </div>
+                     <div className="space-y-2">
+                        <h4 className="font-semibold">Política de Precios</h4>
+                        <p className="text-muted-foreground">{selectedTeam.strategicPlan.pricingPolicy}</p>
+                    </div>
+                </CardContent>
+               </Card>
+            )}
+
           </TabsContent>
           <TabsContent value="reports">
-            <AIReportForm teams={teams.map(t => t.name)} />
+            <AIReportForm teams={teamsData.map(t => t.name)} />
           </TabsContent>
         </Tabs>
 
         <RoundConfig
-          allTeams={teams.map(t => t.name)}
+          allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
         />
 
       </div>
-
-      <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
+      
+      {/* PEB Breakdown Dialog */}
+      <Dialog open={isPebDetailOpen} onOpenChange={setPebDetailOpen}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedTeam && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Desglose de PEB: {selectedTeam.name}</DialogTitle>
+                <DialogDescription>
+                    Cálculo detallado de los Puntos de Equilibrio de Negocio para cada área.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4 text-sm">
+                 <div>
+                    <h4 className="font-semibold text-base mb-2">Finanzas ({selectedTeam.finances.peb} PEB)</h4>
+                    <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                        {selectedTeam.finances.pebBreakdown.map((line, i) => <li key={`fin-${i}`}>{line}</li>)}
+                    </ul>
+                 </div>
+                 <div>
+                    <h4 className="font-semibold text-base mb-2">Reputación ({selectedTeam.reputation.peb} PEB)</h4>
+                    <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                        {selectedTeam.reputation.pebBreakdown.map((line, i) => <li key={`rep-${i}`}>{line}</li>)}
+                    </ul>
+                 </div>
+                 <div>
+                    <h4 className="font-semibold text-base mb-2">Moral ({selectedTeam.morale.peb} PEB)</h4>
+                    <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                        {selectedTeam.morale.pebBreakdown.map((line, i) => <li key={`mor-${i}`}>{line}</li>)}
+                    </ul>
+                 </div>
+              </div>
+               <DialogFooter>
+                  <Button variant="outline" onClick={() => setPebDetailOpen(false)}>Cerrar</Button>
+               </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Decision Details Dialog */}
+      <Dialog open={isDecisionDetailOpen} onOpenChange={setDecisionDetailOpen}>
         <DialogContent className="sm:max-w-lg">
           {selectedTeam && (
             <>
@@ -310,15 +407,27 @@ export default function GameDetailsPage() {
                    <div className="p-3 bg-muted/50 rounded-md">
                       <p className="font-medium">Opción elegida:</p>
                       <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
+                      <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
                     </div>
                      <div className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">Justificación:</p>
+                      <p className="font-medium">Justificación del equipo:</p>
                       <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
                     </div>
                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
+                    <Textarea 
+                        id="teacher-notes" 
+                        placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
+                        value={teacherNotes}
+                        onChange={(e) => setTeacherNotes(e.target.value)}
+                        className="min-h-[100px]"
+                    />
+                 </div>
               </div>
                <DialogFooter>
-                  <Button variant="outline" onClick={() => setSelectedTeam(null)}>Cerrar</Button>
+                  <Button onClick={() => setDecisionDetailOpen(false)}>Guardar Notas</Button>
+                  <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
                </DialogFooter>
             </>
           )}

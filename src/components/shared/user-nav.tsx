@@ -27,7 +27,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Moon, Sun, Camera, KeyRound } from "lucide-react";
+import { Moon, Sun, Camera, KeyRound, LogOut } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAuth, type Theme } from "@/hooks/use-auth";
@@ -146,7 +146,8 @@ export function UserNav() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={logout}>
-              Cerrar sesión
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Cerrar sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

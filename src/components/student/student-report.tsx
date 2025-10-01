@@ -8,38 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, School, UserX } from "lucide-react";
+import { Users, School, UserX, Info } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useGame } from "@/hooks/use-game-context";
 
-
-const reportData = {
-  financialSummary: {
-    round: 2,
-    income: "310,000 CC",
-    personnelCost: "240,000 CC",
-    investments: "25,000 CC",
-    roundResult: "45,000 CC",
-    cashFlow: "70,000 CC",
-  },
-  kpiSummary: {
-    cash: "70,000 CC",
-    personnelCost: "77.4%",
-    nma: "8.5",
-    marketShare: "13.5%",
-    morale: "78%",
-    studentTeacherRatio: "24.0",
-  },
-  marketAttractiveness: {
-    newStudents: 20,
-    centerCapacity: 800,
-    lostStudents: 5,
-  },
-  qualitativeAnalysis:
-    "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 77.4%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
-};
 
 export function StudentReport() {
+  const { activeGame } = useGame();
+  
+  // Assuming the student is part of "Equipo Beta" for now. This would be dynamic in a real app.
+  const teamName = "Equipo Beta";
+  
+  const reportData = activeGame?.reports?.[activeGame.round -1]?.[teamName];
 
   return (
     <Card>
@@ -47,7 +28,7 @@ export function StudentReport() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <CardTitle>
-              Análisis de Rendimiento - Equipo Beta
+              Análisis de Rendimiento - {teamName}
             </CardTitle>
             <CardDescription>
               Este es el feedback generado por el profesor y la IA sobre vuestro desempeño en la ronda anterior.
@@ -57,17 +38,18 @@ export function StudentReport() {
       </CardHeader>
       <CardContent className="space-y-6">
         
+        {reportData ? (
           <>
             <div className="grid gap-6 md:grid-cols-3">
               {/* Financial Summary */}
               <div>
                 <h3 className="font-semibold mb-2">Resumen Financiero (Ronda {reportData.financialSummary.round})</h3>
                 <div className="rounded-lg border p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><span>Ingresos:</span> <span className="font-mono">{reportData.financialSummary.income}</span></div>
-                  <div className="flex justify-between"><span>Coste Personal:</span> <span className="font-mono text-red-500">- {reportData.financialSummary.personnelCost}</span></div>
-                  <div className="flex justify-between"><span>Inversiones:</span> <span className="font-mono text-red-500">- {reportData.financialSummary.investments}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-2"><span>Resultado Ronda:</span> <span className="font-mono">{reportData.financialSummary.roundResult}</span></div>
-                  <div className="flex justify-between font-bold"><span>Tesorería Final:</span> <span className="font-mono">{reportData.financialSummary.cashFlow}</span></div>
+                  <div className="flex justify-between"><span>Ingresos:</span> <span className="font-mono">{reportData.financialSummary.income.toLocaleString('es-ES')} CC</span></div>
+                  <div className="flex justify-between"><span>Coste Personal:</span> <span className="font-mono text-red-500">- {reportData.financialSummary.personnelCost.toLocaleString('es-ES')} CC</span></div>
+                  <div className="flex justify-between"><span>Inversiones:</span> <span className="font-mono text-red-500">- {reportData.financialSummary.investmentsCost.toLocaleString('es-ES')} CC</span></div>
+                  <div className="flex justify-between font-bold border-t pt-2"><span>Resultado Ronda:</span> <span className="font-mono">{reportData.financialSummary.roundResult.toLocaleString('es-ES')} CC</span></div>
+                  <div className="flex justify-between font-bold"><span>Tesorería Final:</span> <span className="font-mono">{reportData.financialSummary.cashFlow.toLocaleString('es-ES')} CC</span></div>
                 </div>
               </div>
 
@@ -93,7 +75,7 @@ export function StudentReport() {
                     </div>
                     <div className="flex items-center gap-4">
                         <School className="h-6 w-6 text-gray-500" />
-                        <div className="flex flex-1 justify-between"><span>Capacidad del Centro:</span><span className="font-mono">{reportData.marketAttractiveness.centerCapacity}</span></div>
+                        <div className="flex flex-1 justify-between"><span>Capacidad del Centro:</span><span className="font-mono">{reportData.financialDetail.numStudents * 1.1}</span></div>
                     </div>
                      <div className="flex items-center gap-4">
                         <UserX className="h-6 w-6 text-red-500" />
@@ -116,6 +98,13 @@ export function StudentReport() {
               />
             </div>
           </>
+        ) : (
+            <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+                <Info className="h-12 w-12 text-muted-foreground" />
+                <h3 className="text-xl font-semibold">Reporte No Disponible</h3>
+                <p className="text-muted-foreground">El reporte para esta ronda aún no ha sido publicado por el profesor.</p>
+            </div>
+        )}
         
       </CardContent>
     </Card>

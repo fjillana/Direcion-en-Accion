@@ -29,6 +29,9 @@ import { useState } from "react";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebriefingQuestions } from "./debriefing-questions";
+import { useGames } from "@/hooks/use-games";
+import { useGame } from "@/hooks/use-game-context";
+import { useToast } from "@/hooks/use-toast";
 
 
 type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
@@ -105,6 +108,10 @@ const initialReportData = {
 };
 
 export function AIReportForm({ teamsData }: AIReportFormProps) {
+  const { activeGame } = useGame();
+  const { updateReport } = useGames();
+  const { toast } = useToast();
+
   const [selectedTeam, setSelectedTeam] = useState<TeamName>(teamsData[0].name);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -125,6 +132,23 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     setHasReport(true); 
     setReportText(initialReportData.qualitativeAnalysis);
     setIsEditing(false);
+  };
+
+  const handlePublishReport = () => {
+    if (!activeGame) return;
+    
+    // We assemble the full report data to be saved.
+    const fullReportData = {
+      ...initialReportData,
+      qualitativeAnalysis: reportText, // Use the potentially edited text
+    };
+    
+    updateReport(activeGame.id, activeGame.round, selectedTeam, fullReportData);
+
+    toast({
+      title: "Reporte Publicado",
+      description: `El informe para ${selectedTeam} ha sido enviado a la sección del estudiante.`,
+    });
   };
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
@@ -312,7 +336,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                     <Edit className="mr-2 h-4 w-4" /> Editar
                                     </Button>
                                 )}
-                                <Button>Publicar Reporte al Equipo</Button>
+                                <Button onClick={handlePublishReport}>Publicar Reporte al Equipo</Button>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>

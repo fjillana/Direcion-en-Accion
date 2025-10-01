@@ -12,13 +12,15 @@ export interface Game {
   status: "En curso" | "Finalizado";
   numRounds: number;
   aiDifficulty: number;
+  reports?: Record<string, Record<string, any>>; // round -> teamName -> reportData
 }
 
 interface GamesContextType {
   games: Game[];
   addGame: (game: Game) => void;
   removeGame: (gameId: string) => void;
-  updateGame: (gameId: string, updatedGame: Partial<Game>) => void;
+  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports'>>) => void;
+  updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -49,19 +51,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (games.length > 0) {
-        try {
-            window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
-        } catch (error) {
-            console.error("Failed to save games to localStorage:", error);
-        }
-    } else {
-        // If games are empty (e.g. after clearing them), remove from local storage
-        try {
-             window.localStorage.removeItem(GAMES_STORAGE_KEY);
-        } catch (error) {
-            console.error("Failed to remove games from localStorage:", error);
-        }
+    try {
+        window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
+    } catch (error) {
+        console.error("Failed to save games to localStorage:", error);
     }
   }, [games]);
 
@@ -78,6 +71,22 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       prevGames.map(game => 
         game.id === gameId ? { ...game, ...updatedGame } : game
       )
+    );
+  }, []);
+
+  const updateReport = useCallback((gameId: string, round: number, teamName: string, reportData: any) => {
+    setGames(prevGames => 
+      prevGames.map(game => {
+        if (game.id === gameId) {
+          const newReports = { ...game.reports };
+          if (!newReports[round]) {
+            newReports[round] = {};
+          }
+          newReports[round][teamName] = reportData;
+          return { ...game, reports: newReports };
+        }
+        return game;
+      })
     );
   }, []);
 
@@ -99,7 +108,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, getGameById, activeGameId, setActiveGameId }}>
+    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, updateReport, getGameById, activeGameId, setActiveGameId }}>
       {children}
     </GamesContext.Provider>
   );

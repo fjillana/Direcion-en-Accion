@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -72,7 +73,7 @@ const teamsData: TeamPerformance[] = [
     name: "Equipo Alfa",
     type: 'H',
     finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
-    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 95 PEB", "Cuota Mercado (12%): 81 PEB"] },
+    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 81 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
     totalXp: 51,
     decisions: {
@@ -216,14 +217,14 @@ export default function GameDetailsPage() {
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
-  const [selectedRound, setSelectedRound] = useState<string>("3");
-  const [monitoringData, setMonitoringData] = useState(teamsData);
+  const [selectedRound, setSelectedRound] = useState<string>("1");
+  const [monitoringData, setMonitoringData] = useState<TeamPerformance[]>([]);
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
+    setGame(foundGame);
     if (foundGame) {
-      setGame(foundGame);
-      setSelectedRound((foundGame.round).toString());
+      setSelectedRound(foundGame.round.toString());
     }
   }, [games, id]);
   
@@ -234,19 +235,25 @@ export default function GameDetailsPage() {
   }, [selectedTeam, selectedRound])
   
     useEffect(() => {
-    if (parseInt(selectedRound) > (game?.round ?? 0)) {
+    // This logic now correctly reflects showing data for past/current rounds
+    // and showing nothing for future rounds.
+    if (!game || parseInt(selectedRound) > game.round) {
       setMonitoringData([]);
     } else {
       // In a real app, you would fetch data for the selected round.
-      // Here we just use the mock data for demonstration.
-      setMonitoringData(teamsData);
+      // Here we just use the mock data for demonstration and shuffle it
+      // to simulate different data per round.
+      const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
+      setMonitoringData(shuffledData);
     }
   }, [selectedRound, game]);
 
   const handleProcessRound = () => {
     setIsProcessing(true);
     setTimeout(() => {
-    }, 5000);
+        setIsProcessing(false);
+        // Logic to advance the round would go here
+    }, 3000);
   };
   
   const handleTeamRowClick = (team: TeamPerformance) => {
@@ -272,16 +279,20 @@ export default function GameDetailsPage() {
     },
   ];
   
+  if (!game) {
+    return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
   return (
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-headline">
-              {game?.name ?? "Cargando..."}
+              {game.name}
             </h1>
             <p className="text-muted-foreground">
-              Ronda {game?.round ?? 'N/A'} - Juego ID: {id}
+              Ronda {game.round} de {game.numRounds} - Juego ID: {id}
             </p>
           </div>
           <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
@@ -290,7 +301,7 @@ export default function GameDetailsPage() {
             ) : (
               <PlayCircle className="mr-2 h-5 w-5" />
             )}
-            {isProcessing ? "Procesando Ronda..." : "Procesar Ronda"}
+            {isProcessing ? "Procesando Ronda..." : `Procesar Ronda ${game.round}`}
           </Button>
         </div>
 
@@ -315,7 +326,7 @@ export default function GameDetailsPage() {
                             <SelectValue placeholder="Seleccionar Ronda" />
                         </SelectTrigger>
                         <SelectContent>
-                            {Array.from({ length: game?.numRounds ?? 1 }, (_, i) => i + 1).map((r) => (
+                            {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
                                 <SelectItem key={r} value={r.toString()}>
                                     Ronda {r}
                                 </SelectItem>
@@ -378,7 +389,7 @@ export default function GameDetailsPage() {
           allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
-          numRounds={game?.numRounds ?? 8}
+          numRounds={game.numRounds}
         />
 
       </div>
@@ -486,5 +497,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

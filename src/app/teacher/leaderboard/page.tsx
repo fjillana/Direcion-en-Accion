@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -27,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 type TeamKPIs = {
   cash: number;
@@ -160,13 +162,23 @@ export default function TeacherLeaderboardPage() {
   const [teams] = useState<Team[]>(teamsData);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
+  const getKpiColor = (value: number, goal?: StrategicGoal) => {
+    if (!goal) return "";
+    const progress = getProgress(value, goal);
+    if (progress === 100) return "text-emerald-600";
+    if (goal.operator === 'min' && value < goal.target) return "text-red-600";
+    if (goal.operator === 'max' && value > goal.target) return "text-red-600";
+    if (goal.operator === 'range' && (value < goal.target || value > goal.range_max!)) return "text-red-600";
+    return "";
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Leaderboard General</CardTitle>
           <CardDescription>
-            Clasificación global y KPIs principales. Haz clic para ver el detalle de objetivos estratégicos.
+            Clasificación global y KPIs principales. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,12 +202,12 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="font-bold text-lg">{team.rank}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.cash, team.strategicGoals.cash))}>{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.personnelCost, team.strategicGoals.personnelCost))}>{kpiConfig.personnelCost.format(team.kpis.personnelCost)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicGoals.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicGoals.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.morale, team.strategicGoals.morale))}>{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicGoals.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -218,13 +230,13 @@ export default function TeacherLeaderboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>KPI</TableHead>
-                      <TableHead>Objetivo</TableHead>
+                      <TableHead>Plan Estratégico</TableHead>
                       <TableHead>Actual</TableHead>
                       <TableHead className="w-[200px]">Progreso</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {Object.entries(selectedTeam.strategicGoals).map(([key, goal]) => {
+                     {selectedTeam.type === 'H' ? Object.entries(selectedTeam.strategicGoals).map(([key, goal]) => {
                        if (!goal) return null;
                        const kpiKey = key as keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>;
                        const kpiInfo = kpiConfig[kpiKey];
@@ -244,7 +256,13 @@ export default function TeacherLeaderboardPage() {
                            </TableCell>
                          </TableRow>
                        )
-                     })}
+                     }) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                Los equipos de IA no tienen un plan estratégico definido.
+                            </TableCell>
+                        </TableRow>
+                     )}
                   </TableBody>
                 </Table>
               </div>
@@ -260,5 +278,3 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
-
-    

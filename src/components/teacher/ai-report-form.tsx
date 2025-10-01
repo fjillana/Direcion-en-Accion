@@ -51,7 +51,9 @@ const initialReportData = {
   },
   financialDetail: {
     numStudents: 810,
-    tuitionPrice: 395, // approx 320000 / 810
+    tuitionPrice: 395, 
+    numTeachers: 33,
+    teacherCost: 7424,
     investments: [
       { name: "Inversión en TIC", cost: 25000, effect: "+2 NMA, +5 Moral" },
       { name: "Formación docente", cost: 10000, effect: "+1 NMA, +10 Moral" },
@@ -60,6 +62,7 @@ const initialReportData = {
   kpiAnalysis: {
     personnelCost: {
       value: "76.5%",
+      calculation: "(245.000 CC / 320.000 CC)",
       analysis: "El ratio ha aumentado ligeramente debido al mantenimiento de la plantilla mientras los ingresos se han estabilizado. No se han realizado contrataciones ni despidos esta ronda, por lo que el cambio es menor."
     },
     nma: {
@@ -76,6 +79,7 @@ const initialReportData = {
     },
     studentTeacherRatio: {
       value: "24.5",
+      calculation: "(810 alumnos / 33 profesores)",
       analysis: "El ratio se mantiene estable, ya que no se ha contratado ni despedido personal y el número de alumnos ha tenido una variación moderada."
     }
   },
@@ -177,6 +181,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         </p>
                     </div>
                     <div>
+                        <h4 className="font-medium mb-2">Coste de Personal</h4>
+                        <p className="text-sm text-muted-foreground">
+                            {initialReportData.financialDetail.numTeachers} profesores x {formatCurrency(initialReportData.financialDetail.teacherCost)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.personnelCost)}</span>
+                        </p>
+                    </div>
+                    <div>
                         <h4 className="font-medium mb-2">Inversiones Realizadas</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                             {initialReportData.financialDetail.investments.map(inv => (
@@ -197,13 +207,14 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 <AccordionContent className="px-4 space-y-4">
                     {Object.entries(initialReportData.kpiAnalysis).map(([key, value]) => (
                         <div key={key}>
-                            <h4 className="font-medium flex items-center gap-2">
+                            <h4 className="font-medium flex items-center gap-2 flex-wrap">
                                 {key === 'personnelCost' && 'Coste Personal / Ingresos'}
                                 {key === 'nma' && 'Nota Media Alumnado'}
                                 {key === 'marketShare' && 'Cuota de Mercado'}
                                 {key === 'morale' && 'Moral del Personal'}
                                 {key === 'studentTeacherRatio' && 'Ratio Alumnos/Profesor'}
                                 <Badge variant="secondary">{value.value}</Badge>
+                                {value.calculation && <Badge variant="outline" className="font-mono">{value.calculation}</Badge>}
                             </h4>
                             <p className="text-sm text-muted-foreground mt-1">{value.analysis}</p>
                         </div>
@@ -290,5 +301,3 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     </Card>
   );
 }
-
-    

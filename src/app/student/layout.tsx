@@ -24,7 +24,8 @@ import {
   HeartHandshake,
   Inbox,
   Target,
-  LogOut
+  LogOut,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
     { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
+    { href: "/student/report", label: "Reporte", icon: FileText },
     { href: "/student/inbox", label: "Inbox", icon: Inbox },
   ];
 
@@ -75,7 +77,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </h2>
           </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="flex flex-col">
           <SidebarMenu>
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
@@ -143,6 +145,32 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
           </div>
           <div className="flex items-center gap-2">
+            {studentGame?.status === 'joined' && (
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                         <Button variant="destructive" size="sm">
+                              Abandonar Partida
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro de que quieres abandonar la partida?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              Esta acción no se puede deshacer. Se eliminarán todos los datos de tu equipo en esta partida y tendrás que solicitar unirte de nuevo.
+                          </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                              onClick={abandonGame}
+                          >
+                              Sí, abandonar partida
+                          </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+              )}
             <UserNav userType="student" />
           </div>
         </header>

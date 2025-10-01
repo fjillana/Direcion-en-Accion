@@ -19,7 +19,6 @@ import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
   gameName: z.string().min(1, "El nombre del juego es requerido."),
-  numTeams: z.number().min(2).max(10),
   numRounds: z.number().min(1).max(20),
   initialFunds: z.number().min(1000),
   newStudentsPerRound: z.number().min(0),
@@ -30,7 +29,7 @@ const formSchema = z.object({
 export type GameConfig = z.infer<typeof formSchema>;
 
 interface GameConfigFormProps {
-  onCreateGame: (data: Omit<GameConfig, 'numTeams'>) => void;
+  onCreateGame: (data: GameConfig) => void;
 }
 
 export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
@@ -38,7 +37,6 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       gameName: "",
-      numTeams: 4,
       numRounds: 8,
       initialFunds: 50000,
       newStudentsPerRound: 50,
@@ -48,8 +46,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
   });
 
   function onSubmit(values: GameConfig) {
-    const { numTeams, ...rest } = values;
-    onCreateGame(rest);
+    onCreateGame(values);
   }
 
   return (

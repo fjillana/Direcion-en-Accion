@@ -64,9 +64,10 @@ export default function ConfigPage() {
   useEffect(() => {
     if (activeGame) {
       setSelectedGameId(activeGame.id);
-      setAcceptedTeams(activeGame.teams || []);
+      const currentTeams = activeGame.teams || [];
+      setAcceptedTeams(currentTeams);
       // Filter pending teams to not include already accepted ones
-      setPendingTeams(allPendingTeams.filter(pt => !(activeGame.teams || []).includes(pt.name)));
+      setPendingTeams(allPendingTeams.filter(pt => !currentTeams.includes(pt.name)));
     } else {
       setAcceptedTeams([]);
     }
@@ -77,8 +78,9 @@ export default function ConfigPage() {
     setSelectedGameId(gameId);
     const game = games.find(g => g.id === gameId);
     if (game) {
-      setAcceptedTeams(game.teams || []);
-      setPendingTeams(allPendingTeams.filter(pt => !(game.teams || []).includes(pt.name)));
+      const currentTeams = game.teams || [];
+      setAcceptedTeams(currentTeams);
+      setPendingTeams(allPendingTeams.filter(pt => !currentTeams.includes(pt.name)));
     }
   }
   

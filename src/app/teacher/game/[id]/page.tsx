@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -92,13 +91,6 @@ const fullCrises: Crisis[] = [
       options: [ { label: 'Minimizar el caso', effect: 'Impacto: −8 XP Reputación; la moral baja 5 puntos; puede afectar al IAM la próxima ronda' }, { label: 'Abrir una investigación interna', effect: 'Impacto: −4 XP Reputación inicial, +3 XP Personal; previene mayores daños; mejora la moral 5 puntos' }, { label: 'Implementar un programa anti‑bullying', effect: 'Impacto: −5.000 CC, +5 XP Reputación, +3 XP Personal; mejora la NMA a largo plazo' }, { label: 'Realizar un comunicado público y pedir disculpas', effect: 'Impacto: −2 XP Reputación inicial; +2 XP Personal; evita penalizaciones mayores' }, { label: 'Demandear a los denunciantes por difamación', effect: 'Impacto: −10 XP Reputación; −10 puntos de moral; +5 XP Finanzas por ahorro de inversiones en prevención; genera mala imagen a largo plazo' }, ]
     },
 ];
-
-const centerActionsMap: Record<string, { name: string; cost: number }> = {
-    'P2': { name: 'Contratar Docente', cost: 7500 },
-    'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
-    'F5': { name: 'Ampliación de Aulas', cost: 50000 },
-};
-
 
 export default function GameDetailsPage() {
   const params = useParams();
@@ -212,6 +204,12 @@ export default function GameDetailsPage() {
   }
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES').format(value);
+
+  const centerActionsMap: Record<string, { name: string; cost: number }> = {
+    'P2': { name: 'Contratar Docente', cost: 7500 },
+    'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
+    'F5': { name: 'Ampliación de Aulas', cost: 50000 },
+  };
 
   return (
     <>
@@ -461,3 +459,4 @@ export default function GameDetailsPage() {
     </>
   );
 }
+

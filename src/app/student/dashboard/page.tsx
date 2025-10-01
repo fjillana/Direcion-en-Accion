@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
-import { Lock, Info } from "lucide-react";
+import { Lock, Info, CheckCircle } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
 import { XpSummary } from "@/components/student/xp-summary";
@@ -54,7 +54,7 @@ const mockCrises: Record<string, CrisisProps> = {
 export default function StudentDashboard() {
   const { studentGame, setRoundDecisions, getDecisionsByRound } = useStudentGame();
 
-  const { decisions: currentDecisions, kpis, performanceHistory, round } = studentGame || {};
+  const { decisions: currentDecisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
   
   const decisions = round === 0 ? currentDecisions : getDecisionsByRound(round || 0);
 
@@ -112,7 +112,7 @@ export default function StudentDashboard() {
   
   const isRoundZero = round === 0;
 
-  if (isRoundZero && !studentGame?.planConfirmed) {
+  if (isRoundZero && !planConfirmed) {
     return (
        <StudentGate>
         <div className="space-y-6">
@@ -120,11 +120,7 @@ export default function StudentDashboard() {
               <Info className="h-4 w-4" />
               <AlertTitle className="font-bold">Bienvenido a la Ronda 0: Planificación Estratégica</AlertTitle>
               <AlertDescription>
-                  <p>¡Es hora de definir el futuro de tu centro! En esta ronda inicial, no hay competición de mercado. Tu única tarea es:</p>
-                  <ol className="list-decimal pl-5 mt-2 space-y-1">
-                      <li>Establecer tus objetivos a largo plazo en el <strong>Plan Estratégico</strong>.</li>
-                      <li>Realizar tus <strong>inversiones iniciales</strong> para empezar a trabajar hacia esos objetivos.</li>
-                  </ol>
+                  <p>¡Es hora de definir el futuro de tu centro! En esta ronda inicial, tu tarea principal es establecer tus objetivos a largo plazo en el Plan Estratégico.</p>
                   <p className="mt-2">Una vez que confirmes tu plan, estas decisiones quedarán bloqueadas. ¡Planifica con sabiduría!</p>
                    <Button asChild className="mt-4">
                       <Link href="/student/strategic-plan">Ir al Plan Estratégico</Link>
@@ -132,6 +128,26 @@ export default function StudentDashboard() {
               </AlertDescription>
            </Alert>
            <XpSummary performanceHistory={performanceHistory || []} />
+        </div>
+       </StudentGate>
+    )
+  }
+  
+    if (isRoundZero && planConfirmed && !roundConfirmed) {
+    return (
+       <StudentGate>
+        <div className="space-y-6">
+           <Alert variant="default" className="bg-emerald-50 border-emerald-200">
+              <CheckCircle className="h-4 w-4 !text-emerald-600" />
+              <AlertTitle className="text-emerald-800 font-bold">¡Plan Estratégico Confirmado!</AlertTitle>
+              <AlertDescription className="text-emerald-700">
+                  <p>Has bloqueado tus objetivos a largo plazo. Ahora, realiza tus inversiones iniciales y ajusta los datos del centro para la primera ronda.</p>
+                  <p className="mt-2">Cuando estés listo, finaliza la ronda desde esta misma página (Dashboard) para que el profesor pueda procesarla.</p>
+                   <Button asChild className="mt-4">
+                      <Link href="/student/decisions">Ir a Inversiones</Link>
+                   </Button>
+              </AlertDescription>
+           </Alert>
         </div>
        </StudentGate>
     )

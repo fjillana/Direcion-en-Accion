@@ -54,16 +54,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const isRoundZero = studentGame?.round === 0;
 
   const menuItems = [
-    { href: "/student/dashboard", label: "Dashboard", icon: Home, roundZero: true },
-    { href: "/student/decisions", label: "Inversiones", icon: ClipboardList, roundZero: true },
-    { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target, roundZero: true },
-    { href: "/student/leaderboard", label: "Leaderboard", icon: Users, roundZero: false },
-    { href: "/student/achievements", label: "Logros", icon: Award, roundZero: false },
-    { href: "/student/report", label: "Reporte", icon: FileText, roundZero: false },
-    { href: "/student/inbox", label: "Inbox", icon: Inbox, roundZero: true },
+    { href: "/student/dashboard", label: "Dashboard", icon: Home },
+    { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
+    { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
+    { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
+    { href: "/student/achievements", label: "Logros", icon: Award },
+    { href: "/student/report", label: "Reporte", icon: FileText },
+    { href: "/student/inbox", label: "Inbox", icon: Inbox },
   ];
-  
-  const visibleMenuItems = isRoundZero ? menuItems.filter(item => item.roundZero) : menuItems;
 
 
   return (
@@ -83,7 +81,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         </SidebarHeader>
         <SidebarContent className="flex flex-col">
           <SidebarMenu>
-            {visibleMenuItems.map((item) => (
+            {menuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
                   <Link href={item.href}>

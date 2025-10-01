@@ -81,7 +81,7 @@ const kpiDefinitions = [
 ];
 
 export default function StrategicPlanPage() {
-  const { studentGame, setStrategicPlan, setRoundDecisions } = useStudentGame();
+  const { studentGame, setStrategicPlan } = useStudentGame();
 
   const planConfirmed = studentGame?.planConfirmed || false;
   const strategicPlan = studentGame?.strategicPlan;
@@ -106,11 +106,9 @@ export default function StrategicPlanPage() {
   
   const handleConfirmPlan = () => {
     setStrategicPlan({ ...strategicPlan, confirmed: true });
-    // Also confirm the round 0 decisions
-    setRoundDecisions({ roundConfirmed: true });
   };
   
-  if (!isRoundZero || (isRoundZero && planConfirmed)) {
+  if (!isRoundZero || planConfirmed) {
     return (
         <StudentGate>
             <Alert variant="default" className="bg-emerald-50 border-emerald-200">
@@ -223,9 +221,9 @@ export default function StrategicPlanPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Confirmar Plan y Finalizar Ronda 0</CardTitle>
+                <CardTitle>Confirmar Plan</CardTitle>
                 <CardDescription>
-                    Al confirmar, tus objetivos estratégicos y tus decisiones de inversión inicial quedarán guardados. Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
+                    Al confirmar, tus objetivos estratégicos quedarán guardados. Esta acción es irreversible y definirá tu estrategia para el resto de la partida. Aún podrás modificar tus inversiones de la Ronda 0.
                 </CardDescription>
             </CardHeader>
             <CardFooter>

@@ -7,9 +7,11 @@ import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
+import { useGames } from "@/hooks/use-games";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
-  const { studentGame, isLoading, checkGameStatus } = useStudentGame();
+  const { studentGame, isLoading, checkGameStatus, abandonGame } = useStudentGame();
+  const { games } = useGames();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +21,18 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
       }
     }
   }, [studentGame, isLoading, router]);
+  
+  useEffect(() => {
+    // Cleanup effect: if a student is pending for a game that no longer exists, reset their state.
+    if (!isLoading && studentGame?.status === 'pending' && studentGame.gameId) {
+      const gameExists = games.some(g => g.id === studentGame.gameId);
+      if (!gameExists) {
+        // The game was deleted by the teacher, so we reset the student's state.
+        abandonGame();
+      }
+    }
+  }, [studentGame, games, isLoading, abandonGame]);
+
 
   if (isLoading) {
     return (

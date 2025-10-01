@@ -132,7 +132,7 @@ export default function TeacherDashboard() {
                           <AlertDialogDescription>
                             Esta acción no se puede deshacer. Esto eliminará permanentemente la partida
                             y todos sus datos asociados.
-                          </DialogDescription>
+                          </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>

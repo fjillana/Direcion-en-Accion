@@ -14,8 +14,10 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
 import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
+import { useGames } from "@/hooks/use-games";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useEffect } from "react";
 
 const getIcon = (type: string) => {
     switch (type) {
@@ -28,10 +30,23 @@ const getIcon = (type: string) => {
 
 export default function InboxPage() {
   const { studentGame } = useStudentGame();
+  const { markMessageAsRead } = useGames();
+  
   const messages = studentGame?.messages || [];
   const teamName = studentGame?.teamName || '';
   const userId = studentGame?.userId || '';
+  const gameId = studentGame?.gameId || '';
   
+  useEffect(() => {
+    if (gameId && userId && messages.length > 0) {
+      messages.forEach(msg => {
+        if (!msg.readBy.includes(userId)) {
+          markMessageAsRead(gameId, msg.id, userId);
+        }
+      });
+    }
+  }, [messages, gameId, userId, markMessageAsRead]);
+
   const sortedMessages = [...messages].sort((a, b) => b.timestamp - a.timestamp);
 
   const getSenderName = (from: string) => {

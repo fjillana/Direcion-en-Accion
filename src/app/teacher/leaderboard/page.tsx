@@ -205,6 +205,7 @@ export default function TeacherLeaderboardPage() {
                        if (!goal) return null;
                        const kpiKey = key as keyof Omit<typeof kpiConfig, 'tuitionPrice' | 'numStudents'>;
                        const kpiInfo = kpiConfig[kpiKey];
+                       if (!kpiInfo) return null; // FIX: Prevent rendering if kpiInfo is undefined
                        const currentValue = selectedTeam.kpis[kpiKey];
                        const progress = getProgress(currentValue, goal);
 

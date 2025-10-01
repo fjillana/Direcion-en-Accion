@@ -19,14 +19,14 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     { href: "/teacher/catalog", label: "Catálogos" },
     { href: "/teacher/leaderboard", label: "Leaderboard" },
     { href: "/teacher/inbox", label: "Inbox" },
-    { href: "/teacher/config", label: "Configuración" },
+    { href: "/teacher/settings", label: "Ajustes" },
   ];
   
   const getHref = (baseHref: string) => {
       if (baseHref === '/teacher/dashboard' && activeGame) {
           return `/teacher/game/${activeGame.id}`;
       }
-      if (baseHref === '/teacher/catalog' || baseHref === '/teacher/config') {
+      if (baseHref === '/teacher/catalog' || baseHref === '/teacher/settings') {
           return baseHref;
       }
       return activeGame ? `${baseHref}?gameId=${activeGame.id}` : baseHref;

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { InvestmentForm } from "@/components/student/investment-form";
+import { InvestmentForm, availableInvestments } from "@/components/student/investment-form";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
 import { useState } from "react"; // Assuming you have a way to get this state
@@ -11,6 +11,9 @@ export default function DecisionsPage() {
   // This state would likely come from a shared context or parent component
   // For now, we simulate it here. You'd need to lift this state up.
   const [roundConfirmed, setRoundConfirmed] = useState(false);
+  const [selectedInvestments, setSelectedInvestments] = useState<string[]>([]);
+  const [centerActionCosts, setCenterActionCosts] = useState(0);
+
 
   return (
     <StudentGate>
@@ -34,7 +37,12 @@ export default function DecisionsPage() {
           </Alert>
         )}
 
-        <InvestmentForm disabled={roundConfirmed} />
+        <InvestmentForm 
+          disabled={roundConfirmed}
+          selectedInvestments={selectedInvestments}
+          onInvestmentChange={setSelectedInvestments}
+          totalOtherCosts={centerActionCosts}
+        />
       </div>
     </StudentGate>
   );

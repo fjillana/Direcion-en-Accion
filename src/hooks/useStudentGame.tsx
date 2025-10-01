@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, InvestmentDecision } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
@@ -12,7 +12,7 @@ const CURRENT_USER_ID = "student-beta";
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
 export interface RoundDecisions {
-  selectedInvestments: string[];
+  selectedInvestments: InvestmentDecision[];
   selectedCenterActions: string[];
   tuitionPrice: number;
   crisisResponse: {
@@ -47,7 +47,7 @@ interface StudentGameContextType {
   checkGameStatus: () => void;
   updateStudentGame: (userId: string, updatedState: Partial<StudentGameState>) => void;
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
-  setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
+  setRoundDecisions: (decisions: Partial<Omit<RoundDecisions, 'selectedInvestments'>> & { selectedInvestments?: InvestmentDecision[] }) => void;
   getDecisionsByRound: (round: number) => RoundDecisions | null;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
 }
@@ -105,8 +105,12 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     // Ensure critical nested objects exist
     if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
-        storedState.decisions = { ...initialStudentState.decisions };
+        storedState.decisions = { ...initialStudentState.decisions! };
     }
+     if (storedState.decisions && Array.isArray(storedState.decisions.selectedInvestments) && storedState.decisions.selectedInvestments.length > 0 && typeof storedState.decisions.selectedInvestments[0] === 'string') {
+      storedState.decisions.selectedInvestments = [];
+    }
+
     if(!storedState.strategicPlan || !storedState.strategicPlan.targets?.cash){
         storedState.strategicPlan = initialStudentState.strategicPlan;
         storedState.planConfirmed = false;
@@ -130,7 +134,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     if(hasRoundChanged){
         // New round has started, reset confirmation status
-        updatedState.decisions = { ...initialStudentState.decisions, tuitionPrice: updatedState.decisions?.tuitionPrice || 120 };
+        updatedState.decisions = { ...initialStudentState.decisions!, tuitionPrice: updatedState.decisions?.tuitionPrice || 120 };
     }
 
     const performanceHistory: TeamPerformanceData[] = [];
@@ -222,7 +226,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const setRoundDecisions = (decisions: Partial<RoundDecisions>) => {
     setStudentGame(prev => {
       if (!prev) return null;
-      const newDecisions = { ...(prev.decisions || initialStudentState.decisions), ...decisions };
+      const newDecisions = { ...(prev.decisions || initialStudentState.decisions!), ...decisions };
       const newState = { ...prev, decisions: newDecisions };
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));
       return newState;
@@ -239,7 +243,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
    const setStrategicPlan = (plan: Partial<StrategicPlan>) => {
     setStudentGame(prev => {
         if (!prev) return null;
-        const newPlan = { ...(prev.strategicPlan || initialStudentState.strategicPlan), ...plan };
+        const newPlan = { ...(prev.strategicPlan || initialStudentState.strategicPlan!), ...plan };
         const newState = { ...prev, strategicPlan: newPlan, planConfirmed: newPlan.confirmed };
         localStorage.setItem(getStorageKey(), JSON.stringify(newState));
         return newState;

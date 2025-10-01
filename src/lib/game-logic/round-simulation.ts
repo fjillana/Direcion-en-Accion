@@ -1,3 +1,4 @@
+
 import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
@@ -10,7 +11,12 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
     if (typeof window !== 'undefined') {
         const storedDecisions = localStorage.getItem(key);
         if (storedDecisions) {
-            return JSON.parse(storedDecisions);
+            const parsed = JSON.parse(storedDecisions);
+            // Ensure selectedInvestments is an array of objects
+            if (parsed.selectedInvestments && Array.isArray(parsed.selectedInvestments) && parsed.selectedInvestments.length > 0 && typeof parsed.selectedInvestments[0] === 'string') {
+              return { ...parsed, selectedInvestments: [] }; // Reset if it's old format
+            }
+            return parsed;
         }
     }
     // Fallback if no decisions are found

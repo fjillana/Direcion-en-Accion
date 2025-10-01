@@ -73,7 +73,7 @@ const teamsData: TeamPerformance[] = [
     name: "Equipo Alfa",
     type: 'H',
     finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
-    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 81 PEB"] },
+    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
     totalXp: 51,
     decisions: {
@@ -320,7 +320,7 @@ export default function GameDetailsPage() {
                       Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
                     </CardDescription>
                   </div>
-                  <div className="w-[180px]">
+                  {game && <div className="w-[180px]">
                     <Select value={selectedRound} onValueChange={setSelectedRound}>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccionar Ronda" />
@@ -333,7 +333,7 @@ export default function GameDetailsPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                  </div>
+                  </div>}
                 </div>
               </CardHeader>
               <CardContent>
@@ -385,12 +385,12 @@ export default function GameDetailsPage() {
           </TabsContent>
         </Tabs>
 
-        <RoundConfig
+        {game && <RoundConfig
           allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
           numRounds={game.numRounds}
-        />
+        />}
 
       </div>
       
@@ -462,6 +462,31 @@ export default function GameDetailsPage() {
                       <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
                     )}
                   </div>
+
+                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && (
+                    <div className="space-y-2">
+                        <h4 className="font-semibold">Plan Estratégico (Ronda 0)</h4>
+                        <div className="p-3 bg-muted/50 rounded-md space-y-2">
+                           <div>
+                                <p className="font-medium">Objetivos de KPIs:</p>
+                                <ul className="list-disc pl-5 text-sm text-muted-foreground mt-1">
+                                    {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={`kpi-${i}`}>{target}</li>)}
+                                </ul>
+                           </div>
+                           <div className="grid grid-cols-2 gap-x-4">
+                                <div>
+                                    <p className="font-medium">Ranking Objetivo:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedTeam.strategicPlan.rankingGoal}</p>
+                                </div>
+                                <div>
+                                    <p className="font-medium">Política de Precios:</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{selectedTeam.strategicPlan.pricingPolicy}</p>
+                                </div>
+                           </div>
+                        </div>
+                    </div>
+                  )}
+
                   {selectedTeam.type === 'H' && <div className="space-y-2">
                     <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
                     <div className="p-3 bg-muted/50 rounded-md">

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 
 export interface Game {
   id: string;
@@ -28,67 +28,67 @@ interface GamesContextType {
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
 
-const initialGames: Game[] = [];
-
 const GAMES_STORAGE_KEY = 'games';
 const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
 
+// Helper function to safely get item from localStorage
+const getInitialState = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === 'undefined') {
+    return defaultValue;
+  }
+  try {
+    const item = window.localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Error reading from localStorage key “${key}”:`, error);
+    return defaultValue;
+  }
+};
+
 
 export function GamesProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<Game[]>([]);
-  const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
-  
-  useEffect(() => {
-    // Ensure this runs only on the client
-    if (typeof window !== 'undefined') {
-        try {
-            const item = window.localStorage.getItem(GAMES_STORAGE_KEY);
-            if (item) {
-                setGames(JSON.parse(item));
-            } else {
-                setGames(initialGames);
-            }
-            const activeId = window.localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-            setActiveGameIdState(activeId ? JSON.parse(activeId) : null);
-        } catch (error) {
-            console.error(error);
-            setGames(initialGames);
-        }
-    }
-  }, []);
+  const [games, setGames] = useState<Game[]>(() => getInitialState<Game[]>(GAMES_STORAGE_KEY, []));
+  const [activeGameId, setActiveGameIdState] = useState<string | null>(() => getInitialState<string | null>(ACTIVE_GAME_ID_STORAGE_KEY, null));
 
-  useEffect(() => {
+  const updateLocalStorage = <T,>(key: string, value: T) => {
     if (typeof window !== 'undefined') {
         try {
-            // Do not overwrite stored games with an empty array on initial render
-            if (games.length > 0 || localStorage.getItem(GAMES_STORAGE_KEY)) {
-                window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
-            }
+            window.localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
-            console.error("Failed to save games to localStorage:", error);
+            console.error(`Error writing to localStorage key “${key}”:`, error);
         }
     }
-  }, [games]);
+  }
 
   const addGame = useCallback((game: Game) => {
-    setGames((prevGames) => [...prevGames, game]);
+    setGames((prevGames) => {
+        const newGames = [...prevGames, game];
+        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+        return newGames;
+    });
   }, []);
 
   const removeGame = useCallback((gameId: string) => {
-    setGames((prevGames) => prevGames.filter(game => game.id !== gameId));
+    setGames((prevGames) => {
+        const newGames = prevGames.filter(game => game.id !== gameId);
+        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+        return newGames;
+    });
   }, []);
 
   const updateGame = useCallback((gameId: string, updatedGame: Partial<Game>) => {
-    setGames(prevGames => 
-      prevGames.map(game => 
+    setGames(prevGames => {
+      const newGames = prevGames.map(game => 
         game.id === gameId ? { ...game, ...updatedGame } : game
-      )
-    );
+      );
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
   }, []);
 
   const updateReport = useCallback((gameId: string, round: number, teamName: string, reportData: any) => {
-    setGames(prevGames => 
-      prevGames.map(game => {
+    setGames(prevGames => {
+      const newGames = prevGames.map(game => {
         if (game.id === gameId) {
           const newReports = { ...game.reports };
           if (!newReports[round]) {
@@ -98,8 +98,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           return { ...game, reports: newReports };
         }
         return game;
-      })
-    );
+      });
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
   }, []);
 
   const getGameById = useCallback((gameId: string) => {
@@ -107,18 +109,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, [games]);
 
   const setActiveGameId = useCallback((gameId: string | null) => {
-    try {
-      if (typeof window !== 'undefined') {
-        if (gameId) {
-          window.localStorage.setItem(ACTIVE_GAME_ID_STORAGE_KEY, JSON.stringify(gameId));
-        } else {
-          window.localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
-        }
-      }
-      setActiveGameIdState(gameId);
-    } catch (error) {
-       console.error("Failed to set active game in localStorage:", error);
-    }
+    updateLocalStorage(ACTIVE_GAME_ID_STORAGE_KEY, gameId);
+    setActiveGameIdState(gameId);
   }, []);
 
   return (

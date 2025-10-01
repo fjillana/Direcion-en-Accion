@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
+import { InvestmentForm, availableInvestments } from "@/components/student/investment-form";
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
@@ -162,7 +163,27 @@ const currentCrisis: CrisisProps = {
 
 export default function StudentDashboard() {
   const [roundConfirmed, setRoundConfirmed] = useState(false);
+  const [selectedInvestments, setSelectedInvestments] = useState<string[]>([]);
+  const [selectedCenterActions, setSelectedCenterActions] = useState<string[]>([]);
+  const [tuitionPrice, setTuitionPrice] = useState(120);
 
+  const centerActionsCosts = {
+    'P2': 7500, // Contratar Docente
+    'P7': 7500, // Despedir Docente
+    'F5': 50000, // Ampliación de Aulas
+  };
+
+  const investmentCosts = selectedInvestments.reduce((acc, id) => {
+    const investment = availableInvestments.find(inv => inv.id === id);
+    return acc + (investment?.cost || 0);
+  }, 0);
+  
+  const centerActionCosts = selectedCenterActions.reduce((acc, id) => {
+    return acc + (centerActionsCosts[id as keyof typeof centerActionsCosts] || 0);
+  }, 0);
+
+  const totalCost = investmentCosts + centerActionCosts;
+  
   return (
     <StudentGate>
       <div className="space-y-8">
@@ -319,7 +340,20 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
         
-        <CenterDataForm disabled={roundConfirmed} />
+        <CenterDataForm 
+          disabled={roundConfirmed} 
+          selectedActions={selectedCenterActions}
+          onActionChange={setSelectedCenterActions}
+          tuitionPrice={tuitionPrice}
+          onPriceChange={setTuitionPrice}
+        />
+        
+        <InvestmentForm 
+          disabled={roundConfirmed}
+          selectedInvestments={selectedInvestments}
+          onInvestmentChange={setSelectedInvestments}
+          totalOtherCosts={centerActionCosts}
+        />
 
         <div className="w-full">
           <CrisisForm disabled={roundConfirmed} {...currentCrisis} />
@@ -329,3 +363,5 @@ export default function StudentDashboard() {
     </StudentGate>
   );
 }
+
+    

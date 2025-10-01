@@ -7,17 +7,20 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
+import { AlertTriangle, FileText, MessageSquare, Send } from "lucide-react";
 import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { useGames } from "@/hooks/use-games";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const getIcon = (type: string) => {
     switch (type) {
@@ -30,7 +33,8 @@ const getIcon = (type: string) => {
 
 export default function InboxPage() {
   const { studentGame } = useStudentGame();
-  const { markMessageAsRead } = useGames();
+  const { markMessageAsRead, addMessage } = useGames();
+  const [newMessage, setNewMessage] = useState('');
   
   const messages = studentGame?.messages || [];
   const teamName = studentGame?.teamName || '';
@@ -47,13 +51,26 @@ export default function InboxPage() {
     }
   }, [messages, gameId, userId, markMessageAsRead]);
 
-  const sortedMessages = [...messages].sort((a, b) => b.timestamp - a.timestamp);
+  const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
 
   const getSenderName = (from: string) => {
     if (from === 'teacher') return 'Profesor';
     if (from === 'system') return 'Sistema';
     return from; // Team name
   }
+  
+  const handleSendMessage = () => {
+    if (!gameId || !teamName || newMessage.trim() === '') return;
+    
+    addMessage(gameId, {
+      from: teamName,
+      to: 'teacher',
+      content: newMessage,
+      type: 'message',
+      readBy: [userId],
+    });
+    setNewMessage('');
+  };
 
   return (
     <StudentGate>
@@ -64,52 +81,56 @@ export default function InboxPage() {
             Comunicaciones del profesor, otros equipos y notificaciones del sistema.
           </p>
         </div>
-        <Card>
+        <Card className="flex flex-col h-[calc(100vh-16rem)]">
           <CardHeader>
             <CardTitle>Mensajes Recientes</CardTitle>
             <CardDescription>
               Aquí encontrarás todas las notificaciones y mensajes importantes.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-              <ScrollArea className="h-[60vh]">
-                  <div className="space-y-4">
+          <CardContent className="flex-1 overflow-auto p-4">
+              <ScrollArea className="h-full">
+                  <div className="space-y-6 pr-4">
                   {sortedMessages.map((msg) => {
-                    const isRead = msg.readBy.includes(userId);
+                    const isSender = msg.from === teamName;
                     const senderName = getSenderName(msg.from);
                     return (
                       <div
                       key={msg.id}
                       className={cn(
-                          "flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50",
-                          !isRead && "bg-muted/40"
+                          "flex items-end gap-3",
+                          isSender ? "justify-end" : "justify-start"
                       )}
                       >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                          {msg.from !== 'system' ? (
-                              <Avatar className="h-10 w-10 border">
-                                  <AvatarImage src={`https://picsum.photos/seed/${msg.from}/40/40`} alt={senderName} />
-                                  <AvatarFallback>{senderName.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                          ) : getIcon(msg.type || 'message')}
-                      </div>
-                      <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                          <p className="font-semibold">
-                              {msg.title || 'Mensaje'}
+                       {!isSender && (
+                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
+                                {msg.from !== 'system' ? (
+                                    <Avatar className="h-10 w-10 border">
+                                        <AvatarImage src={`https://picsum.photos/seed/${msg.from}/40/40`} alt={senderName} />
+                                        <AvatarFallback>{senderName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                ) : getIcon(msg.type || 'message')}
+                            </div>
+                       )}
+                       <div className={cn("max-w-md rounded-lg p-3", isSender ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                          <p className="text-sm font-medium leading-none">
+                              {msg.title || senderName}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: es })}
-                          </p>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                              <span className="font-medium text-foreground/80">{senderName}: </span>
+                          <p className="text-sm mt-1">
                               {msg.content}
                           </p>
-                      </div>
-                      {!isRead && (
-                          <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5" />
-                      )}
+                          <p className={cn("text-xs mt-2", isSender ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                            {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: es })}
+                          </p>
+                       </div>
+                       {isSender && (
+                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
+                               <Avatar className="h-10 w-10 border">
+                                   <AvatarImage src={`https://picsum.photos/seed/${teamName}/40/40`} alt={teamName} />
+                                   <AvatarFallback>{teamName.charAt(0)}</AvatarFallback>
+                               </Avatar>
+                           </div>
+                       )}
                       </div>
                   )})}
                   {sortedMessages.length === 0 && (
@@ -120,6 +141,20 @@ export default function InboxPage() {
                   </div>
               </ScrollArea>
           </CardContent>
+           <CardFooter className="p-4 border-t">
+              <div className="flex w-full items-center space-x-2">
+                <Input 
+                  placeholder="Escribe un mensaje para el profesor..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
+                <Button onClick={handleSendMessage}>
+                  <Send className="h-4 w-4" />
+                  <span className="sr-only">Enviar</span>
+                </Button>
+              </div>
+            </CardFooter>
         </Card>
       </div>
     </StudentGate>

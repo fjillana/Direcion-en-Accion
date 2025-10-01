@@ -18,6 +18,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   theme: Theme;
   login: (email: string, password: string) => User;
   register: (email: string, password: string, name: string) => User;
@@ -76,15 +77,24 @@ const defaultUsers = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => getLocalStorageItem<User | null>(AUTH_STORAGE_KEY, null));
-  const [theme, _setTheme] = useState<Theme>(user?.theme || 'light');
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [theme, _setTheme] = useState<Theme>('light');
   const router = useRouter();
 
   useEffect(() => {
+    setIsLoading(true);
     const usersDb = getLocalStorageItem(USERS_DB_KEY, null);
     if (!usersDb) {
       setLocalStorageItem(USERS_DB_KEY, defaultUsers);
     }
+
+    const storedUser = getLocalStorageItem<User | null>(AUTH_STORAGE_KEY, null);
+    if(storedUser){
+        setUser(storedUser);
+        _setTheme(storedUser.theme);
+    }
+    setIsLoading(false);
   }, []);
   
   useEffect(() => {
@@ -185,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user,
+    isLoading,
     theme,
     login,
     register,
@@ -192,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUser,
     changePassword,
     setTheme
-  }), [user, theme]);
+  }), [user, isLoading, theme]);
 
   return (
     <AuthContext.Provider value={value}>

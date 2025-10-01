@@ -33,9 +33,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAuth, type Theme } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "../ui/skeleton";
 
 export function UserNav() {
-  const { user, updateUser, changePassword, setTheme, logout } = useAuth();
+  const { user, updateUser, changePassword, setTheme, logout, isLoading } = useAuth();
   const { toast } = useToast();
 
   const [isProfileOpen, setProfileOpen] = useState(false);
@@ -86,8 +87,12 @@ export function UserNav() {
     }
   };
   
+  if (isLoading) {
+    return <Skeleton className="h-9 w-9 rounded-full" />;
+  }
+  
   if (!user) {
-    return null; // Or a loading skeleton
+    return null;
   }
 
   return (

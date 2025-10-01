@@ -92,7 +92,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          <div className="mt-auto flex justify-center p-2">
+          <div className="mt-auto flex justify-start p-2">
             {studentGame?.status === 'joined' && (
                   <AlertDialog>
                       <AlertDialogTrigger asChild>

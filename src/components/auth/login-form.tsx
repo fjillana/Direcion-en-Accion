@@ -98,9 +98,9 @@ export function LoginForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Correo electrónico</FormLabel>
+                <FormLabel className="text-white/90">Correo electrónico</FormLabel>
                 <FormControl>
-                  <Input placeholder="nombre@ejemplo.com" {...field} />
+                  <Input placeholder="nombre@ejemplo.com" {...field} className="bg-white/10 border-white/20 text-white placeholder:text-white/60" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -111,38 +111,38 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Contraseña</FormLabel>
+                <FormLabel className="text-white/90">Contraseña</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="••••••••" {...field} className="bg-white/10 border-white/20 text-white placeholder:text-white/60" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
             {isLogin ? "Iniciar sesión" : "Crear cuenta"}
           </Button>
         </form>
       </Form>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <span className="w-full border-t border-white/20" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
+          <span className="bg-card/0 px-2 text-white/70 backdrop-blur-sm">
             O continuar con
           </span>
         </div>
       </div>
-      <Button variant="outline" className="w-full">
+      <Button variant="outline" className="w-full bg-white/90 text-foreground hover:bg-white">
         <GoogleIcon className="mr-2 h-4 w-4" />
         Google
       </Button>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-white/70">
         {isLogin ? "¿Eres estudiante y no tienes cuenta?" : "¿Ya tienes una cuenta?"}
         <Button
           variant="link"
-          className="px-1"
+          className="px-1 text-primary-foreground/90 hover:text-primary-foreground"
           onClick={() => setIsLogin(!isLogin)}
         >
           {isLogin ? "Regístrate" : "Inicia sesión"}

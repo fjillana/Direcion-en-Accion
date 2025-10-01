@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const formSchema = z.object({
   email: z
@@ -30,6 +31,7 @@ export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const { login, register } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,27 +42,29 @@ export function LoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (isLogin) {
-      // Logic for logging in
-      if (values.email === "profesor@test.com" && values.password === "password") {
-        router.push("/teacher/dashboard");
-      } else if (values.email === "estudiante@test.com" && values.password === "password") {
-        router.push("/student/dashboard");
+    try {
+      if (isLogin) {
+        const user = login(values.email, values.password);
+        if (user.role === 'teacher') {
+          router.push("/teacher/dashboard");
+        } else {
+          router.push("/student/dashboard");
+        }
       } else {
+        // Registration is always for students
+        register(values.email, values.password, "estudiante");
+        toast({
+          title: "¡Cuenta Creada!",
+          description: "Bienvenido/a. Redirigiendo a tu panel de estudiante...",
+        });
+        router.push("/student/dashboard");
+      }
+    } catch (error: any) {
         toast({
           variant: "destructive",
           title: "Error de autenticación",
-          description: "Correo electrónico o contraseña incorrectos.",
+          description: error.message || "Ha ocurrido un error.",
         });
-      }
-    } else {
-      // Logic for registering a new student account
-      // For now, we'll simulate a successful registration and redirect
-      toast({
-        title: "¡Cuenta Creada!",
-        description: "Bienvenido/a. Redirigiendo a tu panel de estudiante...",
-      });
-      router.push("/student/dashboard");
     }
   }
 

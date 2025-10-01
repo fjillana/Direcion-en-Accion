@@ -10,7 +10,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -24,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm } from "@/components/student/crisis-form";
+import { CenterDataForm } from "@/components/student/center-data-form";
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
@@ -92,7 +92,7 @@ const xpData: XpData[] = [
       finalCalculation: "PEB Reputación = (82 + 94) / 2 = 88"
     },
     pebMoral: {
-      total: 71,
+      total: 85.5,
       breakdown: [
         "Moral del personal al 71% -> 71 PEB",
         "Ratio Alumno/Profesor de 25.1 -> 100 PEB"
@@ -150,7 +150,7 @@ export default function StudentDashboard() {
 
   return (
     <StudentGate>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold font-headline">
@@ -192,111 +192,116 @@ export default function StudentDashboard() {
         </div>
 
         <XpSummary data={xpData} />
+        
+        <div>
+          <h2 className="text-2xl font-bold font-headline mb-4">KPIs Actuales</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                  <KpiCard title="Saldo de tesorería" value="25,000 CC" trend="up" change="+2.5%" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución del Saldo de Tesorería</DialogTitle>
+                  <DialogDescription>
+                    Historial de la tesorería de tu equipo a lo largo de las rondas.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.cash} dataKey="value" unit=" CC" />
+              </DialogContent>
+            </Dialog>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <KpiCard title="Saldo de tesorería" value="25,000 CC" trend="up" change="+2.5%" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución del Saldo de Tesorería</DialogTitle>
-                <DialogDescription>
-                  Historial de la tesorería de tu equipo a lo largo de las rondas.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.cash} dataKey="value" unit=" CC" />
-            </DialogContent>
-          </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                  <KpiCard title="Coste personal / Ingresos" value="75%" trend="down" change="-1.0%" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución del Coste de Personal</DialogTitle>
+                  <DialogDescription>
+                    Historial del ratio de coste de personal sobre ingresos.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.personnelCost} dataKey="value" unit="%" />
+              </DialogContent>
+            </Dialog>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <KpiCard title="Coste personal / Ingresos" value="75%" trend="down" change="-1.0%" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución del Coste de Personal</DialogTitle>
-                <DialogDescription>
-                  Historial del ratio de coste de personal sobre ingresos.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.personnelCost} dataKey="value" unit="%" />
-            </DialogContent>
-          </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                  <KpiCard title="Nota Media Alumnado" value="7.5" trend="up" change="+0.1" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución de la Nota Media del Alumnado</DialogTitle>
+                  <DialogDescription>
+                    Historial de la nota media de los alumnos.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.nma} dataKey="value" />
+              </DialogContent>
+            </Dialog>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <KpiCard title="Nota Media Alumnado" value="7.5" trend="up" change="+0.1" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución de la Nota Media del Alumnado</DialogTitle>
-                <DialogDescription>
-                  Historial de la nota media de los alumnos.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.nma} dataKey="value" />
-            </DialogContent>
-          </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                    <KpiCard title="Cuota de mercado" value="12.5%" trend="up" change="+0.5%" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución de la Cuota de Mercado</DialogTitle>
+                  <DialogDescription>
+                    Historial de la cuota de mercado de tu equipo.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.marketShare} dataKey="value" unit="%" />
+              </DialogContent>
+            </Dialog>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                  <KpiCard title="Cuota de mercado" value="12.5%" trend="up" change="+0.5%" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución de la Cuota de Mercado</DialogTitle>
-                <DialogDescription>
-                  Historial de la cuota de mercado de tu equipo.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.marketShare} dataKey="value" unit="%" />
-            </DialogContent>
-          </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                  <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución de la Moral del Personal</DialogTitle>
+                  <DialogDescription>
+                    Historial de la moral del equipo docente.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.morale} dataKey="value" unit="%" />
+              </DialogContent>
+            </Dialog>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución de la Moral del Personal</DialogTitle>
-                <DialogDescription>
-                  Historial de la moral del equipo docente.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.morale} dataKey="value" unit="%" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Evolución del Ratio Alumnos/Profesor</DialogTitle>
-                <DialogDescription>
-                  Historial del ratio de alumnos por cada profesor.
-                </DialogDescription>
-              </DialogHeader>
-              <KpiChart data={kpiHistoryData.studentTeacherRatio} dataKey="value" />
-            </DialogContent>
-          </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div>
+                  <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
+                </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Evolución del Ratio Alumnos/Profesor</DialogTitle>
+                  <DialogDescription>
+                    Historial del ratio de alumnos por cada profesor.
+                  </DialogDescription>
+                </DialogHeader>
+                <KpiChart data={kpiHistoryData.studentTeacherRatio} dataKey="value" />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         
+        <CenterDataForm disabled={roundConfirmed} />
+
         <div className="w-full">
           <CrisisForm disabled={roundConfirmed} />
         </div>

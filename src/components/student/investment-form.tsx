@@ -21,7 +21,6 @@ const availableInvestments = [
   { id: 'R1', name: 'Campaña publicitaria en redes', cost: 10000, effect: '+2 a +10 XP Reputación' },
   { id: 'P1', name: 'Formación docente', cost: 7500, effect: '+5 XP Personal, +10-20 moral' },
   { id: 'R2', name: 'Inversión en TIC', cost: 50000, effect: '+3 a +15 XP Reputación, +3 XP Personal' },
-  { id: 'P2', name: 'Contratación docente', cost: 7500, effect: '+10 XP Personal, +15 moral' },
 ];
 
 const teamCash = 65000;
@@ -85,7 +84,7 @@ export function InvestmentForm({ disabled = false }: InvestmentFormProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 group-disabled:opacity-50">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Catálogo de Inversiones</CardTitle>
+              <CardTitle>Inversiones de la Ronda</CardTitle>
               <CardDescription>
                 Selecciona las inversiones que tu equipo realizará en esta ronda.
               </CardDescription>

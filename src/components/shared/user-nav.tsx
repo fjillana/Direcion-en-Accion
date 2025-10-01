@@ -16,7 +16,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +27,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Moon, Sun, Camera, LogOut, KeyRound } from "lucide-react";
+import { Moon, Sun, Camera, KeyRound } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAuth, type Theme } from "@/hooks/use-auth";
@@ -146,8 +145,8 @@ export function UserNav() {
               </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/" onClick={logout}>Cerrar sesión</Link>
+            <DropdownMenuItem onSelect={logout}>
+              Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

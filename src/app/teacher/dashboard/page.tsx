@@ -51,7 +51,7 @@ export default function TeacherDashboard() {
 
   const handleCreateGame = (data: GameConfig) => {
     const newGame: Game = {
-      id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
+      id: `game-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: data.gameName,
       round: 0, // Start at round 0
       teams: data.numTeams,

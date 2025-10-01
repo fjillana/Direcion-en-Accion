@@ -384,18 +384,18 @@ export default function GameDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {selectedTeam.decisions.investments.length === 0 && selectedTeam.decisions.selectedCenterActions.length === 0 ? (
+                                {((selectedTeam.decisions.investments || []).length === 0 && (selectedTeam.decisions.selectedCenterActions || []).length === 0) ? (
                                     <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No se realizaron inversiones ni acciones.</TableCell></TableRow>
                                 ) : (
                                     <>
-                                        {selectedTeam.decisions.investments.map(inv => (
+                                        {(selectedTeam.decisions.investments || []).map(inv => (
                                             <TableRow key={inv.id}>
                                                 <TableCell>{inv.name}</TableCell>
                                                 <TableCell className="text-right font-mono">{formatCurrency(inv.cost)} CC</TableCell>
                                             </TableRow>
                                         ))}
                                         {/* You'd need a mapping from action ID to name/cost here */}
-                                        {selectedTeam.decisions.selectedCenterActions.map(actionId => (
+                                        {(selectedTeam.decisions.selectedCenterActions || []).map(actionId => (
                                             <TableRow key={actionId}>
                                                 <TableCell>{actionId}</TableCell>
                                                 <TableCell className="text-right font-mono">-- CC</TableCell>
@@ -452,3 +452,4 @@ export default function GameDetailsPage() {
     </>
   );
 }
+

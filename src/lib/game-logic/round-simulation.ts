@@ -1,7 +1,8 @@
 import type { Game, TeamPerformanceData } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
-import type { TeamState } from "./types";
+import { updateKpisForNextRound } from "./kpi-dynamics";
+import type { TeamState, TeamKPIs } from "./types";
 
 // This is a simplified version of the team data we'd have.
 // In a real scenario, this would come from the student's decisions saved in the game state.
@@ -36,7 +37,6 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
     kpis: {
       ...mockTeamState.kpis,
       nma: mockTeamState.kpis.nma + (Math.random() - 0.5),
-      marketShare: mockTeamState.kpis.marketShare + (Math.random() * 2 - 1),
     },
     decisions: {
       investments: Math.random() > 0.5 ? [{ id: 'R1', name: 'Campaña publicitaria en redes', cost: 10000, effect: '' }] : [],
@@ -46,29 +46,34 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
     }
   }));
 
-  // 1. Calculate Market Attractiveness and distribute new students
+  // 1. Calculate Market Attractiveness and determine new students for each team
   const marketResults = calculateMarketAttractiveness(currentTeamsState);
 
-  // 2. Update each team's state with new students before calculating performance
-  const updatedTeamsState = currentTeamsState.map(team => {
-    const marketData = marketResults[team.name];
-    if (marketData) {
+  // 2. Update each team's KPIs based on decisions and market results
+  const teamsWithUpdatedKpis: { name: string, type: 'H' | 'IA', kpis: TeamKPIs }[] = currentTeamsState.map(team => {
+      const newStudents = marketResults[team.name]?.newStudents || 0;
+      const updatedKpis = updateKpisForNextRound(team, newStudents);
       return {
-        ...team,
-        kpis: {
-          ...team.kpis,
-          numStudents: team.kpis.numStudents + marketData.newStudents
-        }
+          name: team.name,
+          type: team.type,
+          kpis: updatedKpis,
       };
-    }
-    return team;
   });
 
+  // After all teams have their new student count, we can calculate the final market share
+  const totalStudentsInMarket = teamsWithUpdatedKpis.reduce((sum, team) => sum + team.kpis.numStudents, 0);
+  
+  const finalTeamsState = teamsWithUpdatedKpis.map(team => ({
+      ...team,
+      kpis: {
+          ...team.kpis,
+          marketShare: totalStudentsInMarket > 0 ? (team.kpis.numStudents / totalStudentsInMarket) * 100 : 0,
+      }
+  }));
 
-  // 3. Calculate performance for each team based on their updated state
-  const performanceResults: TeamPerformanceData[] = updatedTeamsState.map(teamState => {
-    // In a real scenario, we would fetch the actual state of each team
-    // For now, we use a mocked state for all.
+
+  // 3. Calculate performance (PEB & XP) for each team based on their updated KPIs
+  const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const performance = calculateTeamPerformance(teamState.kpis);
 
     return {

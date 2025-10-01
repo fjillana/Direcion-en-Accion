@@ -35,6 +35,7 @@ import { useGame } from "@/hooks/use-game-context";
 import { useToast } from "@/hooks/use-toast";
 import { generateRoundReport } from "@/ai/flows/generate-round-report";
 import type { TeamPerformanceData } from "@/hooks/use-games";
+import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiveness";
 
 
 type TeamName = string;
@@ -43,66 +44,31 @@ interface AIReportFormProps {
   teamsData: TeamPerformanceData[];
 }
 
-const initialReportData = {
-  round: 3,
-  kpis: {
-    cash: 50000,
-    personnelCost: 245000,
-    income: 320000,
-    privateIncome: 295000,
-    publicIncome: 25000,
-    numStudents: 810,
-    tuitionPrice: 395, 
-    numTeachers: 33,
-    nma: 8.7,
-    marketShare: 14.2,
-    morale: 82,
-    studentTeacherRatio: 24.5,
-  },
-  decisions: {
-      investments: [
-      { id: 'R2', name: "Inversión en TIC", cost: 25000, effect: "+2 NMA, +5 Moral" },
-      { id: 'P1', name: "Formación docente", cost: 10000, effect: "+1 NMA, +10 Moral" },
-    ],
-  },
-  kpiAnalysis: {
-    personnelCost: {
-      value: "76.5%",
-      calculation: "(245.000 CC / 320.000 CC)",
-      analysis: "El ratio ha aumentado ligeramente debido al mantenimiento de la plantilla mientras los ingresos se han estabilizado. No se han realizado contrataciones ni despidos esta ronda, por lo que el cambio es menor."
-    },
-    nma: {
-      value: "8.7",
-      analysis: "La nota media ha subido significativamente (+0.2) gracias a la 'Inversión en TIC' (R2) y la 'Formación docente' (P1), que mejoran la calidad de la enseñanza."
-    },
-    marketShare: {
-      value: "14.2%",
-      analysis: "La cuota de mercado ha crecido un 0.7% gracias a la mejora de la NMA, que ha aumentado el Índice de Atractividad de Mercado (IAM) del centro."
-    },
-    morale: {
-      value: "82%",
-      analysis: "La moral ha subido 4 puntos. La inversión en TIC y formación docente ha sido bien recibida por el personal. La ausencia de crisis también ha contribuido."
-    },
-    studentTeacherRatio: {
-      value: "24.5",
-      calculation: "(810 alumnos / 33 profesores)",
-      analysis: "El ratio se mantiene estable, ya que no se ha contratado ni despedido personal y el número de alumnos ha tenido una variación moderada."
-    }
-  },
-  marketAnalysis: {
-    iam: "115",
-    newStudentsCaptured: 25,
-    newStudentsInMarket: 50,
-    capacity: 810,
-    finalStudents: 810,
-  },
-  qualitativeAnalysis:
-    "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 76.5%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
-  debriefingQuestions: [
-      "Vuestra inversión en TIC (R2) ha mejorado la NMA un 0.2, pero vuestro coste de personal ha superado el 75%. ¿Creéis que el beneficio en reputación compensa el riesgo financiero que estáis asumiendo? ¿Qué haríais diferente la próxima ronda?",
-      "Elegisteis 'Negociar un acuerdo parcial' en la crisis de la huelga. ¿Qué os llevó a esa decisión en lugar de una más drástica como 'Aceptar todas las demandas' o 'Mantener la postura'? ¿Cómo creéis que impactará en la moral a largo plazo?",
-  ],
-  pedagogicalSuggestions: "Fomenta la discusión sobre el equilibrio entre KPIs de reputación (NMA, cuota de mercado) y los KPIs financieros (tesorería, coste de personal). Usa el ejemplo del Equipo Gamma para ilustrar que una estrategia de precios altos puede funcionar si se acompaña de una fuerte inversión en calidad percibida (instalaciones)."
+const buildKpiAnalysis = (kpis: TeamPerformanceData['kpis'], decisions: TeamPerformanceData['decisions']) => {
+    return {
+        personnelCost: {
+            value: kpis.income > 0 ? `${((kpis.personnelCost / kpis.income) * 100).toFixed(1)}%` : '0.0%',
+            calculation: `(${kpis.personnelCost.toLocaleString('es-ES')} CC / ${kpis.income.toLocaleString('es-ES')} CC)`,
+            analysis: "El ratio de coste de personal sobre ingresos es un indicador clave de la salud financiera."
+        },
+        nma: {
+            value: kpis.nma.toFixed(1),
+            analysis: `La nota media ha sido influenciada por inversiones como TIC ${decisions.investments.some(i => i.id ==='R2') ? '(realizada)' : '(no realizada)'} y formación docente ${decisions.investments.some(i => i.id ==='P1') ? '(realizada)' : '(no realizada)'}.`
+        },
+        marketShare: {
+            value: `${kpis.marketShare.toFixed(1)}%`,
+            analysis: "La cuota de mercado depende de la atractividad del centro frente a los competidores."
+        },
+        morale: {
+            value: `${kpis.morale.toFixed(0)}%`,
+            analysis: `La moral del personal se ve afectada por la carga de trabajo (ratio alumnos/profesor) y las inversiones en personal.`
+        },
+        studentTeacherRatio: {
+            value: kpis.studentTeacherRatio.toFixed(1),
+            calculation: `(${kpis.numStudents} alumnos / ${kpis.numTeachers} profesores)`,
+            analysis: "Un ratio alto puede impactar negativamente la NMA y la moral."
+        }
+    };
 };
 
 export function AIReportForm({ teamsData }: AIReportFormProps) {
@@ -112,7 +78,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
 
   const humanTeams = useMemo(() => teamsData.filter(t => t.type === 'H'), [teamsData]);
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(undefined);
+  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(
+    humanTeams.length > 0 ? humanTeams[0].name : undefined
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -125,36 +93,32 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const [reportData, setReportData] = useState<any>(null);
 
   useEffect(() => {
-    if (!selectedTeam && humanTeams.length > 0) {
-      setSelectedTeam(humanTeams[0].name);
-    } else if (humanTeams.length === 0) {
-      setSelectedTeam(undefined);
-    }
-  }, [humanTeams, selectedTeam]);
-
-
-  useEffect(() => {
+    // This effect runs when the selected team or the game data changes.
+    // It loads an existing report from the game state if available.
     if (activeGame && selectedTeam) {
         const gameData = getGameById(activeGame.id);
         const round = activeGame.round ? activeGame.round - 1 : 0;
-        const report = gameData?.reports?.[round]?.[selectedTeam];
-        if (report) {
-            setQualitativeAnalysis(report.qualitativeAnalysis || "");
-            setDebriefingQuestions(report.debriefingQuestions || []);
-            setPedagogicalSuggestions(report.pedagogicalSuggestions || "");
-            setReportData(report);
+        const existingReport = gameData?.reports?.[round]?.[selectedTeam];
+        
+        if (existingReport) {
+            setReportData(existingReport);
+            setQualitativeAnalysis(existingReport.qualitativeAnalysis || "");
+            setDebriefingQuestions(existingReport.debriefingQuestions || []);
+            setPedagogicalSuggestions(existingReport.pedagogicalSuggestions || "");
             setHasReport(true);
         } else {
+            // Reset if no report is found for the selected team
             setHasReport(false);
+            setReportData(null);
             setQualitativeAnalysis("");
             setDebriefingQuestions([]);
             setPedagogicalSuggestions("");
-            setReportData(null);
         }
     } else {
       setHasReport(false);
+      setReportData(null);
     }
-  }, [selectedTeam, activeGame, getGameById]);
+  }, [selectedTeam, activeGame, getGameById, teamsData]);
 
 
   const handleGenerateReport = async () => {
@@ -174,26 +138,35 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     try {
       const result = await generateRoundReport({
         gameId: activeGame.id,
-        roundNumber: activeGame.round -1,
+        roundNumber: activeGame.round - 1,
         teamPerformanceData: JSON.stringify(teamPerformance, null, 2),
-        marketConditions: "Mercado estable, 50 nuevos alumnos disponibles.",
+        marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
       });
-
-      setQualitativeAnalysis(result.reporteCualitativo);
-      setDebriefingQuestions(result.preguntasMayeuticas);
-      setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       
+      const marketResults = calculateMarketAttractiveness(teamsData.map(t => ({...t, kpis: t.kpis, decisions: t.decisions})), activeGame);
+      const teamMarketResult = marketResults[selectedTeam];
+
       const newReportData = {
-          ...initialReportData, 
-          qualitativeAnalysis: result.reporteCualitativo,
-          debriefingQuestions: result.preguntasMayeuticas,
-          pedagogicalSuggestions: result.sugerenciasPedagogicas,
           round: activeGame.round - 1,
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
+          kpiAnalysis: buildKpiAnalysis(teamPerformance.kpis, teamPerformance.decisions),
+          marketAnalysis: {
+            iam: teamMarketResult.iam,
+            newStudentsCaptured: teamMarketResult.newStudents,
+            newStudentsInMarket: activeGame.newStudentsPerRound,
+            capacity: 810, // Assuming static capacity for now
+            finalStudents: Math.min(teamPerformance.kpis.numStudents + teamMarketResult.newStudents, 810),
+          },
+          qualitativeAnalysis: result.reporteCualitativo,
+          debriefingQuestions: result.preguntasMayeuticas,
+          pedagogicalSuggestions: result.sugerenciasPedagogicas,
       };
 
       setReportData(newReportData);
+      setQualitativeAnalysis(result.reporteCualitativo);
+      setDebriefingQuestions(result.preguntasMayeuticas);
+      setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       setHasReport(true);
 
     } catch (error) {
@@ -214,19 +187,13 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   };
 
   const handlePublishReport = () => {
-    if (!activeGame || !selectedTeam) return;
+    if (!activeGame || !selectedTeam || !reportData) return;
     
-    const teamPerformance = teamsData.find(t => t.name === selectedTeam);
-    if (!teamPerformance) return;
-
     const fullReportData = {
-      ...initialReportData,
-      round: activeGame.round - 1,
-      kpis: teamPerformance.kpis,
-      decisions: teamPerformance.decisions,
-      qualitativeAnalysis: qualitativeAnalysis,
-      debriefingQuestions: debriefingQuestions,
-      pedagogicalSuggestions: pedagogicalSuggestions,
+      ...reportData,
+      qualitativeAnalysis,
+      debriefingQuestions,
+      pedagogicalSuggestions,
     };
     
     updateReport(activeGame.id, activeGame.round - 1, selectedTeam, fullReportData);
@@ -301,8 +268,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                             <AccordionContent className="px-4 space-y-4">
                                 <div className="p-3 bg-muted/50 rounded-lg border">
                                     <h4 className="font-semibold">Cálculos Clave</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome)}</p>
-                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome)}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
+                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
                                     <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
                                 </div>
                                 <div className="p-3 bg-muted/50 rounded-lg border">
@@ -332,7 +299,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         <AccordionItem value="item-kpi-analysis" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
-                                {Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
+                                {reportData.kpiAnalysis && Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
                                     <div key={key} className="p-3 bg-muted/50 rounded-lg border">
                                         <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
                                         <p className="text-sm text-muted-foreground mt-1"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
@@ -346,7 +313,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                             <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
                                <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                  <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.iam}</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
                                </div>
                                <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                  <p className="text-sm font-semibold text-muted-foreground">Nuevos Alumnos Captados</p>
@@ -358,7 +325,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                </div>
                                <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                  <p className="text-sm font-semibold text-muted-foreground">Capacidad / Alumnos Finales</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.capacity} / {reportData.marketAnalysis.finalStudents}</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.capacity} / {reportData.kpis.numStudents}</p>
                                </div>
                             </AccordionContent>
                         </AccordionItem>

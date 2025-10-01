@@ -86,7 +86,7 @@ export default function ConfigPage() {
   
   const handleSaveChanges = () => {
     if (selectedGameId) {
-      updateGame(selectedGameId, { teams: acceptedTeams });
+      updateGame(selectedGameId, { teams: acceptedTeams.length });
       toast({
         title: "Cambios guardados",
         description: "La configuración del juego ha sido actualizada.",

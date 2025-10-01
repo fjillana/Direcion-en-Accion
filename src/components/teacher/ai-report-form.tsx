@@ -62,6 +62,14 @@ const initialReportData = {
       { name: "Formación docente", cost: 10000, effect: "+1 NMA, +10 Moral" },
     ],
   },
+  kpiSummary: {
+    cash: "65.000 CC",
+    personnelCost: "76.5%",
+    nma: "8.7",
+    marketShare: "14.2%",
+    morale: "82%",
+    studentTeacherRatio: "24.5",
+  },
   kpiAnalysis: {
     personnelCost: {
       value: "76.5%",
@@ -159,7 +167,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             </TabsList>
             <TabsContent value="analysis">
                  {hasReport ? (
-                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5']} className="w-full space-y-4 pt-4">
+                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6']} className="w-full space-y-4 pt-4">
                         
                         {/* Resumen Financiero */}
                         <AccordionItem value="item-1" className="border rounded-lg">
@@ -208,8 +216,26 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                             </AccordionContent>
                         </AccordionItem>
 
-                        {/* KPIs */}
+                        {/* KPIs Summary */}
                         <AccordionItem value="item-3" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline">
+                                <h3 className="font-semibold text-lg">Resumen de KPIs Finales</h3>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4">
+                                <div className="rounded-lg border p-4 space-y-2 text-sm">
+                                    <div className="flex justify-between"><span>Saldo Tesorería:</span><span className="font-mono">{initialReportData.kpiSummary.cash}</span></div>
+                                    <div className="flex justify-between"><span>Coste Personal/Ingreso:</span><span className="font-mono">{initialReportData.kpiSummary.personnelCost}</span></div>
+                                    <div className="flex justify-between"><span>Nota Media Alumnado:</span><span className="font-mono">{initialReportData.kpiSummary.nma}</span></div>
+                                    <div className="flex justify-between"><span>Cuota de Mercado:</span><span className="font-mono">{initialReportData.kpiSummary.marketShare}</span></div>
+                                    <div className="flex justify-between"><span>Moral Personal:</span><span className="font-mono">{initialReportData.kpiSummary.morale}</span></div>
+                                    <div className="flex justify-between"><span>Ratio Alumnos/Profesor:</span><span className="font-mono">{initialReportData.kpiSummary.studentTeacherRatio}</span></div>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                        
+
+                        {/* KPIs Analysis */}
+                        <AccordionItem value="item-4" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">
                                 <h3 className="font-semibold text-lg">Análisis de KPIs</h3>
                             </AccordionTrigger>
@@ -232,7 +258,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         </AccordionItem>
                         
                         {/* Captación y Capacidad */}
-                        <AccordionItem value="item-4" className="border rounded-lg">
+                        <AccordionItem value="item-5" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">
                                 <h3 className="font-semibold text-lg">Captación y Capacidad (IAM)</h3>
                             </AccordionTrigger>
@@ -259,7 +285,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         </AccordionItem>
 
                         {/* AI Qualitative Analysis */}
-                        <AccordionItem value="item-5" className="border rounded-lg">
+                        <AccordionItem value="item-6" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">
                                 <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias</h3>
                             </AccordionTrigger>

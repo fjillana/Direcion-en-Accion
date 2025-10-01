@@ -3,20 +3,18 @@
 import type { Game } from "@/hooks/use-games";
 import type { TeamState } from "./types";
 
-// Este es el total de nuevos alumnos disponibles en el mercado cada ronda.
-// En una versión futura, podría venir de los ajustes del juego.
-const NEW_STUDENTS_POOL = 50;
-
 /**
  * Calcula el índice de atractividad de mercado (IAM) para cada equipo y distribuye los nuevos alumnos.
  * Este es el núcleo del MAM (Modelo de Atractividad de Mercado).
  * @param teams - Un array con el estado actual de todos los equipos en el juego.
+ * @param game - El objeto del juego actual, que contiene la configuración de la partida.
  * @returns Un objeto con los resultados para cada equipo, incluyendo los nuevos alumnos.
  */
-export function calculateMarketAttractiveness(teams: TeamState[]) {
+export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
   if (teams.length === 0) {
     return {};
   }
+  const NEW_STUDENTS_POOL = game.newStudentsPerRound;
 
   // 1. Calcular el precio medio del mercado.
   // Este valor sirve como benchmark contra el que se compara cada equipo.
@@ -29,16 +27,13 @@ export function calculateMarketAttractiveness(teams: TeamState[]) {
   // 2. Calcular el IAM para cada equipo siguiendo la fórmula del manual técnico.
   // IAM = (NMA * 10) + (Precio medio / Precio del equipo * 30) + (Inversión en Marketing / 1000)
   for (const team of teams) {
-    // a. Componente de Calidad (NMA): Pondera un 50%
-    // Se multiplica la NMA por 10 para escalarla.
+    // a. Componente de Calidad (50%): Se multiplica la NMA por 10 para escalarla.
     const nmaPoints = team.kpis.nma * 10;
 
-    // b. Componente de Precio: Pondera un 30%
-    // Se calcula la competitividad del precio en relación a la media del mercado.
+    // b. Componente de Precio (30%): Se calcula la competitividad del precio en relación a la media del mercado.
     const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
     
-    // c. Componente de Marketing: Pondera un 20%
-    // Se calcula en base a la inversión en la campaña "R1".
+    // c. Componente de Marketing (20%): Se calcula en base a la inversión en la campaña "R1".
     const marketingInvestment = team.decisions.investments.find(inv => inv.id === 'R1');
     const marketingPoints = marketingInvestment ? marketingInvestment.cost / 1000 : 0;
 

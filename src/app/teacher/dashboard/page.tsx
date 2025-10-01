@@ -58,6 +58,8 @@ export default function TeacherDashboard() {
       teamNames: [], // Initialize with an empty array of names
       status: "En curso",
       numRounds: data.numRounds,
+      initialFunds: data.initialFunds,
+      newStudentsPerRound: data.newStudentsPerRound,
       aiDifficulty: data.aiDifficulty,
     };
     addGame(newGame);

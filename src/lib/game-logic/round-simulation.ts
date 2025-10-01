@@ -32,7 +32,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
 
   // Define initial KPIs for the beginning of the simulation
   const initialKPIs: TeamKPIs = {
-    cash: 50000,
+    cash: game.initialFunds,
     personnelCost: 240000, // 32 teachers * 7500 CC
     income: 320000,
     nma: 7.5,
@@ -64,7 +64,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
     }
   });
   
-  const marketResults = calculateMarketAttractiveness(currentTeamsState);
+  const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
 
   const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;

@@ -59,6 +59,8 @@ export interface Game {
   teamNames: string[]; // Names of the accepted teams
   status: "En curso" | "Finalizado";
   numRounds: number;
+  initialFunds: number;
+  newStudentsPerRound: number;
   aiDifficulty: number;
   reports?: Record<string, Record<string, any>>; // round -> teamName -> reportData
   performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances

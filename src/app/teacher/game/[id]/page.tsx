@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -300,14 +301,16 @@ export default function GameDetailsPage() {
   }, [selectedTeam, currentRoundTab]);
   
   useEffect(() => {
-    if (!game || parseInt(currentRoundTab) > game.round) {
-      setMonitoringData([]);
-    } else {
+    // This will run when `game` is loaded or when `currentRoundTab` changes.
+    if (game && parseInt(currentRoundTab) <= game.round) {
       // Simulate fetching data for the selected round
       const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
       setMonitoringData(shuffledData);
+    } else {
+      setMonitoringData([]);
     }
   }, [currentRoundTab, game]);
+
 
   const handleProcessRound = () => {
     setIsProcessing(true);
@@ -437,12 +440,40 @@ export default function GameDetailsPage() {
             <AIReportForm teamsData={teamsData} />
           </TabsContent>
           <TabsContent value="config">
-            <RoundConfig
-              allTeams={teamsData.map(t => t.name)}
-              fullInvestments={fullInvestments}
-              fullCrises={fullCrises}
-              numRounds={game.numRounds}
-            />
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Configuración de la Ronda</CardTitle>
+                                <CardDescription>
+                                    Selecciona una ronda para definir las inversiones y crisis disponibles.
+                                </CardDescription>
+                            </div>
+                            <div className="w-[180px]">
+                                <Select value={currentRoundTab} onValueChange={setCurrentRoundTab}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccionar Ronda" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
+                                            <SelectItem key={r} value={r.toString()}>
+                                                Ronda {r}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </CardHeader>
+                </Card>
+                <RoundConfig
+                  allTeams={teamsData.map(t => t.name)}
+                  fullInvestments={fullInvestments}
+                  fullCrises={fullCrises}
+                  numRounds={game.numRounds}
+                />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

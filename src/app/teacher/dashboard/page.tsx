@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GameConfigForm, GameConfig } from "@/components/teacher/game-config-form";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, MoreVertical, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {
   Dialog,
@@ -21,18 +21,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useGames } from "@/hooks/use-games";
 import type { Game } from "@/hooks/use-games";
+import { useRouter } from "next/navigation";
 
 export default function TeacherDashboard() {
-  const { games, addGame } = useGames();
+  const { games, addGame, removeGame, setActiveGameId } = useGames();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const router = useRouter();
 
   const handleCreateGame = (data: GameConfig) => {
     const newGame: Game = {
-      id: (games.length + 1).toString(),
+      id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
       round: 1,
       teams: data.numTeams,
@@ -41,6 +49,11 @@ export default function TeacherDashboard() {
     };
     addGame(newGame);
     setDialogOpen(false);
+  };
+  
+  const handleManageGame = (gameId: string) => {
+    setActiveGameId(gameId);
+    router.push(`/teacher/game/${gameId}`);
   };
 
   return (
@@ -71,18 +84,35 @@ export default function TeacherDashboard() {
         {games.map((game) => (
           <Card key={game.id} className="flex flex-col">
             <CardHeader>
-              <CardTitle>{game.name}</CardTitle>
-              <CardDescription>
-                <Badge
-                  variant={
-                    game.status === "En curso" ? "default" : "secondary"
-                  }
-                  className="mr-2"
-                >
-                  {game.status}
-                </Badge>
-                Ronda {game.round} / {game.numRounds}
-              </CardDescription>
+                <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>{game.name}</CardTitle>
+                      <CardDescription>
+                        <Badge
+                          variant={
+                            game.status === "En curso" ? "default" : "secondary"
+                          }
+                          className="mr-2"
+                        >
+                          {game.status}
+                        </Badge>
+                        Ronda {game.round} / {game.numRounds}
+                      </CardDescription>
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => removeGame(game.id)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar Juego
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </CardHeader>
             <CardContent className="flex-grow">
               <div className="text-sm text-muted-foreground">
@@ -90,7 +120,7 @@ export default function TeacherDashboard() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button asChild className="w-full">
+              <Button asChild className="w-full" onClick={() => handleManageGame(game.id)}>
                 <Link href={`/teacher/game/${game.id}`}>Administrar Juego</Link>
               </Button>
             </CardFooter>
@@ -100,5 +130,3 @@ export default function TeacherDashboard() {
     </>
   );
 }
-
-    

@@ -27,8 +27,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useGame } from "@/hooks/use-game-context";
+import { Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+
 
 type TeamKPIs = {
   cash: number;
@@ -159,8 +163,34 @@ function getProgress(value: number, goal: StrategicGoal): number {
 
 
 export default function TeacherLeaderboardPage() {
-  const [teams] = useState<Team[]>(teamsData);
+  const { activeGame, setActiveGameId } = useGame();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [teams, setTeams] = useState<Team[]>(teamsData);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+
+  useEffect(() => {
+    const gameId = searchParams.get('gameId');
+    if (gameId && !activeGame) {
+      setActiveGameId(gameId);
+    }
+  }, [searchParams, activeGame, setActiveGameId]);
+
+
+  if (!activeGame) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Leaderboard</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
+                <p className="text-muted-foreground">Por favor, selecciona una partida desde el dashboard para ver el leaderboard.</p>
+                <Button onClick={() => router.push('/teacher/dashboard')}>Ir al Dashboard</Button>
+            </CardContent>
+        </Card>
+    );
+  }
 
   const getKpiColor = (value: number, goal?: StrategicGoal) => {
     if (!goal) return "";
@@ -176,7 +206,7 @@ export default function TeacherLeaderboardPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Leaderboard General</CardTitle>
+          <CardTitle>Leaderboard: {activeGame.name}</CardTitle>
           <CardDescription>
             Clasificación global y KPIs principales. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
           </CardDescription>

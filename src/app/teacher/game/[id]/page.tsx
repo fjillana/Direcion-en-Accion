@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, Loader2 } from "lucide-react";
+import { PlayCircle, Loader2, LogOut } from "lucide-react";
 import { AIReportForm } from "@/components/teacher/ai-report-form";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -31,7 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
@@ -275,25 +275,32 @@ const fullCrises: Crisis[] = [
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games } = useGames();
-  
+  const { games, setActiveGameId } = useGames();
+  const router = useRouter();
+
   const [game, setGame] = useState<Game | null>(null);
+  const [currentRoundTab, setCurrentRoundTab] = useState<string>("1");
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<TeamPerformance | null>(null);
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
   const [monitoringData, setMonitoringData] = useState<TeamPerformance[]>([]);
-  const [currentRoundTab, setCurrentRoundTab] = useState<string>("1");
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
     if (foundGame) {
       setGame(foundGame);
-      setCurrentRoundTab(foundGame.round.toString());
     }
   }, [games, id]);
   
+  useEffect(() => {
+    if (game) {
+      setCurrentRoundTab(game.round.toString());
+    }
+  }, [game]);
+
   useEffect(() => {
     if (selectedTeam) {
         setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${currentRoundTab}...`);
@@ -301,9 +308,7 @@ export default function GameDetailsPage() {
   }, [selectedTeam, currentRoundTab]);
   
   useEffect(() => {
-    // This will run when `game` is loaded or when `currentRoundTab` changes.
     if (game && parseInt(currentRoundTab) <= game.round) {
-      // Simulate fetching data for the selected round
       const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
       setMonitoringData(shuffledData);
     } else {
@@ -316,7 +321,6 @@ export default function GameDetailsPage() {
     setIsProcessing(true);
     setTimeout(() => {
         setIsProcessing(false);
-        // Logic to advance the round would go here
     }, 3000);
   };
   
@@ -331,6 +335,11 @@ export default function GameDetailsPage() {
     return "text-foreground";
   };
   
+  const handleExitGame = () => {
+    setActiveGameId(null);
+    router.push('/teacher/dashboard');
+  };
+
   if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
@@ -339,13 +348,14 @@ export default function GameDetailsPage() {
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-headline">
+          <div className="flex items-center gap-4">
+             <h1 className="text-3xl font-bold font-headline">
               {game.name}
             </h1>
-            <p className="text-muted-foreground">
-              Ronda {game.round} de {game.numRounds} - Juego ID: {id}
-            </p>
+            <Button variant="outline" size="sm" onClick={handleExitGame}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Salir de la Partida
+            </Button>
           </div>
           <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
             {isProcessing ? (
@@ -356,6 +366,9 @@ export default function GameDetailsPage() {
             {isProcessing ? "Procesando Ronda..." : `Procesar Ronda ${game.round}`}
           </Button>
         </div>
+         <p className="text-muted-foreground -mt-4">
+              Ronda {game.round} de {game.numRounds} - Juego ID: {id}
+          </p>
 
         <Tabs defaultValue="monitoring" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -478,7 +491,6 @@ export default function GameDetailsPage() {
         </Tabs>
       </div>
       
-      {/* PEB Breakdown Dialog */}
       <Dialog open={isPebDetailOpen} onOpenChange={setPebDetailOpen}>
         <DialogContent className="sm:max-w-lg">
           {selectedTeam && (
@@ -517,7 +529,6 @@ export default function GameDetailsPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Decision Details Dialog */}
       <Dialog open={isDecisionDetailOpen} onOpenChange={setDecisionDetailOpen}>
         <DialogContent className="sm:max-w-2xl">
           {selectedTeam && (

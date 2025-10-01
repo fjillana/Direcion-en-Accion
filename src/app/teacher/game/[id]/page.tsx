@@ -226,7 +226,7 @@ const fullInvestments: Investment[] = [
     { id: 'R10', name: 'Premios y competiciones', costRange: '5.000-15.000', description: 'Organizar concursos académicos o deportivos atrae medios y genera prestigio.', effect: '+3 XP Reputación' },
     { id: 'P1', name: 'Formación docente', costRange: '5.000-15.000', description: 'Cursos de actualización, metodologías innovadoras. Cuanto mayor es la inversión, mayor el impacto.', effect: '+5 XP Personal, +10-20 puntos de moral' },
     { id: 'P2', name: 'Contratación docente', costRange: '7.500 por ronda', description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes.', effect: '+10 XP Personal, +15 puntos de moral' },
-    { id: 'P3', name: 'Poaching de profesor de la competencia', costRange: '7.500 + 10.000 prima', description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral <70.', effect: '+15 XP Personal, +20 puntos de moral, −5 XP Reputación para el competidor' },
+    { id: 'P3', name: 'Poaching de profesor de la competencia', costRange: '7.500 + 10.000 prima', description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral &lt;70.', effect: '+15 XP Personal, +20 puntos de moral, −5 XP Reputación para el competidor' },
     { id: 'P4', name: 'Incremento salarial global (5-10 %)', costRange: '12.000-24.000 por ronda', description: 'Mejora la satisfacción, pero incrementa el coste de personal y puede comprometer la tesorería.', effect: '+15 XP Personal, +20 puntos de moral' },
     { id: 'P5', name: 'Beneficios no monetarios / vacaciones', costRange: '2.000-8.000', description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral.', effect: '+8 XP Personal, +10 puntos de moral' },
     { id: 'P6', name: 'Coaching/mediación', costRange: '2.000-5.000', description: 'Sesiones para resolver conflictos y mejorar la comunicación interna.', effect: '+4 XP Personal, +5 puntos de moral' },
@@ -343,6 +343,19 @@ export default function GameDetailsPage() {
   if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
+  
+  const getButtonText = () => {
+      if (game.status === 'Finalizado') return "Juego Finalizado";
+      if (game.round === game.numRounds) return "Finalizar Juego";
+      return `Procesar Ronda ${game.round + 1}`;
+  }
+  
+  const isButtonDisabled = () => {
+      if (isProcessing) return true;
+      if (game.status === 'Finalizado') return true;
+      // TODO: Add logic to check if all human teams have submitted their decisions
+      return false;
+  }
 
   return (
     <>
@@ -357,13 +370,13 @@ export default function GameDetailsPage() {
               Salir de la Partida
             </Button>
           </div>
-          <Button size="lg" onClick={handleProcessRound} disabled={isProcessing}>
+          <Button size="lg" onClick={handleProcessRound} disabled={isButtonDisabled()}>
             {isProcessing ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <PlayCircle className="mr-2 h-5 w-5" />
             )}
-            {isProcessing ? "Procesando Ronda..." : `Procesar Ronda ${game.round}`}
+            {isProcessing ? "Procesando..." : getButtonText()}
           </Button>
         </div>
          <p className="text-muted-foreground -mt-4">
@@ -619,3 +632,4 @@ export default function GameDetailsPage() {
 }
 
     
+

@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,16 +22,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Investment, Crisis } from "./catalog-editor";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 type TeamName = string;
 
@@ -42,7 +36,7 @@ interface RoundConfigProps {
 }
 
 type RoundInvestment = Investment;
-type TeamCrisis = { teamName: TeamName; crisisId: string | null };
+type TeamCrisis = { teamName: TeamName; crisisIds: string[] };
 
 export function RoundConfig({
   allTeams,
@@ -54,11 +48,15 @@ export function RoundConfig({
     []
   );
   const [teamCrises, setTeamCrises] = useState<TeamCrisis[]>(() =>
-    allTeams.map((teamName) => ({ teamName, crisisId: null }))
+    allTeams.map((teamName) => ({ teamName, crisisIds: [] }))
   );
 
   const [isInvestmentsDialogOpen, setInvestmentsDialogOpen] = useState(false);
   const [isCrisesDialogOpen, setCrisesDialogOpen] = useState(false);
+  const [selectedTeamForCrisis, setSelectedTeamForCrisis] = useState<TeamName | null>(null);
+  const [selectedCrisesInDialog, setSelectedCrisesInDialog] = useState<string[]>([]);
+  const [detailedCrisis, setDetailedCrisis] = useState<Crisis | null>(null);
+
 
   const [selectedCatalogInvestments, setSelectedCatalogInvestments] = useState<
     string[]
@@ -101,9 +99,31 @@ export function RoundConfig({
       checked ? [...prev, investmentId] : prev.filter((id) => id !== investmentId)
     );
   };
+  
+  const openCrisisDialog = (teamName: TeamName) => {
+    const currentCrises = teamCrises.find(tc => tc.teamName === teamName)?.crisisIds || [];
+    setSelectedCrisesInDialog(currentCrises);
+    setSelectedTeamForCrisis(teamName);
+    setCrisesDialogOpen(true);
+  };
+  
+  const handleCrisisSelectionChange = (crisisId: string, checked: boolean) => {
+    setSelectedCrisesInDialog(prev => 
+      checked ? [...prev, crisisId] : prev.filter(id => id !== crisisId)
+    );
+  };
 
-  const handleCrisisChange = (teamName: TeamName, crisisId: string) => {
-    setTeamCrises(prev => prev.map(tc => tc.teamName === teamName ? {...tc, crisisId} : tc));
+  const handleConfirmCrisisSelection = () => {
+    if (selectedTeamForCrisis) {
+      setTeamCrises(prev => 
+        prev.map(tc => 
+          tc.teamName === selectedTeamForCrisis ? { ...tc, crisisIds: selectedCrisesInDialog } : tc
+        )
+      );
+    }
+    setCrisesDialogOpen(false);
+    setSelectedTeamForCrisis(null);
+    setSelectedCrisesInDialog([]);
   };
 
 
@@ -178,25 +198,30 @@ export function RoundConfig({
           <CardHeader>
             <CardTitle>Crisis de la Ronda</CardTitle>
             <CardDescription>
-              Asigna una crisis específica para cada equipo en esta ronda.
+              Asigna una o varias crisis específicas para cada equipo en esta ronda.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              {allTeams.length > 0 ? (
-                teamCrises.map(({ teamName, crisisId }) => (
-                <div key={teamName} className="flex items-center justify-between rounded-lg border p-4">
-                    <Label htmlFor={`crisis-${teamName}`} className="font-semibold text-base">{teamName}</Label>
-                    <Select value={crisisId || ''} onValueChange={(value) => handleCrisisChange(teamName, value)}>
-                        <SelectTrigger className="w-[300px]">
-                            <SelectValue placeholder="Seleccionar crisis..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">Sin crisis</SelectItem>
-                            {fullCrises.map(crisis => (
-                                <SelectItem key={crisis.id} value={crisis.id}>{crisis.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                teamCrises.map(({ teamName, crisisIds }) => (
+                <div key={teamName} className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-base">{teamName}</h4>
+                      <Button variant="outline" size="sm" onClick={() => openCrisisDialog(teamName)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Asignar Crisis
+                      </Button>
+                    </div>
+                    <div className="mt-2 space-x-2">
+                        {crisisIds.length > 0 ? (
+                          crisisIds.map(id => {
+                            const crisis = fullCrises.find(c => c.id === id);
+                            return <Badge key={id} variant="secondary">{crisis?.name || id}</Badge>
+                          })
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No hay crisis asignadas.</p>
+                        )}
+                    </div>
                 </div>
                 ))
             ) : (
@@ -277,8 +302,71 @@ export function RoundConfig({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Crises Dialog */}
+       <Dialog open={isCrisesDialogOpen} onOpenChange={setCrisesDialogOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Asignar Crisis para {selectedTeamForCrisis}</DialogTitle>
+            <DialogDescription>
+              Selecciona una o más crisis del catálogo para este equipo.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-96 p-1">
+            <div className="space-y-4 p-4">
+              {fullCrises.map((crisis) => (
+                <div key={crisis.id} className="flex items-start space-x-3 rounded-lg border p-3">
+                  <Checkbox
+                    id={`crisis-sel-${crisis.id}`}
+                    className="mt-1"
+                    checked={selectedCrisesInDialog.includes(crisis.id)}
+                    onCheckedChange={(checked) => handleCrisisSelectionChange(crisis.id, !!checked)}
+                  />
+                  <div className="grid flex-1 gap-1.5">
+                    <label htmlFor={`crisis-sel-${crisis.id}`} className="font-medium cursor-pointer">
+                      {crisis.name}
+                    </label>
+                    <p className="text-sm text-muted-foreground">{crisis.description}</p>
+                  </div>
+                  <Dialog>
+                     <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
+                        </Button>
+                     </DialogTrigger>
+                     <DialogContent className="sm:max-w-xl">
+                        <DialogHeader>
+                            <DialogTitle>{crisis.name}</DialogTitle>
+                            <DialogDescription>{crisis.description}</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 py-4">
+                            <h4 className="font-semibold">Opciones de Respuesta:</h4>
+                            {crisis.options.map((option, index) => (
+                                <div key={index} className="p-3 bg-muted/50 rounded-md">
+                                    <p className="font-medium">{index + 1}. {option.label}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+                        </DialogFooter>
+                     </DialogContent>
+                  </Dialog>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCrisesDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmCrisisSelection}>
+              Guardar Crisis para {selectedTeamForCrisis}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-
-    

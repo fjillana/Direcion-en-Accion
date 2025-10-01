@@ -13,12 +13,14 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && studentGame?.status === 'no-game') {
-      router.push('/student/join-game');
+    if (!isLoading) {
+      if (!studentGame || studentGame.status === 'no-game') {
+        router.push('/student/join-game');
+      }
     }
   }, [studentGame, isLoading, router]);
 
-  if (isLoading || !studentGame) {
+  if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -26,7 +28,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (studentGame.status === 'pending') {
+  if (studentGame?.status === 'pending') {
     return (
         <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
             <Card className="max-w-lg text-center">
@@ -45,14 +47,14 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (studentGame.status === 'joined') {
+  if (studentGame?.status === 'joined') {
       return <>{children}</>;
   }
 
-  // Fallback case, should not be reached if logic is correct
+  // Fallback case for redirection
   return (
     <div className="flex h-full w-full items-center justify-center">
-      <p>Redirigiendo...</p>
+       <Loader2 className="h-12 w-12 animate-spin text-primary" />
     </div>
   );
 }

@@ -1,8 +1,6 @@
 
-import { AuthPage } from "@/components/auth/auth-page";
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-      <AuthPage />
-  );
+  redirect('/auth');
 }

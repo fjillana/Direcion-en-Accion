@@ -473,11 +473,10 @@ export default function GameDetailsPage() {
             <AIReportForm teamsData={teamsData} />
           </TabsContent>
           <TabsContent value="config">
-            <RoundConfig
+             <RoundConfig
               allTeams={game.teamNames}
               fullInvestments={fullInvestments}
               fullCrises={fullCrises}
-              numRounds={game.numRounds}
             />
           </TabsContent>
         </Tabs>
@@ -609,3 +608,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

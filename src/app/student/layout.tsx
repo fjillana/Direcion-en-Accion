@@ -17,7 +17,6 @@ import { UserNav } from "@/components/shared/user-nav";
 import {
   Home,
   ClipboardList,
-  Library,
   Users,
   Briefcase,
   Award,
@@ -25,8 +24,6 @@ import {
   HeartHandshake,
   Inbox,
   Target,
-  ClipboardCheck,
-  HelpCircle,
   LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,7 +56,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
     { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
     { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
-    { href: "/student/report", label: "Reporte de Ronda", icon: Library },
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
     { href: "/student/inbox", label: "Inbox", icon: Inbox },
   ];

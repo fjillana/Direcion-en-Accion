@@ -5,7 +5,7 @@ import { UserNav } from "@/components/shared/user-nav";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Briefcase, LogOut } from "lucide-react";
+import { Menu, Briefcase, Settings } from "lucide-react";
 import { useGame } from "@/hooks/use-game-context";
 import { usePathname } from 'next/navigation';
 
@@ -18,13 +18,14 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     { href: "/teacher/catalog", label: "Catálogos" },
     { href: "/teacher/leaderboard", label: "Leaderboard" },
     { href: "/teacher/inbox", label: "Inbox" },
+    { href: "/teacher/config", label: "Configuración" },
   ];
   
   const getHref = (baseHref: string) => {
       if (baseHref === '/teacher/dashboard' && activeGame) {
           return `/teacher/game/${activeGame.id}`;
       }
-      if (baseHref === '/teacher/catalog') {
+      if (baseHref === '/teacher/catalog' || baseHref === '/teacher/config') {
           return baseHref;
       }
       return activeGame ? `${baseHref}?gameId=${activeGame.id}` : baseHref;

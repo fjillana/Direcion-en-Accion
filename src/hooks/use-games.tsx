@@ -16,6 +16,7 @@ interface GamesContextType {
   games: Game[];
   addGame: (game: Game) => void;
   removeGame: (gameId: string) => void;
+  updateGame: (gameId: string, updatedGame: Partial<Game>) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -90,6 +91,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     setGames((prevGames) => prevGames.filter(game => game.id !== gameId));
   }, []);
 
+  const updateGame = useCallback((gameId: string, updatedGame: Partial<Game>) => {
+    setGames(prevGames => 
+      prevGames.map(game => 
+        game.id === gameId ? { ...game, ...updatedGame } : game
+      )
+    );
+  }, []);
+
   const getGameById = useCallback((gameId: string) => {
     return games.find(g => g.id === gameId);
   }, [games]);
@@ -108,7 +117,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GamesContext.Provider value={{ games, addGame, removeGame, getGameById, activeGameId, setActiveGameId }}>
+    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, getGameById, activeGameId, setActiveGameId }}>
       {children}
     </GamesContext.Provider>
   );

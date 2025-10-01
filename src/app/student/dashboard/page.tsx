@@ -28,6 +28,7 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
+import { XpSummary } from "@/components/student/xp-summary";
 
 const kpiHistoryData = {
   cash: [
@@ -114,6 +115,14 @@ export default function StudentDashboard() {
             <p className="text-xs text-muted-foreground mt-2">Esta acción es irreversible para la ronda actual.</p>
           </div>
         </div>
+
+        <XpSummary 
+          xpFinanzas={21}
+          xpReputacion={22}
+          xpMoral={20}
+          xpTotal={63}
+        />
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Dialog>
             <DialogTrigger asChild>

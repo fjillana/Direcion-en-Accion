@@ -190,9 +190,9 @@ export default function TeacherLeaderboardPage() {
                   <TableRow>
                     <TableHead className="w-[80px]">Ranking</TableHead>
                     <TableHead>Equipo</TableHead>
-                    <TableHead className="text-right">XP Total</TableHead>
                     <TableHead className="text-right">Alumnos</TableHead>
                     <TableHead className="text-right">Matrícula</TableHead>
+                    <TableHead className="text-right">XP Total</TableHead>
                     <TableHead className="text-right">Nota Media</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -201,11 +201,11 @@ export default function TeacherLeaderboardPage() {
                     <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
                       <TableCell className="font-bold text-lg">{index + 1}</TableCell>
                       <TableCell className="font-medium">{team.name}</TableCell>
+                      <TableCell className="text-right font-mono">{team.kpis.currentStudents}</TableCell>
+                      <TableCell className="text-right font-mono">{team.kpis.tuitionPrice} CC</TableCell>
                       <TableCell className="text-right font-mono">
                         {new Intl.NumberFormat('es-ES').format(team.xp)}
                       </TableCell>
-                       <TableCell className="text-right font-mono">{team.kpis.currentStudents}</TableCell>
-                      <TableCell className="text-right font-mono">{team.kpis.tuitionPrice} CC</TableCell>
                       <TableCell className="text-right">{team.kpis.nma.toFixed(1)}</TableCell>
                     </TableRow>
                   ))}

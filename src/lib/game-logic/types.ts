@@ -30,9 +30,13 @@ export interface TeamKPIs {
     numTeachers: number;
 }
 
+export type AIArchetype = 'BALANCED' | 'AGGRESSIVE_GROWTH' | 'FINANCE_CONSERVATIVE' | 'QUALITY_FOCUSED';
+
+
 export interface TeamState {
   name: string;
   type: 'H' | 'IA';
   kpis: TeamKPIs;
   decisions: TeamDecisions;
+  archetype?: AIArchetype;
 }

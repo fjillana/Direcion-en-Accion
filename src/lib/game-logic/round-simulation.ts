@@ -2,7 +2,8 @@ import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games"
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
 import { updateKpisForNextRound } from "./kpi-dynamics";
-import type { TeamState, TeamKPIs } from "./types";
+import type { TeamState, TeamKPIs, AIArchetype } from "./types";
+import { getAIDecisions } from "./ai-strategy";
 
 // This is a simplified version of fetching team decisions.
 // In a real scenario, this would come from a database or a more complex state management solution.
@@ -22,13 +23,13 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
     return mockDecisions;
 }
 
+const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
+
+
 export function simulateRound(game: Game): TeamPerformanceData[] {
   const allTeamNames = [...game.teamNames];
   const humanTeamsCount = game.teamNames.length;
-
-  for (let i = 0; i < humanTeamsCount; i++) {
-    allTeamNames.push(`IA Rival ${i + 1}`);
-  }
+  const numIaTeams = humanTeamsCount; // Create one IA rival per human team
 
   // Define initial KPIs for the beginning of the simulation
   const initialKPIs: TeamKPIs = {
@@ -36,33 +37,53 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
     personnelCost: 240000, // 32 teachers * 7500 CC
     income: 320000,
     nma: 7.5,
-    marketShare: 12.5,
+    marketShare: 100 / (humanTeamsCount + numIaTeams),
     morale: 80,
     studentTeacherRatio: 25.0,
     numStudents: 800,
     numTeachers: 32,
   };
 
-  // Get previous round's performance data if it exists, otherwise use initial KPIs
+  // Get previous round's performance data if it exists
   const previousRound = game.round > 1 ? game.round - 1 : 1;
   const previousPerformance = game.performance?.[previousRound];
 
-  const currentTeamsState: TeamState[] = allTeamNames.map(name => {
-    const isHuman = game.teamNames.includes(name);
-    
-    // Find the previous KPIs for this team
-    const previousTeamState = previousPerformance?.find(p => p.name === name);
-    // TODO: The KPIs for the next round simulation should be derived from the previous round's results, not just fetched.
-    // This part is still simplified.
-    const kpis = previousTeamState ? { ...initialKPIs } : initialKPIs; // Simplified for now
+  const currentTeamsState: TeamState[] = [];
 
-    return {
+  // Build state for human teams
+  game.teamNames.forEach(name => {
+    const previousTeamState = previousPerformance?.find(p => p.name === name);
+    const kpis = previousTeamState ? {
+        // This should be a proper carry-over from one round to the next.
+        // For now, we'll just use the final kpis from the previous round if they exist.
+        // This part needs to be more robust in a real implementation.
+        ...initialKPIs
+    } : initialKPIs;
+     currentTeamsState.push({
         name,
-        type: isHuman ? 'H' : 'IA',
+        type: 'H',
         kpis,
         decisions: getStudentDecisions(name, game), // Fetch/simulate decisions for the current round
-    }
+    });
   });
+
+  // Build state for AI teams
+  for (let i = 0; i < numIaTeams; i++) {
+    const name = `IA Rival ${i + 1}`;
+    const previousTeamState = previousPerformance?.find(p => p.name === name);
+    const kpis = previousTeamState ? { ...initialKPIs } : initialKPIs; // Simplified
+    
+    // Assign a persistent archetype to the AI
+    const archetype = previousTeamState?.archetype || aiArchetypes[i % aiArchetypes.length];
+
+    currentTeamsState.push({
+        name,
+        type: 'IA',
+        kpis,
+        decisions: getAIDecisions({ name, type: 'IA', kpis, archetype, decisions: {} as TeamDecision }, game),
+        archetype,
+    });
+  }
   
   const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
 
@@ -93,6 +114,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
       type: teamState.type,
       ...performance,
       decisions: teamState.decisions, // Include the decisions in the performance data
+      archetype: teamState.archetype,
     };
   });
 

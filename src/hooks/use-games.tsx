@@ -3,6 +3,7 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
+import type { AIArchetype } from "@/lib/game-logic/types";
 
 export interface InvestmentDecision {
   id: string;
@@ -32,6 +33,7 @@ export interface TeamPerformanceData {
   morale: { peb: number; xp: number; pebBreakdown: string[] };
   totalXp: number;
   decisions: TeamDecision;
+  archetype?: AIArchetype;
 }
 
 export type RoundSettings = {

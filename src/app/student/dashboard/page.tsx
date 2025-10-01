@@ -39,19 +39,6 @@ export default function StudentDashboard() {
         <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Briefing de la Ronda</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground leading-relaxed">
-              Bienvenidos, equipos directivos. Lideráis un colegio concertado con 800 alumnos y 32 docentes. Vuestro reto es equilibrar la viabilidad financiera, la reputación y el ambiente del personal a lo largo de cuatro rondas.
-            </p>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              En esta ronda inicial, debéis analizar vuestra situación y tomar las primeras decisiones estratégicas. ¡Buena suerte!
-            </p>
-          </CardContent>
-        </Card>
         <CrisisForm />
       </div>
     </div>

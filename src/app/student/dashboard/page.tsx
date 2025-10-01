@@ -28,7 +28,7 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
-import { XpSummary } from "@/components/student/xp-summary";
+import { XpSummary, XpData } from "@/components/student/xp-summary";
 
 const kpiHistoryData = {
   cash: [
@@ -68,6 +68,63 @@ const kpiHistoryData = {
     { round: 3, value: 25.0 },
   ],
 };
+
+const xpData: XpData[] = [
+  {
+    round: 1,
+    xpFinanzas: 19,
+    xpReputacion: 18,
+    xpMoral: 14,
+    pebFinanzas: {
+      total: 95,
+      breakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"],
+    },
+    pebReputacion: {
+      total: 88,
+      breakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"],
+    },
+    pebMoral: {
+      total: 71,
+      breakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"],
+    },
+  },
+  {
+    round: 2,
+    xpFinanzas: 21,
+    xpReputacion: 22,
+    xpMoral: 20,
+    pebFinanzas: {
+      total: 105,
+      breakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"],
+    },
+    pebReputacion: {
+      total: 110,
+      breakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"],
+    },
+    pebMoral: {
+      total: 98,
+      breakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"],
+    },
+  },
+   {
+    round: 3,
+    xpFinanzas: 22,
+    xpReputacion: 23,
+    xpMoral: 20,
+    pebFinanzas: {
+      total: 110,
+      breakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"],
+    },
+    pebReputacion: {
+      total: 115,
+      breakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"],
+    },
+    pebMoral: {
+      total: 100,
+      breakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"],
+    },
+  },
+];
 
 
 export default function StudentDashboard() {
@@ -116,12 +173,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <XpSummary 
-          xpFinanzas={21}
-          xpReputacion={22}
-          xpMoral={20}
-          xpTotal={63}
-        />
+        <XpSummary data={xpData} />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Dialog>

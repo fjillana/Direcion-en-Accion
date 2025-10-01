@@ -26,12 +26,24 @@ import {
   Inbox,
   Target,
   ClipboardCheck,
-  HelpCircle
+  HelpCircle,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStudentGame } from "@/hooks/useStudentGame";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const teamBadges = [
   { name: "El Financiero", icon: DollarSign, description: "Maestría en la gestión de las finanzas." },
@@ -41,7 +53,7 @@ const teamBadges = [
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { studentGame } = useStudentGame();
+  const { studentGame, abandonGame } = useStudentGame();
 
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
@@ -106,7 +118,36 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 </TooltipProvider>
               </div>
           </div>
-          <UserNav userType="student" />
+          <div className="flex items-center gap-2">
+            {studentGame?.status === 'joined' && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button variant="destructive" size="sm">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Abandonar Partida
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro de que quieres abandonar la partida?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminarán todos los datos de tu equipo en esta partida y tendrás que solicitar unirte de nuevo.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            onClick={abandonGame}
+                        >
+                            Sí, abandonar partida
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+            <UserNav userType="student" />
+          </div>
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-8">
             {children}

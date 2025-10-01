@@ -120,6 +120,14 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     }
   }, [selectedTeam, activeGame, getGameById, teamsData]);
 
+  useEffect(() => {
+    if (!selectedTeam && humanTeams.length > 0) {
+      setSelectedTeam(humanTeams[0].name);
+    } else if (humanTeams.length === 0) {
+      setSelectedTeam(undefined);
+    }
+  }, [humanTeams, selectedTeam]);
+
 
   const handleGenerateReport = async () => {
     if (!activeGame || !selectedTeam) return;
@@ -139,7 +147,13 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       const result = await generateRoundReport({
         gameId: activeGame.id,
         roundNumber: activeGame.round - 1,
-        teamPerformanceData: JSON.stringify(teamPerformance, null, 2),
+        teamPerformanceData: JSON.stringify({
+          ...teamPerformance,
+          decisions: {
+            ...teamPerformance.decisions,
+            investments: teamPerformance.decisions?.investments || [],
+          }
+        }, null, 2),
         marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
       });
       

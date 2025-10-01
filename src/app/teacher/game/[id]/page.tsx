@@ -384,10 +384,9 @@ export default function GameDetailsPage() {
           </p>
 
         <Tabs defaultValue="monitoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="monitoring">Monitorización</TabsTrigger>
             <TabsTrigger value="reports">Reportes IA</TabsTrigger>
-            <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
           <TabsContent value="monitoring">
             <Card>
@@ -464,42 +463,6 @@ export default function GameDetailsPage() {
           </TabsContent>
           <TabsContent value="reports">
             <AIReportForm teamsData={teamsData} />
-          </TabsContent>
-          <TabsContent value="config">
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Configuración de la Ronda</CardTitle>
-                                <CardDescription>
-                                    Selecciona una ronda para definir las inversiones y crisis disponibles.
-                                </CardDescription>
-                            </div>
-                            <div className="w-[180px]">
-                                <Select value={currentRoundTab} onValueChange={setCurrentRoundTab}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar Ronda" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                                            <SelectItem key={r} value={r.toString()}>
-                                                Ronda {r}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </CardHeader>
-                </Card>
-                <RoundConfig
-                  allTeams={teamsData.map(t => t.name)}
-                  fullInvestments={fullInvestments}
-                  fullCrises={fullCrises}
-                  numRounds={game.numRounds}
-                />
-            </div>
           </TabsContent>
         </Tabs>
       </div>
@@ -632,4 +595,3 @@ export default function GameDetailsPage() {
 }
 
     
-

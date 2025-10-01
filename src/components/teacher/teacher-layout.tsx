@@ -18,7 +18,6 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     { href: "/teacher/catalog", label: "Catálogos" },
     { href: "/teacher/leaderboard", label: "Leaderboard" },
     { href: "/teacher/inbox", label: "Inbox" },
-    { href: "/teacher/config", label: "Configuración" },
   ];
   
   const getHref = (baseHref: string) => {

@@ -12,17 +12,17 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateRoundReportInputSchema = z.object({
-  gameId: z.string().describe('The ID of the game.'),
-  roundNumber: z.number().describe('The round number for which to generate the report.'),
-  teamPerformanceData: z.string().describe('The performance data of each team in the round.'),
-  marketConditions: z.string().describe('A summary of the market conditions during the round.'),
+  gameId: z.string().describe('El ID de la partida.'),
+  roundNumber: z.number().describe('El número de ronda para el cual generar el reporte.'),
+  teamPerformanceData: z.string().describe('Los datos de rendimiento del equipo en formato JSON.'),
+  marketConditions: z.string().describe('Un resumen de las condiciones del mercado durante la ronda.'),
 });
 export type GenerateRoundReportInput = z.infer<typeof GenerateRoundReportInputSchema>;
 
 const GenerateRoundReportOutputSchema = z.object({
-  report: z.string().describe('The comprehensive report for the round.'),
-  mayeuticQuestions: z.string().describe('A list of mayeutic questions for the teacher to use.'),
-  pedagogicalSuggestions: z.string().describe('Pedagogical suggestions for the teacher.'),
+  reporteCualitativo: z.string().describe('Un análisis cualitativo y detallado del rendimiento del equipo, explicando las consecuencias de sus decisiones.'),
+  preguntasMayeuticas: z.array(z.string()).describe('Un array con 2-3 preguntas mayéuticas para fomentar la reflexión del estudiante.'),
+  sugerenciasPedagogicas: z.string().describe('Sugerencias pedagógicas para que el profesor pueda guiar al equipo.'),
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;
 
@@ -34,25 +34,20 @@ const prompt = ai.definePrompt({
   name: 'generateRoundReportPrompt',
   input: {schema: GenerateRoundReportInputSchema},
   output: {schema: GenerateRoundReportOutputSchema},
-  prompt: `You are an AI assistant helping teachers to evaluate team performance in a business simulation game.
+  prompt: `Eres un asistente de IA experto en análisis de simulaciones de negocio para educación. Tu tarea es analizar el rendimiento de un equipo y generar un informe en ESPAÑOL para el profesor.
 
-You will receive game data, market conditions, and team performance data for a specific round.
-Your task is to generate a comprehensive report that includes:
-- An overview of each team's performance, highlighting their strengths and weaknesses.
-- An analysis of the decisions made by each team and their impact on their KPIs.
-- Mayeutic questions that the teacher can use to guide students' reflection on their decisions.
-- Pedagogical suggestions for the teacher to improve student learning.
+  **Contexto de la Simulación:**
+  - Partida: {{{gameId}}}, Ronda: {{{roundNumber}}}
+  - Condiciones del Mercado: {{{marketConditions}}}
+  - Rendimiento del Equipo (en formato JSON): {{{teamPerformanceData}}}
 
-Here is the game data:
-Game ID: {{{gameId}}}
-Round Number: {{{roundNumber}}}
-Market Conditions: {{{marketConditions}}}
-Team Performance Data: {{{teamPerformanceData}}}
+  **Tu Misión:**
+  1.  **Analiza en Profundidad**: Examina los datos de rendimiento del equipo. Conecta sus decisiones (inversiones, precio, gestión de crisis) con los resultados en sus KPIs (finanzas, reputación, moral) y su puntuación de equilibrio de negocio (PEB).
+  2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
+  3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda (ej: ¿sacrificar rentabilidad por cuota de mercado?, ¿cómo una crisis impactó su plan?).
+  4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
 
-Format your response as follows:
-Report: [Comprehensive report]
-Mayeutic Questions: [A list of mayeutic questions]
-Pedagogical Suggestions: [Pedagogical suggestions]`,
+  **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,
 });
 
 const generateRoundReportFlow = ai.defineFlow(

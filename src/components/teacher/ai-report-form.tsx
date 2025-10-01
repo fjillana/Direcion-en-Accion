@@ -161,9 +161,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
         marketConditions: "Mercado estable, 50 nuevos alumnos disponibles.",
       });
 
-      setQualitativeAnalysis(result.report);
-      setDebriefingQuestions(result.mayeuticQuestions.split('\n').filter(q => q.trim() !== ''));
-      setPedagogicalSuggestions(result.pedagogicalSuggestions);
+      setQualitativeAnalysis(result.reporteCualitativo);
+      setDebriefingQuestions(result.preguntasMayeuticas);
+      setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       setHasReport(true);
     } catch (error) {
       console.error("Error generating report:", error);
@@ -282,7 +282,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                     <p className="text-muted-foreground mb-4">
                     Aún no se ha generado un reporte para {selectedTeam}.
                     </p>
-                    <Button onClick={handleGenerateReport} disabled={isGenerating}>
+                    <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam}>
                     {isGenerating ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (

@@ -38,7 +38,7 @@ export default function StudentDashboard() {
         <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
         <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div>
         <CrisisForm />
       </div>
     </div>

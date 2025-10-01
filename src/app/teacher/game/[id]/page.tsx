@@ -217,7 +217,7 @@ export default function GameDetailsPage() {
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
-  const [selectedRound, setSelectedRound] = useState<string>("1");
+  const [selectedRound, setSelectedRound] = useState<string | undefined>(undefined);
   const [monitoringData, setMonitoringData] = useState<TeamPerformance[]>([]);
 
   useEffect(() => {
@@ -229,20 +229,15 @@ export default function GameDetailsPage() {
   }, [games, id]);
   
   useEffect(() => {
-    if (selectedTeam) {
+    if (selectedTeam && selectedRound) {
         setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${selectedRound}...`);
     }
   }, [selectedTeam, selectedRound])
   
-    useEffect(() => {
-    // This logic now correctly reflects showing data for past/current rounds
-    // and showing nothing for future rounds.
-    if (!game || parseInt(selectedRound) > game.round) {
+  useEffect(() => {
+    if (!game || !selectedRound || parseInt(selectedRound) > game.round) {
       setMonitoringData([]);
     } else {
-      // In a real app, you would fetch data for the selected round.
-      // Here we just use the mock data for demonstration and shuffle it
-      // to simulate different data per round.
       const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
       setMonitoringData(shuffledData);
     }
@@ -279,8 +274,8 @@ export default function GameDetailsPage() {
     },
   ];
   
-  if (!game) {
-    return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (!game || !selectedRound) {
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   return (
@@ -320,7 +315,7 @@ export default function GameDetailsPage() {
                       Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
                     </CardDescription>
                   </div>
-                  {game && <div className="w-[180px]">
+                  <div className="w-[180px]">
                     <Select value={selectedRound} onValueChange={setSelectedRound}>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccionar Ronda" />
@@ -333,7 +328,7 @@ export default function GameDetailsPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                  </div>}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -385,12 +380,12 @@ export default function GameDetailsPage() {
           </TabsContent>
         </Tabs>
 
-        {game && <RoundConfig
+        <RoundConfig
           allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
           numRounds={game.numRounds}
-        />}
+        />
 
       </div>
       

@@ -558,7 +558,7 @@ export default function GameDetailsPage() {
                     )}
                   </div>
 
-                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && (
+                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && currentRoundTab === "1" && (
                     <div className="space-y-2">
                         <h4 className="font-semibold">Plan Estratégico (Ronda 0)</h4>
                         <div className="p-3 bg-muted/50 rounded-md space-y-2">

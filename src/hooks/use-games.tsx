@@ -71,10 +71,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
-    } catch (error) {
-      console.error("Failed to save games to localStorage:", error);
+    // This effect runs when 'games' state changes, and persists it to localStorage.
+    // It is guarded to only run on the client side after the initial state has been set.
+    if (games.length > 0) {
+        try {
+            window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
+        } catch (error) {
+            console.error("Failed to save games to localStorage:", error);
+        }
     }
   }, [games]);
 

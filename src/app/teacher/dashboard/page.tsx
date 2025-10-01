@@ -49,12 +49,12 @@ export default function TeacherDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const router = useRouter();
 
-  const handleCreateGame = (data: GameConfig) => {
+  const handleCreateGame = (data: GameConfig & { teams: string[] }) => {
     const newGame: Game = {
       id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
       round: 1,
-      teams: data.numTeams,
+      teams: data.teams,
       status: "En curso",
       numRounds: data.numRounds,
     };
@@ -146,7 +146,7 @@ export default function TeacherDashboard() {
             </CardHeader>
             <CardContent className="flex-grow">
               <div className="text-sm text-muted-foreground">
-                <p>{game.teams} equipos participando.</p>
+                <p>{game.teams.length} equipos participando.</p>
               </div>
             </CardContent>
             <CardFooter>

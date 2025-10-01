@@ -20,7 +20,6 @@ import { Switch } from "@/components/ui/switch";
 const formSchema = z.object({
   gameName: z.string().min(1, "El nombre del juego es requerido."),
   numRounds: z.number().min(1).max(20),
-  numTeams: z.number().min(1).max(10),
   initialFunds: z.number().min(1000),
   newStudentsPerRound: z.number().min(0),
   aiDifficulty: z.number().min(1).max(5),
@@ -30,7 +29,7 @@ const formSchema = z.object({
 export type GameConfig = z.infer<typeof formSchema>;
 
 interface GameConfigFormProps {
-  onCreateGame: (data: GameConfig) => void;
+  onCreateGame: (data: GameConfig & { teams: string[] }) => void;
 }
 
 export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
@@ -39,7 +38,6 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
     defaultValues: {
       gameName: "",
       numRounds: 8,
-      numTeams: 4,
       initialFunds: 50000,
       newStudentsPerRound: 50,
       aiDifficulty: 3,
@@ -48,7 +46,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
   });
 
   function onSubmit(values: GameConfig) {
-    onCreateGame(values);
+    onCreateGame({ ...values, teams: [] });
   }
 
   return (
@@ -70,44 +68,26 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-           <FormField
-            control={form.control}
-            name="numRounds"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Número de Rondas ({field.value})</FormLabel>
-                <FormControl>
-                  <Slider
-                    min={1}
-                    max={20}
-                    step={1}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="numTeams"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Número de Equipos ({field.value})</FormLabel>
-                <FormControl>
-                  <Slider
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
+        
+        <FormField
+          control={form.control}
+          name="numRounds"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Número de Rondas ({field.value})</FormLabel>
+              <FormControl>
+                <Slider
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={[field.value]}
+                  onValueChange={(value) => field.onChange(value[0])}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+           
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

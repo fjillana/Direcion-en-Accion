@@ -1,6 +1,5 @@
 
 import type { TeamState } from "./types";
-import { calculateMarketAttractiveness } from "./market-attractiveness";
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
@@ -11,31 +10,35 @@ const OVERLOAD_NMA_PENALTY = 0.1;
  * Recalcula los KPIs de un equipo para el inicio de la siguiente ronda.
  * @param teamState - El estado actual del equipo.
  * @param newStudents - El número de nuevos alumnos captados en esta ronda.
+ * @param isInitialSetup - Si es la ronda 0, para solo calcular el gasto inicial.
  * @returns El nuevo estado de los KPIs del equipo.
  */
-export function updateKpisForNextRound(teamState: TeamState, newStudents: number) {
+export function updateKpisForNextRound(teamState: TeamState, newStudents: number, isInitialSetup = false) {
   const currentKpis = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
 
-  // 1. Actualizar número de alumnos y profesores
-  let updatedNumStudents = currentKpis.numStudents + newStudents;
+  // --- Pre-calculation state ---
+  let updatedNumStudents = currentKpis.numStudents;
   let updatedNumTeachers = currentKpis.numTeachers;
 
+  // --- Apply decisions ---
   if (decisions.selectedCenterActions.includes('P2')) { // Contratar
     updatedNumTeachers += 1;
   }
   if (decisions.selectedCenterActions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
   }
+
+  // En la simulación normal (no en el setup inicial), los nuevos alumnos se añaden
+  if (!isInitialSetup) {
+      updatedNumStudents += newStudents;
+  }
   
   // TODO: Simular pérdida de alumnos si la capacidad es excedida
 
   // 2. Calcular Ingresos y Costes
   const income = updatedNumStudents * decisions.tuitionPrice;
-  
-  // Coste de personal = nº de profesores * salario por profesor
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
-
   const investmentCost = decisions.investments.reduce((sum, inv) => sum + inv.cost, 0);
   
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
@@ -46,10 +49,14 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   }, 0);
   
   // TODO: Añadir costes de crisis
-  const totalCost = personnelCost + investmentCost + centerActionsCost;
-  const roundResult = income - totalCost;
   
-  const updatedCash = currentKpis.cash + roundResult;
+  // Para la Ronda 0, el "resultado" es solo el gasto inicial. No hay ingresos.
+  const roundResult = isInitialSetup 
+    ? -(investmentCost + centerActionsCost) 
+    : income - personnelCost;
+  
+  const updatedCash = currentKpis.cash + roundResult - (isInitialSetup ? 0 : investmentCost + centerActionsCost);
+
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedNma = currentKpis.nma;
@@ -87,13 +94,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   return {
       ...currentKpis,
       cash: updatedCash,
-      personnelCost: personnelCost, // Este es el coste que se usará para el PEB de Coste de Personal
+      personnelCost: personnelCost,
       income: income,
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,
       nma: updatedNma,
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,
-      // La cuota de mercado se recalcula después de que todos los equipos tengan sus nuevos alumnos
   };
 }

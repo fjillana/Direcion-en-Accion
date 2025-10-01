@@ -49,16 +49,21 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
+  
+  const isRoundZero = studentGame?.round === 0;
 
   const menuItems = [
-    { href: "/student/dashboard", label: "Dashboard", icon: Home },
-    { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
-    { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
-    { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
-    { href: "/student/achievements", label: "Logros", icon: Award },
-    { href: "/student/report", label: "Reporte", icon: FileText },
-    { href: "/student/inbox", label: "Inbox", icon: Inbox },
+    { href: "/student/dashboard", label: "Dashboard", icon: Home, roundZero: true },
+    { href: "/student/decisions", label: "Inversiones", icon: ClipboardList, roundZero: true },
+    { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target, roundZero: true },
+    { href: "/student/leaderboard", label: "Leaderboard", icon: Users, roundZero: false },
+    { href: "/student/achievements", label: "Logros", icon: Award, roundZero: false },
+    { href: "/student/report", label: "Reporte", icon: FileText, roundZero: false },
+    { href: "/student/inbox", label: "Inbox", icon: Inbox, roundZero: true },
   ];
+  
+  const visibleMenuItems = isRoundZero ? menuItems.filter(item => item.roundZero) : menuItems;
+
 
   return (
     <SidebarProvider>
@@ -77,7 +82,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         </SidebarHeader>
         <SidebarContent className="flex flex-col">
           <SidebarMenu>
-            {menuItems.map((item) => (
+            {visibleMenuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
                   <Link href={item.href}>
@@ -132,7 +137,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <SidebarTrigger className="md:hidden" />
           <div className="hidden md:flex items-center gap-3">
              <p className="text-sm font-medium">
-                {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 1}
+                {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 0}
               </p>
               <div className="flex items-center gap-1">
                 <TooltipProvider>

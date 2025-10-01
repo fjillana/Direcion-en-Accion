@@ -3,8 +3,8 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
-import type { AIArchetype } from "@/lib/game-logic/types";
-import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
+import type { AIArchetype, StrategicPlan } from "@/lib/game-logic/types";
+import { TeamKPIs } from "@/lib/game-logic/types";
 
 export interface InvestmentDecision {
   id: string;
@@ -70,7 +70,6 @@ export interface Game {
   performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances
   roundSettings?: Record<number, RoundSettings>;
   messages?: GameMessage[];
-  strategicPlan?: StrategicPlan;
 }
 
 interface GamesContextType {

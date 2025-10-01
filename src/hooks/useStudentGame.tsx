@@ -4,6 +4,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
 import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData } from "./use-games";
 import { useRouter } from "next/navigation";
+import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
 // This would be the current logged-in user ID
 const CURRENT_USER_ID = "student-beta"; 
@@ -22,18 +23,6 @@ export interface RoundDecisions {
   roundConfirmed: boolean;
 }
 
-export type StrategicPlan = {
-  confirmed: boolean;
-  rankingGoal: string;
-  targets: {
-    [key: string]: {
-      target: number;
-      operator: 'min' | 'max' | 'range';
-      range_max?: number;
-    }
-  }
-}
-
 export interface StudentGameState {
   userId: string;
   status: StudentGameStatus;
@@ -45,7 +34,7 @@ export interface StudentGameState {
   roundSettings?: RoundSettings;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
-  kpis?: TeamPerformanceData['kpis'];
+  kpis?: TeamKPIs;
   strategicPlan?: StrategicPlan;
   planConfirmed: boolean;
 }
@@ -69,7 +58,6 @@ const STUDENT_GAME_STORAGE_KEY_PREFIX = 'studentGameState_';
 
 const getStorageKey = () => `${STUDENT_GAME_STORAGE_KEY_PREFIX}${CURRENT_USER_ID}`;
 
-
 const initialStudentState: StudentGameState = {
   userId: CURRENT_USER_ID,
   status: "no-game",
@@ -88,9 +76,12 @@ const initialStudentState: StudentGameState = {
     confirmed: false,
     rankingGoal: "",
     targets: {
-        nma: { target: 8.5, operator: "min" },
-        marketShare: { target: 18, operator: "min" },
-        studentTeacherRatio: { target: 23, operator: "max" },
+      cash: { target: 50000, operator: "min" },
+      personnelCost: { target: 75, operator: "max" },
+      nma: { target: 8.5, operator: "min" },
+      marketShare: { target: 18, operator: "min" },
+      morale: { target: 85, operator: "min" },
+      studentTeacherRatio: { target: 23, operator: "max" },
     }
   }
 };
@@ -172,7 +163,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
           storedState.decisions = { ...initialStudentState.decisions };
       }
-      if(!storedState.strategicPlan){
+      if(!storedState.strategicPlan || !storedState.strategicPlan.targets.cash){
           storedState.strategicPlan = initialStudentState.strategicPlan;
           storedState.planConfirmed = false;
       }
@@ -191,7 +182,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
               let currentKpis: StudentGameState['kpis'] | undefined = undefined;
 
               if(gameData.performance){
-                  for(let r=1; r < round; r++){
+                  for(let r=0; r < round; r++){ // Also include round 0 performance
                       const roundPerformance = gameData.performance[r];
                       const teamPerformance = roundPerformance?.find(p => p.name === storedState.teamName);
                       if(teamPerformance) {
@@ -206,8 +197,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
               }
 
               if (!currentKpis) {
-                 // For the very first round, establish the initial state from game config to show in UI
-                 const humanTeamsCount = gameData.teamNames.length;
+                 const humanTeamsCount = gameData.teamNames.length || 1;
                  const numIaTeams = humanTeamsCount;
                  currentKpis = {
                     cash: gameData.initialFunds,
@@ -278,8 +268,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       updateGame(game.id, { teamNames: updatedTeamNames });
     }
 
-    setStudentGame(initialStudentState);
-    localStorage.removeItem(getStorageKey());
+    const newState = { ...initialStudentState };
+    setStudentGame(newState);
+    localStorage.setItem(getStorageKey(), JSON.stringify(newState));
     router.push('/student/join-game');
   };
 

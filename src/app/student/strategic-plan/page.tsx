@@ -11,13 +11,33 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Lightbulb } from 'lucide-react';
+import { CheckCircle2, Lightbulb, Info } from 'lucide-react';
 import { StudentGate } from '@/components/student/student-gate';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useStudentGame } from '@/hooks/useStudentGame';
 
 const kpiDefinitions = [
+  {
+    key: 'cash',
+    title: 'Saldo de Tesorería',
+    currentValue: 50000,
+    min: 0,
+    max: 100000,
+    step: 5000,
+    format: (v: number) => `${v.toLocaleString('es-ES')} CC`,
+    advice: "Mantener una tesorería saludable te da flexibilidad. Evita caer por debajo del 5% de tus ingresos anuales para no sufrir penalizaciones en el PEB de finanzas."
+  },
+  {
+    key: 'personnelCost',
+    title: 'Coste de Personal / Ingresos',
+    currentValue: 75,
+    min: 65,
+    max: 90,
+    step: 1,
+    format: (v: number) => `${v.toFixed(1)}%`,
+    advice: "El umbral de riesgo está en el 75%. Superarlo afectará a tu PEB financiero. Contratar o subir salarios incrementa este ratio, pero puede mejorar la moral y la calidad."
+  },
   {
     key: 'nma',
     title: 'Nota Media Alumnado',
@@ -39,6 +59,16 @@ const kpiDefinitions = [
     advice: "Una 'Campaña publicitaria en redes' (R1) es la forma más directa de aumentar tu visibilidad y captar nuevos alumnos. Esto es crucial para crecer, ya que compites con otros centros por un número limitado de estudiantes."
   },
   {
+    key: 'morale',
+    title: 'Moral del Personal',
+    currentValue: 80,
+    min: 50,
+    max: 100,
+    step: 5,
+    format: (v: number) => `${v.toFixed(0)}%`,
+    advice: "Una moral alta previene crisis como las huelgas. Inversiones en formación (P1), beneficios (P5) o mejoras salariales (P4) tienen un impacto directo en la satisfacción de tu equipo."
+  },
+  {
     key: 'studentTeacherRatio',
     title: 'Ratio Alumnos/Profesor',
     currentValue: 25.0,
@@ -51,17 +81,18 @@ const kpiDefinitions = [
 ];
 
 export default function StrategicPlanPage() {
-  const { studentGame, setStrategicPlan } = useStudentGame();
+  const { studentGame, setStrategicPlan, setRoundDecisions } = useStudentGame();
 
   const planConfirmed = studentGame?.planConfirmed || false;
   const strategicPlan = studentGame?.strategicPlan;
+  const isRoundZero = studentGame?.round === 0;
 
   const handleTargetChange = (key: string, value: number) => {
     setStrategicPlan({
         ...strategicPlan,
         targets: {
             ...strategicPlan?.targets,
-            [key]: { ...strategicPlan?.targets?.[key], target: value }
+            [key]: { ...strategicPlan?.targets?.[key as keyof typeof strategicPlan.targets], target: value }
         }
     });
   };
@@ -75,7 +106,54 @@ export default function StrategicPlanPage() {
   
   const handleConfirmPlan = () => {
     setStrategicPlan({ ...strategicPlan, confirmed: true });
+    // Also confirm the round 0 decisions
+    setRoundDecisions({ roundConfirmed: true });
   };
+  
+  if (!isRoundZero) {
+    return (
+        <StudentGate>
+            <Alert variant="default" className="bg-emerald-50 border-emerald-200">
+                <Info className="h-4 w-4 !text-emerald-600" />
+                <AlertTitle className="text-emerald-800">Plan Estratégico Confirmado</AlertTitle>
+                <AlertDescription className="text-emerald-700">
+                    Tu plan estratégico se definió en la Ronda 0 y ya no se puede modificar. Puedes consultarlo aquí.
+                </AlertDescription>
+            </Alert>
+            {/* Render read-only view */}
+            <div className="space-y-6 mt-6">
+                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {kpiDefinitions.map(kpi => {
+                        const currentTarget = strategicPlan?.targets?.[kpi.key as keyof typeof strategicPlan.targets];
+                        return (
+                            <Card key={kpi.key} className="opacity-70">
+                            <CardHeader>
+                                <CardTitle>{kpi.title}</CardTitle>
+                                <CardDescription>Este fue tu objetivo para la partida.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm font-bold">
+                                        <span>Objetivo: <span className="text-primary">{currentTarget ? kpi.format(currentTarget.target) : 'N/A'}</span></span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+                 <Card className="opacity-70">
+                    <CardHeader>
+                        <CardTitle>Misión / Visión</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground italic">"{strategicPlan?.rankingGoal || 'No definida'}"</p>
+                    </CardContent>
+                </Card>
+            </div>
+        </StudentGate>
+    );
+  }
 
   return (
     <StudentGate>
@@ -94,7 +172,7 @@ export default function StrategicPlanPage() {
             <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
             <AlertTitle className="text-emerald-800">Plan Estratégico Confirmado</AlertTitle>
             <AlertDescription className="text-emerald-700">
-              Tus objetivos han sido guardados. Ahora puedes comparar tu progreso en cada ronda.
+              Tus objetivos han sido guardados. Ahora puedes continuar con tus inversiones iniciales en la pestaña de Inversiones.
             </AlertDescription>
           </Alert>
         )}
@@ -138,14 +216,15 @@ export default function StrategicPlanPage() {
 
         <Card className={planConfirmed ? "opacity-70" : ""}>
             <CardHeader>
-                <CardTitle>Metas Adicionales</CardTitle>
+                <CardTitle>Misión / Visión</CardTitle>
+                <CardDescription>Describe en una frase la visión de tu centro o tu meta principal en el ranking.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                    <Label htmlFor="ranking-goal">Ranking Objetivo</Label>
+                    <Label htmlFor="ranking-goal" className="sr-only">Misión / Visión</Label>
                     <Input 
                         id="ranking-goal"
-                        placeholder="Ej: Top 3, No ser el último..."
+                        placeholder="Ej: 'Ser el centro más prestigioso', 'Acabar en el Top 3', 'No ser el último'..."
                         value={strategicPlan?.rankingGoal || ''}
                         onChange={(e) => handleRankingChange(e.target.value)}
                         disabled={planConfirmed}
@@ -157,9 +236,9 @@ export default function StrategicPlanPage() {
         {!planConfirmed && (
           <Card>
               <CardHeader>
-                  <CardTitle>Confirmar Plan</CardTitle>
+                  <CardTitle>Confirmar Plan y Finalizar Ronda 0</CardTitle>
                   <CardDescription>
-                      ¿Estás seguro de que quieres guardar estos objetivos? Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
+                      Al confirmar, tus objetivos estratégicos y tus decisiones de inversión inicial quedarán guardados. Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
                   </CardDescription>
               </CardHeader>
               <CardFooter>

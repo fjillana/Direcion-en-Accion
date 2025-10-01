@@ -32,6 +32,18 @@ export interface TeamKPIs {
 
 export type AIArchetype = 'BALANCED' | 'AGGRESSIVE_GROWTH' | 'FINANCE_CONSERVATIVE' | 'QUALITY_FOCUSED';
 
+export interface StrategicPlan {
+  confirmed: boolean;
+  rankingGoal: string;
+  targets: {
+    cash: { target: number; operator: 'min' | 'max' };
+    personnelCost: { target: number; operator: 'min' | 'max' };
+    nma: { target: number; operator: 'min' | 'max' };
+    marketShare: { target: number; operator: 'min' | 'max' };
+    morale: { target: number; operator: 'min' | 'max' };
+    studentTeacherRatio: { target: number; operator: 'min' | 'max' };
+  }
+}
 
 export interface TeamState {
   name: string;
@@ -39,16 +51,4 @@ export interface TeamState {
   kpis: TeamKPIs;
   decisions: TeamDecisions;
   archetype?: AIArchetype;
-}
-
-export type StrategicPlan = {
-  confirmed: boolean;
-  rankingGoal: string;
-  targets: {
-    [key: string]: {
-      target: number;
-      operator: 'min' | 'max' | 'range';
-      range_max?: number;
-    }
-  }
 }

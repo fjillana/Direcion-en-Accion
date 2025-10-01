@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -118,7 +119,7 @@ export default function GameDetailsPage() {
   const router = useRouter();
 
   const [game, setGame] = useState<Game | null>(null);
-  const [currentRoundTab, setCurrentRoundTab] = useState<string>("1");
+  const [currentRoundTab, setCurrentRoundTab] = useState<string>("0");
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<TeamPerformanceData | null>(null);
@@ -137,8 +138,9 @@ export default function GameDetailsPage() {
   useEffect(() => {
     if (game) {
       setCurrentRoundTab(game.round.toString());
-      if (game.performance && game.performance[game.round]) {
-        setMonitoringData(game.performance[game.round]);
+      const performanceForRound = game.performance?.[game.round];
+      if (performanceForRound) {
+        setMonitoringData(performanceForRound);
       } else {
         setMonitoringData([]);
       }
@@ -171,15 +173,16 @@ export default function GameDetailsPage() {
       if (game) {
         // 1. Simulate the round to get performance results
         const performanceResults = simulateRound(game);
+        const nextRound = game.round + 1;
 
         // 2. Update the game state with the new performance data
         updateTeamPerformance(game.id, game.round, performanceResults);
 
         // 3. Move to the next round or end the game
-        if (game.round < game.numRounds) {
-          updateGame(game.id, { round: game.round + 1 });
-        } else {
+        if (nextRound > game.numRounds) {
           updateGame(game.id, { status: "Finalizado" });
+        } else {
+          updateGame(game.id, { round: nextRound });
         }
       }
       setIsProcessing(false);
@@ -208,6 +211,7 @@ export default function GameDetailsPage() {
   
   const getButtonText = () => {
       if (game.status === 'Finalizado') return "Juego Finalizado";
+      if (game.round === 0) return `Procesar Ronda 0 (Setup)`;
       if (game.round === game.numRounds) return "Finalizar Juego";
       return `Procesar Ronda ${game.round}`;
   }
@@ -272,7 +276,7 @@ export default function GameDetailsPage() {
                                 <SelectValue placeholder="Seleccionar Ronda" />
                             </SelectTrigger>
                             <SelectContent>
-                                {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
+                                {Array.from({ length: game.numRounds + 1 }, (_, i) => i).map((r) => (
                                 <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
                                     Ronda {r}
                                 </SelectItem>
@@ -305,7 +309,7 @@ export default function GameDetailsPage() {
                             <TableCell className="font-medium">{team.name}</TableCell>
                             <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb.toFixed(2)}</TableCell>
-                            <TableCell className="text-center font-mono">{team.finanzas.xp.toFixed(2)}</TableCell>
+                            <TableCell className="text-center font-mono">{team.finances.xp.toFixed(2)}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb.toFixed(2)}</TableCell>
                             <TableCell className="text-center font-mono">{team.reputation.xp.toFixed(2)}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb.toFixed(2)}</TableCell>
@@ -467,5 +471,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

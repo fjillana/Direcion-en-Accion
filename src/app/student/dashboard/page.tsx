@@ -26,13 +26,15 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
-import { Lock } from "lucide-react";
+import { Lock, Info } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
 import { XpSummary } from "@/components/student/xp-summary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { useMemo } from "react";
+import { Alert } from "@/components/ui/alert";
+import Link from "next/link";
 
 const mockCrises: Record<string, CrisisProps> = {
     'C1': {
@@ -52,15 +54,15 @@ const mockCrises: Record<string, CrisisProps> = {
 export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
 
-  const { decisions, kpis, performanceHistory } = studentGame || {};
+  const { decisions, kpis, performanceHistory, round } = studentGame || {};
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
-    if(!decisions) return;
+    if(!decisions || !studentGame) return;
     setRoundDecisions({ ...decisions, roundConfirmed: true });
     
     // Save decisions for this round
-    if(studentGame?.gameId && studentGame.teamName && studentGame.round){
+    if(studentGame.gameId && studentGame.teamName && studentGame.round !== undefined){
         const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
         localStorage.setItem(key, JSON.stringify(decisions));
     }
@@ -69,7 +71,7 @@ export default function StudentDashboard() {
   const kpiHistoryData = useMemo(() => {
     if (!performanceHistory) return {};
     
-    const history = {
+    const history: Record<string, { round: number, value: number }[]> = {
       cash: [],
       personnelCost: [],
       nma: [],
@@ -104,6 +106,33 @@ export default function StudentDashboard() {
 
   const currentCrisisId = studentGame?.roundSettings?.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
   const currentCrisis = currentCrisisId ? mockCrises[currentCrisisId] : undefined;
+  
+  const isRoundZero = round === 0;
+
+  if (isRoundZero && !studentGame?.planConfirmed) {
+    return (
+       <StudentGate>
+        <div className="space-y-6">
+           <Alert>
+              <Info className="h-4 w-4" />
+              <Alert.Title className="font-bold">Bienvenido a la Ronda 0: Planificación Estratégica</Alert.Title>
+              <Alert.Description>
+                  <p>¡Es hora de definir el futuro de tu centro! En esta ronda inicial, no hay competición de mercado. Tu única tarea es:</p>
+                  <ol className="list-decimal pl-5 mt-2 space-y-1">
+                      <li>Establecer tus objetivos a largo plazo en el <strong>Plan Estratégico</strong>.</li>
+                      <li>Realizar tus <strong>inversiones iniciales</strong> para empezar a trabajar hacia esos objetivos.</li>
+                  </ol>
+                  <p className="mt-2">Una vez que confirmes tu plan, estas decisiones quedarán bloqueadas. ¡Planifica con sabiduría!</p>
+                   <Button asChild className="mt-4">
+                      <Link href="/student/strategic-plan">Ir al Plan Estratégico</Link>
+                   </Button>
+              </Alert.Description>
+           </Alert>
+           <XpSummary performanceHistory={performanceHistory || []} />
+        </div>
+       </StudentGate>
+    )
+  }
 
   return (
     <StudentGate>
@@ -114,7 +143,7 @@ export default function StudentDashboard() {
               Resumen del Equipo {studentGame?.teamName || 'Beta'}
             </h1>
             <p className="text-muted-foreground">
-              Ronda {studentGame?.round || 1} - ¡Tus decisiones marcarán la diferencia!
+              Ronda {studentGame?.round || 0} - ¡Tus decisiones marcarán la diferencia!
             </p>
           </div>
           <div className="text-right">
@@ -177,7 +206,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Coste personal / Ingresos" value={`${(kpis?.peb || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
+                    <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -194,7 +223,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Nota Media Alumnado" value={`${(kpis?.peb || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
+                    <KpiCard title="Nota Media Alumnado" value={`${(kpis?.nma || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -228,7 +257,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Moral del personal" value={`${(kpis?.peb || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
+                    <KpiCard title="Moral del personal" value={`${(kpis?.morale || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -245,7 +274,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.peb || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
+                    <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.studentTeacherRatio || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>

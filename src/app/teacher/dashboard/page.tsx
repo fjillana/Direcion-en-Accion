@@ -53,7 +53,7 @@ export default function TeacherDashboard() {
     const newGame: Game = {
       id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
-      round: 1,
+      round: 0, // Start at round 0
       teams: data.numTeams,
       teamNames: [], // Initialize with an empty array of names
       status: "En curso",

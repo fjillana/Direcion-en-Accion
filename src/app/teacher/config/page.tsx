@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { useGame } from "@/hooks/use-game-context";
 import { useGames } from "@/hooks/use-games";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, Bot, User } from "lucide-react";
+import { PlusCircle, User, Bot, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -26,21 +26,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
+const allPendingTeams = [
+    { id: 'team-epsilon', name: 'Equipo Epsilon' },
+    { id: 'team-zeta', name: 'Equipo Zeta' },
+    { id: 'team-theta', name: 'Equipo Theta' },
+];
 
 export default function ConfigPage() {
   const { games, updateGame } = useGames();
   const { activeGame, setActiveGameId } = useGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(activeGame?.id || null);
   const [aiDifficulty, setAiDifficulty] = useState(3);
-  const [numTeams, setNumTeams] = useState(0);
+  
+  const [acceptedTeams, setAcceptedTeams] = useState<string[]>([]);
+  const [pendingTeams, setPendingTeams] = useState(allPendingTeams);
+
+  const [isRequestsDialogOpen, setRequestsDialogOpen] = useState(false);
+  const [selectedPending, setSelectedPending] = useState<string[]>([]);
+
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     if (activeGame) {
       setSelectedGameId(activeGame.id);
-      setNumTeams(activeGame.teams);
+      // Simulate initial accepted teams for the active game
+      const initialTeams = Array.from({ length: activeGame.teams }, (_, i) => `Equipo ${String.fromCharCode(65 + i)}`);
+      setAcceptedTeams(initialTeams);
+    } else {
+      setAcceptedTeams([]);
     }
   }, [activeGame]);
   
@@ -48,24 +65,37 @@ export default function ConfigPage() {
     setActiveGameId(gameId);
     setSelectedGameId(gameId);
     const game = games.find(g => g.id === gameId);
-    if(game) {
-      setNumTeams(game.teams);
+    if (game) {
+      // When a game is selected, reset the accepted teams based on its config
+      const initialTeams = Array.from({ length: game.teams }, (_, i) => `Equipo ${String.fromCharCode(65 + i)}`);
+      setAcceptedTeams(initialTeams);
     }
-  }
-  
-  const handleAddTeam = () => {
-    setNumTeams(prev => prev + 1);
   }
   
   const handleSaveChanges = () => {
     if (selectedGameId) {
-      updateGame(selectedGameId, { teams: numTeams });
+      updateGame(selectedGameId, { teams: acceptedTeams.length });
       toast({
         title: "Cambios guardados",
         description: "La configuración del juego ha sido actualizada.",
       });
     }
   }
+
+  const handleAcceptTeams = () => {
+    const newAcceptedTeams = selectedPending.map(id => pendingTeams.find(t => t.id === id)!.name);
+    setAcceptedTeams(prev => [...prev, ...newAcceptedTeams]);
+    setPendingTeams(prev => prev.filter(t => !selectedPending.includes(t.id)));
+    setSelectedPending([]);
+    setRequestsDialogOpen(false);
+  }
+
+  const handlePendingSelection = (teamId: string, checked: boolean) => {
+    setSelectedPending(prev => 
+        checked ? [...prev, teamId] : prev.filter(id => id !== teamId)
+    );
+  }
+
 
   if (games.length === 0) {
       return (
@@ -82,9 +112,9 @@ export default function ConfigPage() {
   }
 
   const selectedGame = games.find(g => g.id === selectedGameId);
-  const totalTeams = numTeams * 2; // 1 human + 1 AI per numTeams
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
           <div>
@@ -118,29 +148,33 @@ export default function ConfigPage() {
         <>
             <Card>
                 <CardHeader>
-                <CardTitle>Equipos en la Partida</CardTitle>
-                <CardDescription>
-                    Añade nuevos equipos humanos. Por cada equipo humano, se añadirá un rival IA. Actualmente hay {numTeams} equipos humanos y {numTeams} rivales IA.
-                </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Equipos en la Partida</CardTitle>
+                      <CardDescription>
+                          Acepta equipos para que participen. Por cada equipo humano, se añadirá un rival IA. Actualmente hay {acceptedTeams.length} equipos humanos y {acceptedTeams.length} rivales IA.
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => setRequestsDialogOpen(true)}>
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Gestionar Solicitudes
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {Array.from({ length: numTeams }).map((_, index) => (
+                        {acceptedTeams.map((teamName, index) => (
                             <div key={`human-${index}`} className="p-4 border rounded-lg flex flex-col items-center gap-2">
                                 <User className="w-8 h-8"/>
-                                <span className="font-semibold">Equipo Humano {index + 1}</span>
+                                <span className="font-semibold">{teamName}</span>
                             </div>
                         ))}
-                        {Array.from({ length: numTeams }).map((_, index) => (
+                        {acceptedTeams.map((_, index) => (
                              <div key={`ai-${index}`} className="p-4 border rounded-lg flex flex-col items-center gap-2 bg-muted/50">
                                 <Bot className="w-8 h-8 text-muted-foreground"/>
                                 <span className="font-semibold text-muted-foreground">Rival IA {index + 1}</span>
                             </div>
                         ))}
-                         <Button variant="outline" className="h-full min-h-[100px] border-dashed" onClick={handleAddTeam}>
-                            <PlusCircle className="w-6 h-6 mr-2"/>
-                            Añadir Equipo
-                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -168,5 +202,39 @@ export default function ConfigPage() {
         </>
       )}
     </div>
+
+    <Dialog open={isRequestsDialogOpen} onOpenChange={setRequestsDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Gestionar Solicitudes de Unión</DialogTitle>
+                <DialogDescription>
+                    Selecciona los equipos que quieres aceptar en esta partida.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-3">
+                {pendingTeams.length > 0 ? pendingTeams.map(team => (
+                    <div key={team.id} className="flex items-center space-x-3 p-3 rounded-md border hover:bg-muted/50">
+                         <Checkbox 
+                            id={team.id}
+                            onCheckedChange={(checked) => handlePendingSelection(team.id, !!checked)}
+                            checked={selectedPending.includes(team.id)}
+                        />
+                        <Label htmlFor={team.id} className="font-medium cursor-pointer">
+                            {team.name}
+                        </Label>
+                    </div>
+                )) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No hay nuevas solicitudes de equipos.</p>
+                )}
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setRequestsDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleAcceptTeams} disabled={selectedPending.length === 0}>
+                    Aceptar Seleccionados
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

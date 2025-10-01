@@ -21,7 +21,10 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
   ];
   
   const getHref = (baseHref: string) => {
-      if (baseHref === '/teacher/dashboard' || baseHref === '/teacher/catalog') {
+      if (baseHref === '/teacher/dashboard' && activeGame) {
+          return `/teacher/game/${activeGame.id}`;
+      }
+      if (baseHref === '/teacher/catalog') {
           return baseHref;
       }
       return activeGame ? `${baseHref}?gameId=${activeGame.id}` : baseHref;

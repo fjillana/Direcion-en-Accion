@@ -22,6 +22,8 @@ export interface TeamKPIs {
     cash: number;
     personnelCost: number;
     income: number;
+    privateIncome: number;
+    publicIncome: number;
     nma: number;
     marketShare: number;
     morale: number;

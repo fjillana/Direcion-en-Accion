@@ -5,6 +5,9 @@ const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
 const OVERLOAD_MORALE_PENALTY = 5;
 const OVERLOAD_NMA_PENALTY = 0.1;
+const PUBLIC_INCOME = 25000;
+const CAPACITY = 810;
+
 
 /**
  * Recalcula los KPIs de un equipo para el inicio de la siguiente ronda.
@@ -31,28 +34,29 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
 
   // En la simulación normal (no en el setup inicial), los nuevos alumnos se añaden
   if (!isInitialSetup) {
-      updatedNumStudents += newStudents;
+      const availableSpots = CAPACITY - updatedNumStudents;
+      const admittedStudents = Math.min(newStudents, availableSpots);
+      updatedNumStudents += admittedStudents;
   }
   
-  // TODO: Simular pérdida de alumnos si la capacidad es excedida
 
   // 2. Calcular Ingresos y Costes
-  const income = updatedNumStudents * decisions.tuitionPrice;
+  const privateIncome = updatedNumStudents * decisions.tuitionPrice;
+  const income = privateIncome + PUBLIC_INCOME;
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
   const investmentCost = (decisions.investments || []).reduce((sum, inv) => sum + inv.cost, 0);
   
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
-      // Los costes de contratar y despedir ya se reflejan en el coste de personal de la siguiente ronda
-      // y en el resultado de la ronda actual (indemnización, etc), pero no como un gasto directo aquí.
-      if (actionId === 'F5') return sum + 50000; // Ampliación de aulas
+      if (actionId === 'F5') return sum + 50000;
+      if (actionId === 'P7') return sum + 7500; // Coste de despido
       return sum;
   }, 0);
   
-  // TODO: Añadir costes de crisis
+  const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
   // Para la Ronda 0, el "resultado" es solo el gasto inicial. No hay ingresos.
   const roundResult = isInitialSetup 
-    ? -(investmentCost + centerActionsCost) 
+    ? -totalExpenses
     : income - personnelCost;
   
   const updatedCash = currentKpis.cash + roundResult - (isInitialSetup ? 0 : investmentCost + centerActionsCost);
@@ -101,5 +105,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       nma: updatedNma,
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,
+      privateIncome,
+      publicIncome: PUBLIC_INCOME
   };
 }

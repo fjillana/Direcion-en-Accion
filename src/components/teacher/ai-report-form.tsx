@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Wand2, Edit, Check, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebriefingQuestions } from "./debriefing-questions";
@@ -45,30 +45,25 @@ interface AIReportFormProps {
 
 const initialReportData = {
   round: 3,
-  financialSummary: {
-    income: 320000,
+  kpis: {
+    cash: 50000,
     personnelCost: 245000,
-    investmentsCost: 35000,
-    roundResult: 40000,
-    cashFlow: 65000,
-  },
-  financialDetail: {
+    income: 320000,
+    privateIncome: 295000,
+    publicIncome: 25000,
     numStudents: 810,
     tuitionPrice: 395, 
     numTeachers: 33,
-    teacherCost: 7424,
-    investments: [
-      { name: "Inversión en TIC", cost: 25000, effect: "+2 NMA, +5 Moral" },
-      { name: "Formación docente", cost: 10000, effect: "+1 NMA, +10 Moral" },
-    ],
+    nma: 8.7,
+    marketShare: 14.2,
+    morale: 82,
+    studentTeacherRatio: 24.5,
   },
-  kpiSummary: {
-    cash: "65.000 CC",
-    personnelCost: "76.5%",
-    nma: "8.7",
-    marketShare: "14.2%",
-    morale: "82%",
-    studentTeacherRatio: "24.5",
+  decisions: {
+      investments: [
+      { id: 'R2', name: "Inversión en TIC", cost: 25000, effect: "+2 NMA, +5 Moral" },
+      { id: 'P1', name: "Formación docente", cost: 10000, effect: "+1 NMA, +10 Moral" },
+    ],
   },
   kpiAnalysis: {
     personnelCost: {
@@ -94,11 +89,12 @@ const initialReportData = {
       analysis: "El ratio se mantiene estable, ya que no se ha contratado ni despedido personal y el número de alumnos ha tenido una variación moderada."
     }
   },
-  marketAttractiveness: {
+  marketAnalysis: {
     iam: "115",
-    newStudents: 25,
-    lostStudents: 5,
-    analysis: "Tu NMA (8.7) y precio (118 CC) te han hecho más atractivo que la media (NMA 8.4, Precio 122 CC), permitiéndote captar un 35% del total de nuevos alumnos disponibles en el mercado."
+    newStudentsCaptured: 25,
+    newStudentsInMarket: 50,
+    capacity: 810,
+    finalStudents: 810,
   },
   qualitativeAnalysis:
     "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 76.5%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
@@ -114,9 +110,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
 
-  const humanTeams = teamsData.filter(t => t.type === 'H');
+  const humanTeams = useMemo(() => teamsData.filter(t => t.type === 'H'), [teamsData]);
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(humanTeams.length > 0 ? humanTeams[0].name : undefined);
+  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -134,7 +130,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     } else if (humanTeams.length === 0) {
       setSelectedTeam(undefined);
     }
-  }, [teamsData, selectedTeam]);
+  }, [humanTeams, selectedTeam]);
 
 
   useEffect(() => {
@@ -188,12 +184,13 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       
       const newReportData = {
-          ...initialReportData, // Using dummy data as a base for structure
+          ...initialReportData, 
           qualitativeAnalysis: result.reporteCualitativo,
           debriefingQuestions: result.preguntasMayeuticas,
           pedagogicalSuggestions: result.sugerenciasPedagogicas,
           round: activeGame.round - 1,
           kpis: teamPerformance.kpis,
+          decisions: teamPerformance.decisions,
       };
 
       setReportData(newReportData);
@@ -286,9 +283,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             </TabsList>
             <TabsContent value="analysis">
                  {hasReport && reportData ? (
-                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-6']} className="w-full space-y-4 pt-4">
+                    <Accordion type="multiple" defaultValue={['item-1', 'item-kpi-summary', 'item-kpi-analysis', 'item-market-analysis', 'item-6']} className="w-full space-y-4 pt-4">
                         
-                        {/* Financial Summary */}
                         <AccordionItem value="item-1" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
@@ -300,14 +296,13 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                             </AccordionContent>
                         </AccordionItem>
 
-                        {/* Financial Details */}
-                        {reportData.decisions &&
-                         <AccordionItem value="item-financial-details" className="border rounded-lg">
+                        <AccordionItem value="item-financial-details" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
                             <AccordionContent className="px-4 space-y-4">
                                 <div className="p-3 bg-muted/50 rounded-lg border">
                                     <h4 className="font-semibold">Cálculos Clave</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">Ingresos: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.income)}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome)}</p>
+                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome)}</p>
                                     <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
                                 </div>
                                 <div className="p-3 bg-muted/50 rounded-lg border">
@@ -321,10 +316,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
-                        }
                         
-                        {/* KPI Summary */}
-                         <AccordionItem value="item-2" className="border rounded-lg">
+                         <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(reportData.kpis.cash)}</span></Badge>
@@ -335,11 +328,44 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ratio Alumnos/Profesor:</span> <span className="font-bold">{reportData.kpis.studentTeacherRatio.toFixed(1)}</span></Badge>
                             </AccordionContent>
                         </AccordionItem>
+                        
+                        <AccordionItem value="item-kpi-analysis" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs</h3></AccordionTrigger>
+                            <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
+                                {Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
+                                    <div key={key} className="p-3 bg-muted/50 rounded-lg border">
+                                        <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                                        <p className="text-sm text-muted-foreground mt-1"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
+                                    </div>
+                                ))}
+                            </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="item-market-analysis" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de Mercado (IAM)</h3></AccordionTrigger>
+                            <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
+                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                 <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.iam}</p>
+                               </div>
+                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                 <p className="text-sm font-semibold text-muted-foreground">Nuevos Alumnos Captados</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsCaptured}</p>
+                               </div>
+                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                 <p className="text-sm font-semibold text-muted-foreground">Alumnos en Mercado</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsInMarket}</p>
+                               </div>
+                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                 <p className="text-sm font-semibold text-muted-foreground">Capacidad / Alumnos Finales</p>
+                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.capacity} / {reportData.marketAnalysis.finalStudents}</p>
+                               </div>
+                            </AccordionContent>
+                        </AccordionItem>
 
-                        {/* AI Qualitative Analysis */}
                         <AccordionItem value="item-6" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">
-                                <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias</h3>
+                                <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias IA</h3>
                             </AccordionTrigger>
                             <AccordionContent className="px-4 space-y-4">
                                 <div className="space-y-2">

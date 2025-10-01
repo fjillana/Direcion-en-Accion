@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { GamesProvider } from "@/hooks/use-games";
+import { StudentGameProvider } from "@/hooks/useStudentGame";
 
 export const metadata: Metadata = {
   title: "Dirección en acción",
@@ -23,8 +25,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <GamesProvider>
+          <StudentGameProvider>
+            {children}
+            <Toaster />
+          </StudentGameProvider>
+        </GamesProvider>
       </body>
     </html>
   );

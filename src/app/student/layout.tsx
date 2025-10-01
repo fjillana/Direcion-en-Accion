@@ -31,6 +31,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useStudentGame } from "@/hooks/useStudentGame";
+import { StudentGate } from "@/components/student/student-gate";
 
 
 const teamBadges = [
@@ -39,9 +41,9 @@ const teamBadges = [
   { name: "El de Equipo", icon: Award, description: "Gran gestión del personal y alta moral.", unlocked: false },
 ];
 
-
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { studentGame } = useStudentGame();
 
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
@@ -86,7 +88,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="hidden md:flex items-center gap-3">
-             <p className="text-sm font-medium">Equipo Beta - Ronda 3</p>
+             <p className="text-sm font-medium">
+                {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 1}
+              </p>
               <div className="flex items-center gap-1">
                 <TooltipProvider>
                   {teamBadges.map((badge) => (
@@ -106,7 +110,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           </div>
           <UserNav userType="student" />
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-8">
+            <StudentGate>
+              {children}
+            </StudentGate>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

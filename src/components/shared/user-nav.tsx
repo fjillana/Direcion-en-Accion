@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,10 +27,22 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
-import { Moon, Sun, Camera } from "lucide-react";
+import { Moon, Sun, Camera, LogOut } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useStudentGame } from "@/hooks/useStudentGame";
 
 export function UserNav({
   userType = "teacher",
@@ -37,10 +50,12 @@ export function UserNav({
   userType?: "teacher" | "student";
 }) {
   const isTeacher = userType === "teacher";
+  const { studentGame, abandonGame } = useStudentGame();
+  
   const initialUser = {
-    name: isTeacher ? "Profesor" : "Estudiante Beta",
-    email: isTeacher ? "profesor@example.com" : "estudiante.beta@example.com",
-    avatar: `https://picsum.photos/seed/${userType}-avatar/40/40`,
+    name: isTeacher ? "Profesor" : (studentGame?.teamName || "Estudiante"),
+    email: isTeacher ? "profesor@example.com" : `estudiante.${(studentGame?.teamName || 'test').toLowerCase().replace(' ','.')}@example.com`,
+    avatar: `https://picsum.photos/seed/${userType}-${studentGame?.teamName || 'avatar'}/40/40`,
   };
 
   const [user, setUser] = useState(initialUser);
@@ -48,6 +63,14 @@ export function UserNav({
   
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  
+  useEffect(() => {
+    setUser({
+      name: isTeacher ? "Profesor" : (studentGame?.teamName || "Estudiante"),
+      email: isTeacher ? "profesor@example.com" : `estudiante.${(studentGame?.teamName || 'test').toLowerCase().replace(' ','.')}@example.com`,
+      avatar: `https://picsum.photos/seed/${userType}-${studentGame?.teamName || 'avatar'}/40/40`,
+    });
+  }, [studentGame, isTeacher, userType]);
   
   useEffect(() => {
     setName(user.name);
@@ -112,6 +135,33 @@ export function UserNav({
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
+            {!isTeacher && studentGame?.status === 'joined' && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Abandonar Partida
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro de que quieres abandonar la partida?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminarán todos los datos de tu equipo en esta partida y tendrás que solicitar unirte de nuevo.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            onClick={abandonGame}
+                        >
+                            Sí, abandonar partida
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>

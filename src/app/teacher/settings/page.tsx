@@ -41,38 +41,58 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Trash2, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useStudentGame } from "@/hooks/useStudentGame";
 
-// Simulated data for pending requests
+// This would come from a backend in a real app
 const allPendingTeams = [
-  { id: "team-epsilon", name: "Equipo Epsilon" },
-  { id: "team-zeta", name: "Equipo Zeta" },
-  { id: "team-eta", name: "Equipo Eta" },
+  { id: "team-epsilon-req", userId: "student-epsilon", teamName: "Equipo Epsilon" },
+  { id: "team-zeta-req", userId: "student-zeta", teamName: "Equipo Zeta" },
+  { id: "team-eta-req", userId: "student-eta", teamName: "Equipo Eta" },
 ];
+
 
 export default function SettingsPage() {
   const { activeGame } = useGame();
-  const { updateGame } = useGames();
+  const { updateGame, getGameById } = useGames();
   const { toast } = useToast();
+  const { getStudentGameByGameId, updateStudentGame } = useStudentGame();
+
 
   const [aiDifficulty, setAiDifficulty] = useState(3);
   const [acceptedTeams, setAcceptedTeams] = useState<string[]>([]);
-  const [pendingTeams, setPendingTeams] = useState(allPendingTeams);
+  const [pendingTeams, setPendingTeams] = useState<{ id: string, userId: string; teamName: string; }[]>([]);
   const [isRequestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
-
+  
   useEffect(() => {
     if (activeGame) {
-      setAiDifficulty(activeGame.aiDifficulty || 3);
-      const currentTeams = activeGame.teamNames || [];
-      setAcceptedTeams(currentTeams);
-      setPendingTeams(allPendingTeams.filter(pt => !currentTeams.includes(pt.name)));
+      const gameData = getGameById(activeGame.id);
+      if (gameData) {
+          setAiDifficulty(gameData.aiDifficulty || 3);
+          const currentTeams = gameData.teamNames || [];
+          setAcceptedTeams(currentTeams);
+          
+          // Simulate fetching pending requests for THIS game
+          const studentGameState = getStudentGameByGameId(activeGame.id);
+          const pendingUser = studentGameState?.status === 'pending' ? {
+              id: `${studentGameState.userId}-req`,
+              userId: studentGameState.userId,
+              teamName: studentGameState.teamName,
+          } : null;
+
+          const currentPending = pendingUser ? [pendingUser] : [];
+          setPendingTeams(currentPending.filter(pt => !currentTeams.includes(pt.teamName)));
+      }
     } else {
       setAcceptedTeams([]);
+      setPendingTeams([]);
     }
-  }, [activeGame]);
+  }, [activeGame, getGameById, getStudentGameByGameId]);
+
   
   const teamsWithRivals = useMemo(() => {
       const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
+      // Create one AI rival per human team
       const rivalTeams = Array.from({length: humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
   }, [acceptedTeams]);
@@ -95,22 +115,35 @@ export default function SettingsPage() {
   };
 
   const handleAcceptRequests = () => {
-    const newlyAccepted = pendingTeams.filter(pt => selectedRequests.includes(pt.id)).map(pt => pt.name);
-    setAcceptedTeams(prev => [...prev, ...newlyAccepted]);
+    if (!activeGame) return;
+    
+    const newlyAccepted = pendingTeams.filter(pt => selectedRequests.includes(pt.id));
+    const newTeamNames = newlyAccepted.map(pt => pt.teamName)
+    
+    setAcceptedTeams(prev => [...prev, ...newTeamNames]);
+
+    newlyAccepted.forEach(req => {
+        updateStudentGame(req.userId, { status: 'joined' });
+    });
+
     setPendingTeams(prev => prev.filter(pt => !selectedRequests.includes(pt.id)));
     setSelectedRequests([]);
     setRequestsDialogOpen(false);
   };
   
   const handleRemoveTeam = (teamNameToRemove: string) => {
+    if (!activeGame) return;
     setAcceptedTeams(prev => prev.filter(name => name !== teamNameToRemove));
-    const teamToAddBack = allPendingTeams.find(pt => pt.name === teamNameToRemove);
-    if(teamToAddBack) {
-       setPendingTeams(prev => [...prev, teamToAddBack]);
+    // This part is tricky as we need to find the student associated with the team
+    // For now, we will just update their state to 'no-game'
+    const studentGameState = getStudentGameByGameId(activeGame.id);
+    if(studentGameState && studentGameState.teamName === teamNameToRemove) {
+        updateStudentGame(studentGameState.userId, { status: 'no-game', gameId: null, gameName: null, teamName: null });
     }
   };
 
   const handleRequestCheckboxChange = (teamId: string, checked: boolean) => {
+    if (!activeGame) return;
     setSelectedRequests(prev =>
       checked ? [...prev, teamId] : prev.filter(id => id !== teamId)
     );
@@ -181,7 +214,7 @@ export default function SettingsPage() {
                                               checked={selectedRequests.includes(team.id)}
                                               disabled={acceptedTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.includes(team.id)}
                                           />
-                                          <Label htmlFor={`req-${team.id}`} className="font-medium cursor-pointer">{team.name}</Label>
+                                          <Label htmlFor={`req-${team.id}`} className="font-medium cursor-pointer">{team.teamName}</Label>
                                       </div>
                                   ))}
                                   {pendingTeams.length === 0 && <p className="text-center text-sm text-muted-foreground">No hay solicitudes pendientes.</p>}

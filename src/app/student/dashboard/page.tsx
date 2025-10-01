@@ -56,6 +56,11 @@ export default function StudentDashboard() {
         <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
         <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
       </div>
+      
+      <div className="w-full">
+        <CrisisForm disabled={roundConfirmed} />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Finalizar Ronda</CardTitle>
@@ -93,9 +98,6 @@ export default function StudentDashboard() {
           )}
         </CardContent>
       </Card>
-      <div className="w-full">
-        <CrisisForm disabled={roundConfirmed} />
-      </div>
     </div>
   );
 }

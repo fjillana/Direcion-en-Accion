@@ -4,8 +4,8 @@ import { Briefcase, Target, Users, Wand2 } from "lucide-react";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen">
-      <div className="lg:w-1/2 flex flex-col items-center justify-center p-8 bg-background">
+    <main className="grid min-h-screen lg:grid-cols-2">
+      <div className="flex flex-col items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-4">
                 <div className="flex items-center justify-center size-14 rounded-2xl bg-primary text-primary-foreground">
@@ -35,7 +35,7 @@ export default function Home() {
             <AuthPage />
         </div>
       </div>
-      <div className="hidden lg:block lg:w-1/2 relative">
+      <div className="hidden lg:block relative">
         <Image
           src="https://picsum.photos/seed/business-landing/1200/1800"
           alt="Business simulation"

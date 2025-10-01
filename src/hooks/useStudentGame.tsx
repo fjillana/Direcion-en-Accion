@@ -89,7 +89,7 @@ const initialStudentState: StudentGameState = {
 export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { games, updateGame, getGameById } = useGames();
+  const { games, updateGame } = useGames();
   const router = useRouter();
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;
 
-    const gameData = getGameById(studentGame.gameId);
+    const gameData = games.find(g => g.id === studentGame.gameId);
     if (!gameData) return;
 
     let updatedState = { ...studentGame };
@@ -182,7 +182,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       setStudentGame(updatedState);
       localStorage.setItem(getStorageKey(), JSON.stringify(updatedState));
     }
-  }, [games, getGameById, studentGame, isLoading]);
+  }, [games, studentGame, isLoading]);
 
   
   // This function simulates how another user (teacher) would update this student's state
@@ -272,12 +272,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   }, [studentGame, games]);
 
   const abandonGame = () => {
-    if (!studentGame || !studentGame.gameId || !studentGame.teamName) return;
+    if (!studentGame) return;
 
-    const game = games.find(g => g.id === studentGame.gameId);
-    if (game) {
-      const updatedTeamNames = game.teamNames.filter(name => name !== studentGame.teamName);
-      updateGame(game.id, { teamNames: updatedTeamNames });
+    if (studentGame.gameId && studentGame.teamName) {
+      const game = games.find(g => g.id === studentGame.gameId);
+      if (game) {
+        const updatedTeamNames = game.teamNames.filter(name => name !== studentGame.teamName);
+        updateGame(game.id, { teamNames: updatedTeamNames });
+      }
     }
 
     const newState = { ...initialStudentState };
@@ -297,7 +299,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     getDecisionsByRound,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound, setStrategicPlan, requestToJoinGame]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, getDecisionsByRound, setStrategicPlan, requestToJoinGame]);
 
   return (
     <StudentGameContext.Provider value={value}>

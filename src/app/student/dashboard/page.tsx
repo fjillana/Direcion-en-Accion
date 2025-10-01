@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -23,7 +24,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
-import { CrisisForm } from "@/components/student/crisis-form";
+import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
 import { useState } from "react";
 import { Lock } from "lucide-react";
@@ -145,6 +146,18 @@ const xpData: XpData[] = [
   },
 ];
 
+const currentCrisis: CrisisProps = {
+  id: "C1",
+  title: "¡Evento de Crisis! - Huelga docente",
+  description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
+  options: [
+    { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
+    { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
+    { id: 'op3', label: 'Mantener la postura' },
+    { id: 'op4', label: 'Recurrir a mediadores externos (-8.000 CC)' },
+    { id: 'op5', label: 'Despedir a los líderes del sindicato (-10.000 CC)' },
+  ]
+};
 
 export default function StudentDashboard() {
   const [roundConfirmed, setRoundConfirmed] = useState(false);
@@ -304,7 +317,7 @@ export default function StudentDashboard() {
         <CenterDataForm disabled={roundConfirmed} />
 
         <div className="w-full">
-          <CrisisForm disabled={roundConfirmed} />
+          <CrisisForm disabled={roundConfirmed} {...currentCrisis} />
         </div>
 
       </div>

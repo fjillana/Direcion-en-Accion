@@ -58,6 +58,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
     { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
+    { href: "/student/achievements", label: "Logros", icon: Award },
     { href: "/student/report", label: "Reporte", icon: FileText },
     { href: "/student/inbox", label: "Inbox", icon: Inbox },
   ];

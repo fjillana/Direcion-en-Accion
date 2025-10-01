@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
 import { StudentGate } from '@/components/student/student-gate';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const kpis = [
   {
@@ -89,6 +91,7 @@ export default function StrategicPlanPage() {
   const [targets, setTargets] = useState(() =>
     kpis.reduce((acc, kpi) => ({ ...acc, [kpi.key]: kpi.targetValue }), {})
   );
+  const [rankingGoal, setRankingGoal] = useState('');
   const [planConfirmed, setPlanConfirmed] = useState(false);
 
   const handleTargetChange = (key: string, value: number) => {
@@ -155,6 +158,24 @@ export default function StrategicPlanPage() {
             </Card>
           ))}
         </div>
+
+        <Card className={planConfirmed ? "opacity-70" : ""}>
+            <CardHeader>
+                <CardTitle>Metas Adicionales</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    <Label htmlFor="ranking-goal">Ranking Objetivo</Label>
+                    <Input 
+                        id="ranking-goal"
+                        placeholder="Ej: Top 3, No ser el último..."
+                        value={rankingGoal}
+                        onChange={(e) => setRankingGoal(e.target.value)}
+                        disabled={planConfirmed}
+                    />
+                </div>
+            </CardContent>
+        </Card>
 
         {!planConfirmed && (
           <Card>

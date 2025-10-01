@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -17,7 +18,7 @@ interface KpiCardProps {
 export function KpiCard({ title, value, trend, change }: KpiCardProps) {
   const isUp = trend === "up";
   return (
-    <Card>
+    <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {isUp ? (

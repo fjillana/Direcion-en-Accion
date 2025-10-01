@@ -206,13 +206,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
               }
 
               if (!currentKpis) {
-                 const initialTeamData = gameData.performance?.[0]?.find(p => p.name === storedState.teamName);
+                 // For the very first round, establish the initial state from game config
+                 const humanTeamsCount = gameData.teamNames.length;
+                 const numIaTeams = humanTeamsCount;
                  currentKpis = {
                     cash: gameData.initialFunds,
                     personnelCost: 240000,
                     income: 320000,
                     nma: 7.5,
-                    marketShare: 100 / (gameData.teams * 2),
+                    marketShare: 100 / (humanTeamsCount + numIaTeams),
                     morale: 80,
                     studentTeacherRatio: 25.0,
                     numStudents: 800, 
@@ -292,7 +294,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     getDecisionsByRound,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound, setStrategicPlan]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound, setStrategicPlan, requestToJoinGame]);
 
   return (
     <StudentGameContext.Provider value={value}>

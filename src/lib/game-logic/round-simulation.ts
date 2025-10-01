@@ -32,8 +32,8 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
   const numIaTeams = humanTeamsCount; // Create one IA rival per human team
 
   // Define initial KPIs for the beginning of the simulation
-  const initialKPIs: TeamKPIs = {
-    cash: game.initialFunds,
+  const initialKPIs = (gameData: Game): TeamKPIs => ({
+    cash: gameData.initialFunds,
     personnelCost: 240000, // 32 teachers * 7500 CC
     income: 320000,
     nma: 7.5,
@@ -42,7 +42,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
     studentTeacherRatio: 25.0,
     numStudents: 800,
     numTeachers: 32,
-  };
+  });
 
   // Get previous round's performance data if it exists
   const previousRound = game.round > 1 ? game.round - 1 : 1;
@@ -53,12 +53,8 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
   // Build state for human teams
   game.teamNames.forEach(name => {
     const previousTeamState = previousPerformance?.find(p => p.name === name);
-    const kpis = previousTeamState ? {
-        // This should be a proper carry-over from one round to the next.
-        // For now, we'll just use the final kpis from the previous round if they exist.
-        // This part needs to be more robust in a real implementation.
-        ...initialKPIs
-    } : initialKPIs;
+    // If there's previous performance, use those KPIs, otherwise start with initial KPIs
+    const kpis = previousTeamState ? previousTeamState.kpis : initialKPIs(game);
      currentTeamsState.push({
         name,
         type: 'H',
@@ -71,7 +67,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
   for (let i = 0; i < numIaTeams; i++) {
     const name = `IA Rival ${i + 1}`;
     const previousTeamState = previousPerformance?.find(p => p.name === name);
-    const kpis = previousTeamState ? { ...initialKPIs } : initialKPIs; // Simplified
+    const kpis = previousTeamState ? previousTeamState.kpis : initialKPIs(game);
     
     // Assign a persistent archetype to the AI
     const archetype = previousTeamState?.archetype || aiArchetypes[i % aiArchetypes.length];
@@ -114,6 +110,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
       type: teamState.type,
       ...performance,
       decisions: teamState.decisions, // Include the decisions in the performance data
+      kpis: teamState.kpis,
       archetype: teamState.archetype,
     };
   });

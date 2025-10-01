@@ -51,6 +51,9 @@ const kpiConfig = {
   studentTeacherRatio: { label: "Ratio Alumnos/Profesor", format: (v: number) => v.toFixed(1) },
   tuitionPrice: { label: "Precio Matrícula", format: (v: number) => `${new Intl.NumberFormat('es-ES').format(v)} CC` },
   numStudents: { label: "Nº Alumnos", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
+  personnelCost: { label: "Coste Personal / Ingresos", format: (v: number, income: number) => income > 0 ? `${((v / income) * 100).toFixed(1)}%` : 'N/A' },
+  cash: { label: "Tesorería", format: (v: number) => `${new Intl.NumberFormat('es-ES').format(v)} CC` },
+  morale: { label: "Moral", format: (v: number) => `${v.toFixed(0)}%` },
 };
 
 
@@ -155,6 +158,8 @@ export default function TeacherLeaderboardPage() {
                 <TableHead>Equipo</TableHead>
                 <TableHead className="w-[50px] text-center">Tipo</TableHead>
                 <TableHead className="w-[80px]">Ranking</TableHead>
+                <TableHead className="text-right">Tesorería</TableHead>
+                <TableHead className="text-right">Coste Personal</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
@@ -168,6 +173,8 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="font-bold text-lg">{team.rank}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost, team.kpis.income)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
@@ -203,17 +210,29 @@ export default function TeacherLeaderboardPage() {
                   <TableBody>
                      {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets ? Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
                        if (!goal) return null;
-                       const kpiKey = key as keyof Omit<typeof kpiConfig, 'tuitionPrice' | 'numStudents'>;
+                       const kpiKey = key as keyof typeof kpiConfig;
                        const kpiInfo = kpiConfig[kpiKey];
                        if (!kpiInfo) return null; // FIX: Prevent rendering if kpiInfo is undefined
-                       const currentValue = selectedTeam.kpis[kpiKey];
+                       
+                       let currentValue: number;
+                       let formattedValue: string;
+
+                       if (kpiKey === 'personnelCost') {
+                           currentValue = selectedTeam.kpis.income > 0 ? (selectedTeam.kpis.personnelCost / selectedTeam.kpis.income) * 100 : 0;
+                           formattedValue = kpiInfo.format(selectedTeam.kpis.personnelCost, selectedTeam.kpis.income);
+                       } else {
+                           currentValue = selectedTeam.kpis[kpiKey as keyof typeof selectedTeam.kpis] as number;
+                           // @ts-ignore
+                           formattedValue = kpiInfo.format(currentValue);
+                       }
                        const progress = getProgress(currentValue, goal);
 
                        return (
                          <TableRow key={`${selectedTeam.name}-${key}`}>
                            <TableCell>{kpiInfo.label}</TableCell>
-                           <TableCell className="font-mono">{`${goal.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal.target)}`}</TableCell>
-                           <TableCell className="font-mono">{kpiInfo.format(currentValue)}</TableCell>
+                           {/* @ts-ignore */}
+                           <TableCell className="font-mono">{`${goal.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal.target, selectedTeam.kpis.income)}`}</TableCell>
+                           <TableCell className="font-mono">{formattedValue}</TableCell>
                            <TableCell>
                              <div className="flex items-center gap-2">
                                <Progress value={progress} className="w-[120px]" />

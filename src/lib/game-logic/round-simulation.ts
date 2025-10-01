@@ -1,4 +1,5 @@
 
+
 import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";

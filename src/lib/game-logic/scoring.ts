@@ -1,9 +1,11 @@
+import type { TeamKPIs } from './types';
 
 // All these values are placeholders and should be refined based on game-testing and balancing.
 const XP_CONVERSION_FACTOR = 26.67 / 100; // 100 PEB = 26.67 XP
 
 // --- Finance PEB Calculation ---
 function calculateTreasuryPeb(cash: number, income: number): { peb: number, breakdown: string } {
+    if (income === 0) return { peb: 0, breakdown: 'Tesorería: 0 PEB (Ingresos son 0)' };
     const treasuryPercentage = (cash / income) * 100;
     let peb = 0;
     // Ideal range is 5-10%
@@ -19,6 +21,7 @@ function calculateTreasuryPeb(cash: number, income: number): { peb: number, brea
 }
 
 function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb: number, breakdown: string } {
+    if (income === 0) return { peb: 0, breakdown: 'Coste Personal: 0 PEB (Ingresos son 0)' };
     const costPercentage = (personnelCost / income) * 100;
     let peb = 0;
     // Ideal is around 75%
@@ -72,32 +75,22 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 
-interface TeamState {
-    cash: number;
-    personnelCost: number;
-    income: number;
-    nma: number;
-    marketShare: number;
-    morale: number;
-    studentTeacherRatio: number;
-}
-
-export function calculateTeamPerformance(teamState: TeamState) {
+export function calculateTeamPerformance(teamKPIs: TeamKPIs) {
     // Finance
-    const treasury = calculateTreasuryPeb(teamState.cash, teamState.income);
-    const personnelCost = calculatePersonnelCostPeb(teamState.personnelCost, teamState.income);
+    const treasury = calculateTreasuryPeb(teamKPIs.cash, teamKPIs.income);
+    const personnelCost = calculatePersonnelCostPeb(teamKPIs.personnelCost, teamKPIs.income);
     const pebFinanzas = (treasury.peb + personnelCost.peb) / 2;
     const xpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
 
     // Reputation
-    const nma = calculateNmaPeb(teamState.nma);
-    const marketShare = calculateMarketSharePeb(teamState.marketShare);
+    const nma = calculateNmaPeb(teamKPIs.nma);
+    const marketShare = calculateMarketSharePeb(teamKPIs.marketShare);
     const pebReputacion = (nma.peb + marketShare.peb) / 2;
     const xpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
 
     // Morale
-    const staffMorale = calculateStaffMoralePeb(teamState.morale);
-    const studentTeacherRatio = calculateStudentTeacherRatioPeb(teamState.studentTeacherRatio);
+    const staffMorale = calculateStaffMoralePeb(teamKPIs.morale);
+    const studentTeacherRatio = calculateStudentTeacherRatioPeb(teamKPIs.studentTeacherRatio);
     const pebMoral = (staffMorale.peb + studentTeacherRatio.peb) / 2;
     const xpMoral = pebMoral * XP_CONVERSION_FACTOR;
 

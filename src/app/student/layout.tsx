@@ -95,8 +95,17 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             {studentGame?.status === 'joined' && (
                   <AlertDialog>
                       <AlertDialogTrigger asChild>
-                         <Button variant="destructive" size="icon">
-                              <LogOut className="h-4 w-4" />
+                         <Button variant="destructive" size="icon" className="w-full">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <LogOut className="h-4 w-4" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        <p>Abandonar Partida</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                           </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -146,32 +155,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
           </div>
           <div className="flex items-center gap-2">
-            {studentGame?.status === 'joined' && (
-                  <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                         <Button variant="destructive" size="sm">
-                              Abandonar Partida
-                          </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro de que quieres abandonar la partida?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Se eliminarán todos los datos de tu equipo en esta partida y tendrás que solicitar unirte de nuevo.
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                              onClick={abandonGame}
-                          >
-                              Sí, abandonar partida
-                          </AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
-              )}
             <UserNav userType="student" />
           </div>
         </header>

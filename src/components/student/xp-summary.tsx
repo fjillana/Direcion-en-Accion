@@ -41,11 +41,11 @@ function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex cursor-pointer items-center gap-4 rounded-lg bg-muted/50 p-4 transition-colors hover:bg-muted/80">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border bg-background">
+        <div className="relative cursor-pointer rounded-lg bg-muted/50 p-4 transition-colors hover:bg-muted/80 h-28 flex flex-col items-center justify-center">
+          <div className="absolute top-2 left-2 text-muted-foreground">
             {icon}
           </div>
-          <div>
+          <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className="text-xl font-bold">{xp} XP</p>
           </div>
@@ -134,9 +134,9 @@ export function XpSummary({ data }: XpSummaryProps) {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <XpCard title="Finanzas" xp={currentData.xpFinanzas} icon={<DollarSign className="h-6 w-6 text-emerald-600" />} pebData={currentData.pebFinanzas} round={selectedRound} />
-            <XpCard title="Reputación" xp={currentData.xpReputacion} icon={<Shield className="h-6 w-6 text-blue-600" />} pebData={currentData.pebReputacion} round={selectedRound} />
-            <XpCard title="Moral" xp={currentData.xpMoral} icon={<Heart className="h-6 w-6 text-red-600" />} pebData={currentData.pebMoral} round={selectedRound} />
+            <XpCard title="Finanzas" xp={currentData.xpFinanzas} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} pebData={currentData.pebFinanzas} round={selectedRound} />
+            <XpCard title="Reputación" xp={currentData.xpReputacion} icon={<Shield className="h-5 w-5 text-blue-600" />} pebData={currentData.pebReputacion} round={selectedRound} />
+            <XpCard title="Moral" xp={currentData.xpMoral} icon={<Heart className="h-5 w-5 text-red-600" />} pebData={currentData.pebMoral} round={selectedRound} />
           </div>
         </div>
         <div className="flex items-center justify-center rounded-lg bg-muted/50 p-4">

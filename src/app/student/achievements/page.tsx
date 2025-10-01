@@ -41,11 +41,13 @@ export default function AchievementsPage() {
           {achievements.map((ach) => (
             <Card key={ach.name} className={cn("flex flex-col", !ach.unlocked && "bg-muted/30")}>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                        <ach.icon className={cn("h-6 w-6", ach.unlocked ? "text-primary" : "text-muted-foreground")} />
+                <div className="flex items-center gap-2">
+                    <ach.icon className={cn("h-6 w-6", ach.unlocked ? "text-primary" : "text-muted-foreground")} />
+                    <CardTitle>
                         {ach.name}
                     </CardTitle>
+                </div>
+                 <div className="mt-2">
                     {ach.unlocked ? (
                         <Badge variant="default">Desbloqueado</Badge>
                     ) : (
@@ -56,7 +58,7 @@ export default function AchievementsPage() {
                     )}
                 </div>
               </CardHeader>
-              <CardContent className="flex-grow">
+              <CardContent className="flex-grow pt-0">
                 <CardDescription>{ach.description}</CardDescription>
               </CardContent>
             </Card>

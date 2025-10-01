@@ -29,7 +29,7 @@ const formSchema = z.object({
 export type GameConfig = z.infer<typeof formSchema>;
 
 interface GameConfigFormProps {
-  onCreateGame: (data: GameConfig & { teams: string[] }) => void;
+  onCreateGame: (data: GameConfig) => void;
 }
 
 export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
@@ -46,7 +46,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
   });
 
   function onSubmit(values: GameConfig) {
-    onCreateGame({ ...values, teams: [] });
+    onCreateGame(values);
   }
 
   return (

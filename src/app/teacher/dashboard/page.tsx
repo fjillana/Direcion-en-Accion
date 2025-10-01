@@ -49,14 +49,15 @@ export default function TeacherDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const router = useRouter();
 
-  const handleCreateGame = (data: GameConfig & { teams: string[] }) => {
+  const handleCreateGame = (data: GameConfig) => {
     const newGame: Game = {
       id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
       round: 1,
-      teams: data.teams,
+      teams: [],
       status: "En curso",
       numRounds: data.numRounds,
+      aiDifficulty: data.aiDifficulty,
     };
     addGame(newGame);
     setDialogOpen(false);

@@ -110,7 +110,7 @@ export default function StrategicPlanPage() {
     setRoundDecisions({ roundConfirmed: true });
   };
   
-  if (!isRoundZero) {
+  if (!isRoundZero || (isRoundZero && planConfirmed)) {
     return (
         <StudentGate>
             <Alert variant="default" className="bg-emerald-50 border-emerald-200">
@@ -167,21 +167,11 @@ export default function StrategicPlanPage() {
           </p>
         </div>
 
-        {planConfirmed && (
-          <Alert variant="default" className="bg-emerald-50 border-emerald-200">
-            <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
-            <AlertTitle className="text-emerald-800">Plan Estratégico Confirmado</AlertTitle>
-            <AlertDescription className="text-emerald-700">
-              Tus objetivos han sido guardados. Ahora puedes continuar con tus inversiones iniciales en la pestaña de Inversiones.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {kpiDefinitions.map(kpi => {
             const currentTarget = strategicPlan?.targets?.[kpi.key as keyof typeof strategicPlan.targets];
             return (
-                <Card key={kpi.key} className={planConfirmed ? "opacity-70" : ""}>
+                <Card key={kpi.key}>
                 <CardHeader>
                     <CardTitle>{kpi.title}</CardTitle>
                     <CardDescription>Define tu objetivo para este KPI.</CardDescription>
@@ -198,7 +188,6 @@ export default function StrategicPlanPage() {
                         min={kpi.min}
                         max={kpi.max}
                         step={kpi.step}
-                        disabled={planConfirmed}
                     />
                     </div>
                     <Alert variant="default" className="bg-accent/20 border-accent/30 text-accent-foreground">
@@ -214,7 +203,7 @@ export default function StrategicPlanPage() {
         })}
         </div>
 
-        <Card className={planConfirmed ? "opacity-70" : ""}>
+        <Card>
             <CardHeader>
                 <CardTitle>Misión / Visión</CardTitle>
                 <CardDescription>Describe en una frase la visión de tu centro o tu meta principal en el ranking.</CardDescription>
@@ -227,25 +216,22 @@ export default function StrategicPlanPage() {
                         placeholder="Ej: 'Ser el centro más prestigioso', 'Acabar en el Top 3', 'No ser el último'..."
                         value={strategicPlan?.rankingGoal || ''}
                         onChange={(e) => handleRankingChange(e.target.value)}
-                        disabled={planConfirmed}
                     />
                 </div>
             </CardContent>
         </Card>
 
-        {!planConfirmed && (
-          <Card>
-              <CardHeader>
-                  <CardTitle>Confirmar Plan y Finalizar Ronda 0</CardTitle>
-                  <CardDescription>
-                      Al confirmar, tus objetivos estratégicos y tus decisiones de inversión inicial quedarán guardados. Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
-                  </CardDescription>
-              </CardHeader>
-              <CardFooter>
-                  <Button size="lg" onClick={handleConfirmPlan}>Confirmar Plan Estratégico</Button>
-              </CardFooter>
-          </Card>
-        )}
+        <Card>
+            <CardHeader>
+                <CardTitle>Confirmar Plan y Finalizar Ronda 0</CardTitle>
+                <CardDescription>
+                    Al confirmar, tus objetivos estratégicos y tus decisiones de inversión inicial quedarán guardados. Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                <Button size="lg" onClick={handleConfirmPlan}>Confirmar Plan Estratégico</Button>
+            </CardFooter>
+        </Card>
       </div>
     </StudentGate>
   );

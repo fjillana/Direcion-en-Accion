@@ -47,63 +47,54 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
       </CardHeader>
       <fieldset disabled={disabled} className="group">
         <CardContent className="space-y-6 group-disabled:opacity-50">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border text-center">
-                      <p className="text-sm text-muted-foreground">Nº de Alumnos</p>
-                      <p className="text-2xl font-bold">810</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border text-center">
-                      <p className="text-sm text-muted-foreground">Capacidad Total</p>
-                      <p className="text-2xl font-bold">810</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border text-center">
-                      <p className="text-sm text-muted-foreground">Nº de Profesores</p>
-                      <p className="text-2xl font-bold">32</p>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
+                  <p className="text-sm text-muted-foreground">Nº de Alumnos</p>
+                  <p className="text-2xl font-bold">810</p>
               </div>
+              <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
+                  <p className="text-sm text-muted-foreground">Capacidad Total</p>
+                  <p className="text-2xl font-bold">810</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
+                  <p className="text-sm text-muted-foreground">Nº de Profesores</p>
+                  <p className="text-2xl font-bold">32</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border flex flex-col justify-center">
+                <Label htmlFor="tuition-price" className="text-sm text-muted-foreground text-center mb-1">Precio Matrícula (CC)</Label>
+                <Input 
+                    id="tuition-price" 
+                    type="number" 
+                    value={tuitionPrice}
+                    onChange={(e) => onPriceChange(Number(e.target.value))}
+                    className="text-center text-lg font-bold"
+                />
+              </div>
+          </div>
+          
+          <div className="space-y-4">
               <div>
-                <h4 className="font-medium mb-2">Precio de Matrícula Trimestral</h4>
-                <div className="flex items-center gap-4 rounded-md border p-4">
-                  <div className="flex-1 space-y-1">
-                     <Label htmlFor="tuition-price">Precio (CC)</Label>
-                     <Input 
-                        id="tuition-price" 
-                        type="number" 
-                        value={tuitionPrice}
-                        onChange={(e) => onPriceChange(Number(e.target.value))}
-                     />
-                  </div>
-                  <p className="text-xs text-muted-foreground max-w-[200px]">
-                    El precio base es 120 CC/trimestre. Subidas o bajadas bruscas afectan tu reputación y capacidad para atraer alumnos.
-                  </p>
+                <h4 className="font-medium mb-2 text-lg">Personal Docente</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {personnelActions.map((action) => (
+                        <div key={action.id} className="flex items-start space-x-3 rounded-md border p-4">
+                            <Checkbox 
+                                id={action.id} 
+                                checked={selectedActions.includes(action.id)}
+                                onCheckedChange={(checked) => handleCheckboxChange(action.id, !!checked)}
+                            />
+                            <div className="grid flex-1 gap-1.5 leading-none">
+                                <label htmlFor={action.id} className="font-medium cursor-pointer">{action.name}</label>
+                                <p className="text-sm text-muted-foreground">Efecto: {action.effect}</p>
+                            </div>
+                            <div className="font-mono text-right">{action.cost.toLocaleString('es-ES')} CC</div>
+                        </div>
+                    ))}
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-6">
               <div>
-                <h4 className="font-medium mb-2">Personal Docente</h4>
-                  {personnelActions.map((action) => (
-                    <div key={action.id} className="flex items-start space-x-3 rounded-md border p-4 mb-2">
-                          <Checkbox 
-                            id={action.id} 
-                            checked={selectedActions.includes(action.id)}
-                            onCheckedChange={(checked) => handleCheckboxChange(action.id, !!checked)}
-                          />
-                          <div className="grid flex-1 gap-1.5 leading-none">
-                            <label htmlFor={action.id} className="font-medium cursor-pointer">{action.name}</label>
-                            <p className="text-sm text-muted-foreground">Efecto: {action.effect}</p>
-                          </div>
-                          <div className="font-mono text-right">{action.cost.toLocaleString('es-ES')} CC</div>
-                    </div>
-                  ))}
-              </div>
-              <div>
-                <h4 className="font-medium mb-2">Infraestructura</h4>
-                  {capacityActions.map((action) => (
+                <h4 className="font-medium mb-2 text-lg">Infraestructura</h4>
+                {capacityActions.map((action) => (
                     <div key={action.id} className="flex items-start space-x-3 rounded-md border p-4">
                           <Checkbox 
                             id={action.id} 
@@ -116,14 +107,11 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
                           </div>
                           <div className="font-mono text-right">{action.cost.toLocaleString('es-ES')} CC</div>
                     </div>
-                  ))}
+                ))}
               </div>
-            </div>
           </div>
         </CardContent>
       </fieldset>
     </Card>
   );
 }
-
-    

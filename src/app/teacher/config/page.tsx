@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { useGame } from "@/hooks/use-game-context";
 import { useGames } from "@/hooks/use-games";
 import { useRouter } from "next/navigation";
-import { PlusCircle, User, Bot, UserCheck } from "lucide-react";
+import { PlusCircle, User, Bot, UserCheck, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -27,6 +27,17 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const allPendingTeams = [
@@ -95,6 +106,15 @@ export default function ConfigPage() {
         checked ? [...prev, teamId] : prev.filter(id => id !== teamId)
     );
   }
+  
+  const handleRemoveTeam = (teamNameToRemove: string) => {
+    setAcceptedTeams(prev => prev.filter(name => name !== teamNameToRemove));
+    // Optional: add team back to pending list
+    const teamObject = allPendingTeams.find(t => t.name === teamNameToRemove);
+    if (teamObject && !pendingTeams.some(pt => pt.id === teamObject.id)) {
+        setPendingTeams(prev => [...prev, teamObject]);
+    }
+  };
 
 
   if (games.length === 0) {
@@ -164,9 +184,30 @@ export default function ConfigPage() {
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {acceptedTeams.map((teamName, index) => (
-                            <div key={`human-${index}`} className="p-4 border rounded-lg flex flex-col items-center gap-2">
+                            <div key={`human-${index}`} className="relative group p-4 border rounded-lg flex flex-col items-center gap-2">
                                 <User className="w-8 h-8"/>
                                 <span className="font-semibold">{teamName}</span>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Seguro que quieres eliminar a {teamName}?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta acción no se puede deshacer. El equipo será eliminado de la partida y tendrá que solicitar unirse de nuevo.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemoveTeam(teamName)}>
+                                                Sí, eliminar equipo
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         ))}
                         {acceptedTeams.map((_, index) => (

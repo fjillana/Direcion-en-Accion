@@ -32,8 +32,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStudentGame } from "@/hooks/useStudentGame";
-import { StudentGate } from "@/components/student/student-gate";
-
 
 const teamBadges = [
   { name: "El Financiero", icon: DollarSign, description: "Maestría en la gestión de las finanzas." },
@@ -111,9 +109,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <UserNav userType="student" />
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-8">
-            <StudentGate>
-              {children}
-            </StudentGate>
+            {children}
         </main>
       </SidebarInset>
     </SidebarProvider>

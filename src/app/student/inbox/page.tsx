@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
+import { StudentGate } from "@/components/student/student-gate";
 
 const messages = [
   {
@@ -62,61 +63,62 @@ const getIcon = (type: string) => {
 
 export default function InboxPage() {
   return (
-    <div className="space-y-6">
-       <div>
-        <h1 className="text-3xl font-bold font-headline">Bandeja de Entrada</h1>
-        <p className="text-muted-foreground">
-          Comunicaciones del profesor, otros equipos y notificaciones del sistema.
-        </p>
+    <StudentGate>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">Bandeja de Entrada</h1>
+          <p className="text-muted-foreground">
+            Comunicaciones del profesor, otros equipos y notificaciones del sistema.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Mensajes Recientes</CardTitle>
+            <CardDescription>
+              Aquí encontrarás todas las notificaciones y mensajes importantes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <ScrollArea className="h-[60vh]">
+                  <div className="space-y-4">
+                  {messages.map((msg, index) => (
+                      <div
+                      key={index}
+                      className={cn(
+                          "flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50",
+                          !msg.read && "bg-muted/40"
+                      )}
+                      >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                          {msg.type === 'message' ? (
+                              <Avatar className="h-10 w-10 border">
+                                  <AvatarImage src={msg.fromAvatar} alt={msg.from} />
+                                  <AvatarFallback>{msg.from.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                          ) : getIcon(msg.type)}
+                      </div>
+                      <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                          <p className="font-semibold">
+                              {msg.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{msg.timestamp}</p>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                              <span className="font-medium text-foreground/80">{msg.from}: </span>
+                              {msg.content}
+                          </p>
+                      </div>
+                      {!msg.read && (
+                          <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5" />
+                      )}
+                      </div>
+                  ))}
+                  </div>
+              </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Mensajes Recientes</CardTitle>
-          <CardDescription>
-            Aquí encontrarás todas las notificaciones y mensajes importantes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <ScrollArea className="h-[60vh]">
-                <div className="space-y-4">
-                {messages.map((msg, index) => (
-                    <div
-                    key={index}
-                    className={cn(
-                        "flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50",
-                        !msg.read && "bg-muted/40"
-                    )}
-                    >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                        {msg.type === 'message' ? (
-                            <Avatar className="h-10 w-10 border">
-                                <AvatarImage src={msg.fromAvatar} alt={msg.from} />
-                                <AvatarFallback>{msg.from.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                        ) : getIcon(msg.type)}
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                        <p className="font-semibold">
-                            {msg.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{msg.timestamp}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            <span className="font-medium text-foreground/80">{msg.from}: </span>
-                            {msg.content}
-                        </p>
-                    </div>
-                    {!msg.read && (
-                        <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5" />
-                    )}
-                    </div>
-                ))}
-                </div>
-            </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
+    </StudentGate>
   );
 }
-

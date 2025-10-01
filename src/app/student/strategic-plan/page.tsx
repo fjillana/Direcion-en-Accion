@@ -14,6 +14,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
+import { StudentGate } from '@/components/student/student-gate';
 
 const kpis = [
   {
@@ -100,73 +101,75 @@ export default function StrategicPlanPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">
-          Plan Estratégico (Ronda 0)
-        </h1>
-        <p className="text-muted-foreground">
-          Define tus objetivos para la simulación. Una vez confirmados, no podrás cambiarlos.
-        </p>
-      </div>
+    <StudentGate>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">
+            Plan Estratégico (Ronda 0)
+          </h1>
+          <p className="text-muted-foreground">
+            Define tus objetivos para la simulación. Una vez confirmados, no podrás cambiarlos.
+          </p>
+        </div>
 
-       {planConfirmed && (
-        <Alert variant="default" className="bg-emerald-50 border-emerald-200">
-           <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
-          <AlertTitle className="text-emerald-800">Plan Estratégico Confirmado</AlertTitle>
-          <AlertDescription className="text-emerald-700">
-            Tus objetivos han sido guardados. Ahora puedes comparar tu progreso en cada ronda.
-          </AlertDescription>
-        </Alert>
-      )}
+        {planConfirmed && (
+          <Alert variant="default" className="bg-emerald-50 border-emerald-200">
+            <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
+            <AlertTitle className="text-emerald-800">Plan Estratégico Confirmado</AlertTitle>
+            <AlertDescription className="text-emerald-700">
+              Tus objetivos han sido guardados. Ahora puedes comparar tu progreso en cada ronda.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {kpis.map(kpi => (
-          <Card key={kpi.key} className={planConfirmed ? "opacity-70" : ""}>
-            <CardHeader>
-              <CardTitle>{kpi.title}</CardTitle>
-              <CardDescription>Define tu objetivo para este KPI.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Actual: <span className="font-bold text-foreground">{kpi.format(kpi.currentValue)}</span></span>
-                  <span className="font-bold">Objetivo: <span className="text-primary">{kpi.format(targets[kpi.key as keyof typeof targets])}</span></span>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {kpis.map(kpi => (
+            <Card key={kpi.key} className={planConfirmed ? "opacity-70" : ""}>
+              <CardHeader>
+                <CardTitle>{kpi.title}</CardTitle>
+                <CardDescription>Define tu objetivo para este KPI.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Actual: <span className="font-bold text-foreground">{kpi.format(kpi.currentValue)}</span></span>
+                    <span className="font-bold">Objetivo: <span className="text-primary">{kpi.format(targets[kpi.key as keyof typeof targets])}</span></span>
+                  </div>
+                  <Slider
+                    value={[targets[kpi.key as keyof typeof targets]]}
+                    onValueChange={(value) => handleTargetChange(kpi.key, value[0])}
+                    min={kpi.min}
+                    max={kpi.max}
+                    step={kpi.step}
+                    disabled={planConfirmed}
+                  />
                 </div>
-                <Slider
-                  value={[targets[kpi.key as keyof typeof targets]]}
-                  onValueChange={(value) => handleTargetChange(kpi.key, value[0])}
-                  min={kpi.min}
-                  max={kpi.max}
-                  step={kpi.step}
-                  disabled={planConfirmed}
-                />
-              </div>
-              <Alert variant="default" className="bg-accent/20 border-accent/30 text-accent-foreground">
-                <Lightbulb className="h-4 w-4 !text-amber-500" />
-                <AlertTitle className="text-amber-700">Consejo IA</AlertTitle>
-                <AlertDescription className="text-amber-900/80">
-                  {kpi.advice}
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <Alert variant="default" className="bg-accent/20 border-accent/30 text-accent-foreground">
+                  <Lightbulb className="h-4 w-4 !text-amber-500" />
+                  <AlertTitle className="text-amber-700">Consejo IA</AlertTitle>
+                  <AlertDescription className="text-amber-900/80">
+                    {kpi.advice}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      {!planConfirmed && (
-         <Card>
-            <CardHeader>
-                <CardTitle>Confirmar Plan</CardTitle>
-                <CardDescription>
-                    ¿Estás seguro de que quieres guardar estos objetivos? Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
-                </CardDescription>
-            </CardHeader>
-            <CardFooter>
-                <Button size="lg" onClick={handleConfirmPlan}>Confirmar Plan Estratégico</Button>
-            </CardFooter>
-        </Card>
-      )}
-    </div>
+        {!planConfirmed && (
+          <Card>
+              <CardHeader>
+                  <CardTitle>Confirmar Plan</CardTitle>
+                  <CardDescription>
+                      ¿Estás seguro de que quieres guardar estos objetivos? Esta acción es irreversible y definirá tu estrategia para el resto de la partida.
+                  </CardDescription>
+              </CardHeader>
+              <CardFooter>
+                  <Button size="lg" onClick={handleConfirmPlan}>Confirmar Plan Estratégico</Button>
+              </CardFooter>
+          </Card>
+        )}
+      </div>
+    </StudentGate>
   );
 }

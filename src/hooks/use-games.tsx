@@ -25,35 +25,7 @@ interface GamesContextType {
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
 
-const initialGames: Game[] = [
-  {
-    id: "1",
-    name: "Simulación de Negocios 101",
-    round: 3,
-    teams: ['Equipo Alfa', 'Equipo Beta', 'Equipo Gamma', 'Equipo Delta'],
-    status: "En curso",
-    numRounds: 8,
-    aiDifficulty: 3,
-  },
-  {
-    id: "2",
-    name: "Marketing Avanzado",
-    round: 5,
-    teams: ['Equipo A', 'Equipo B', 'Equipo C'],
-    status: "En curso",
-    numRounds: 10,
-    aiDifficulty: 4,
-  },
-  {
-    id: "3",
-    name: "Gestión Financiera",
-    round: 8,
-    teams: ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Team 6'],
-    status: "Finalizado",
-    numRounds: 8,
-    aiDifficulty: 5,
-  },
-];
+const initialGames: Game[] = [];
 
 const GAMES_STORAGE_KEY = 'games';
 const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
@@ -81,6 +53,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
         } catch (error) {
             console.error("Failed to save games to localStorage:", error);
+        }
+    } else {
+        // If games are empty (e.g. after clearing them), remove from local storage
+        try {
+             window.localStorage.removeItem(GAMES_STORAGE_KEY);
+        } catch (error) {
+            console.error("Failed to remove games from localStorage:", error);
         }
     }
   }, [games]);

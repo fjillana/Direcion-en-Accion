@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function JoinGamePage() {
   const { games } = useGames();
@@ -18,6 +19,7 @@ export default function JoinGamePage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleJoinRequest = () => {
     if (!selectedGameId) {
@@ -31,6 +33,7 @@ export default function JoinGamePage() {
     const selectedGame = games.find(g => g.id === selectedGameId);
     if (selectedGame) {
         requestToJoinGame(selectedGameId, selectedGame.name, teamName);
+        router.push('/student/dashboard');
     }
   };
 

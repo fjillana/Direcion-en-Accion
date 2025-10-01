@@ -275,7 +275,7 @@ const fullCrises: Crisis[] = [
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games, setActiveGameId } = useGames();
+  const { games, setActiveGameId, updateGame } = useGames();
   const router = useRouter();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -320,7 +320,14 @@ export default function GameDetailsPage() {
   const handleProcessRound = () => {
     setIsProcessing(true);
     setTimeout(() => {
-        setIsProcessing(false);
+      if (game) {
+        if (game.round < game.numRounds) {
+          updateGame(game.id, { round: game.round + 1 });
+        } else if (game.round === game.numRounds) {
+          updateGame(game.id, { status: "Finalizado" });
+        }
+      }
+      setIsProcessing(false);
     }, 3000);
   };
   
@@ -386,8 +393,8 @@ export default function GameDetailsPage() {
         <Tabs defaultValue="monitoring" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="monitoring">Monitorización</TabsTrigger>
-            <TabsTrigger value="config">Configuración</TabsTrigger>
             <TabsTrigger value="reports">Reportes IA</TabsTrigger>
+            <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
           <TabsContent value="monitoring">
             <Card>
@@ -462,6 +469,9 @@ export default function GameDetailsPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="reports">
+            <AIReportForm teamsData={teamsData} />
+          </TabsContent>
           <TabsContent value="config">
             <RoundConfig
               allTeams={game.teams}
@@ -469,9 +479,6 @@ export default function GameDetailsPage() {
               fullCrises={fullCrises}
               numRounds={game.numRounds}
             />
-          </TabsContent>
-          <TabsContent value="reports">
-            <AIReportForm teamsData={teamsData} />
           </TabsContent>
         </Tabs>
       </div>

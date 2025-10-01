@@ -152,7 +152,7 @@ export default function TeacherLeaderboardPage() {
         <CardHeader>
           <CardTitle>Leaderboard General</CardTitle>
           <CardDescription>
-            Clasificación global y cumplimiento de objetivos estratégicos. Haz clic para ver el detalle.
+            Clasificación global y KPIs principales. Haz clic para ver el detalle de objetivos estratégicos.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,11 +160,13 @@ export default function TeacherLeaderboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Equipo</TableHead>
-                <TableHead className="w-[80px]">Ranking en el mercado</TableHead>
-                <TableHead className="text-right">Alumnos</TableHead>
-                <TableHead className="text-right">Matrícula</TableHead>
-                <TableHead className="text-right">XP Total</TableHead>
-                <TableHead className="text-right">Nota Media</TableHead>
+                <TableHead className="w-[80px]">Ranking</TableHead>
+                <TableHead className="text-right">Tesorería</TableHead>
+                <TableHead className="text-right">Coste Personal</TableHead>
+                <TableHead className="text-right">NMA</TableHead>
+                <TableHead className="text-right">Cuota Mercado</TableHead>
+                <TableHead className="text-right">Moral</TableHead>
+                <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,12 +174,12 @@ export default function TeacherLeaderboardPage() {
                 <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="font-bold text-lg">{index + 1}</TableCell>
-                  <TableCell className="text-right font-mono">{team.kpis.currentStudents}</TableCell>
-                  <TableCell className="text-right font-mono">{team.kpis.tuitionPrice} CC</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {new Intl.NumberFormat('es-ES').format(team.xp)}
-                  </TableCell>
-                  <TableCell className="text-right">{team.kpis.nma.toFixed(1)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

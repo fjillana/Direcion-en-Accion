@@ -3,13 +3,15 @@
 
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Shield, Heart } from "lucide-react";
+import { Button } from "../ui/button";
 
 type PebData = {
   total: number;
   breakdown: string[];
+  finalCalculation: string;
 };
 
 export type XpData = {
@@ -35,6 +37,7 @@ interface XpCardProps {
 }
 
 function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
+  const calculatedXp = (pebData.total * (80 / 3) / 100).toFixed(2);
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -52,15 +55,35 @@ function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
         <DialogHeader>
           <DialogTitle>Desglose de PEB: {title} (Ronda {round})</DialogTitle>
           <DialogDescription>
-            Puntos de Experiencia Base (PEB) obtenidos: <span className="font-bold">{pebData.total}</span>
+            Análisis detallado de cómo se ha calculado tu puntuación en esta área.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2 pt-4">
-            <h4 className="font-semibold">Cálculo:</h4>
-            <ul className="list-disc space-y-1 rounded-md border bg-muted/50 p-4 pl-8 text-sm text-muted-foreground">
-                {pebData.breakdown.map((line, index) => <li key={index}>{line}</li>)}
-            </ul>
+        <div className="space-y-4 pt-4 text-sm">
+            <div>
+                <h4 className="font-semibold mb-1">1. Desglose de Puntuación Base (PEB)</h4>
+                <ul className="list-disc space-y-1 rounded-md border bg-muted/50 p-4 pl-8 text-muted-foreground">
+                    {pebData.breakdown.map((line, index) => <li key={index}><span className="text-foreground">{line}</span></li>)}
+                </ul>
+            </div>
+             <div>
+                <h4 className="font-semibold mb-1">2. Cálculo del PEB Total del Área</h4>
+                 <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
+                    {pebData.finalCalculation}
+                 </div>
+            </div>
+            <div>
+                <h4 className="font-semibold mb-1">3. Conversión de PEB a Puntos de Experiencia (XP)</h4>
+                 <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
+                    XP = {pebData.total} PEB * (26.67 / 100) = <span className="font-bold">{calculatedXp} XP</span>
+                 </div>
+                 <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100.</p>
+            </div>
         </div>
+        <DialogFooter>
+            <DialogClose asChild>
+                <Button variant="outline">Cerrar</Button>
+            </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -87,14 +110,16 @@ export function XpSummary({ data }: XpSummaryProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex-1">
                 <CardTitle>Resumen de Puntuación</CardTitle>
-                <CardDescription>Puntos de Experiencia (XP) obtenidos.</CardDescription>
+                <CardDescription>
+                    XP de la Ronda {selectedRound}: <span className="font-bold text-primary">{xpRonda} XP</span>
+                </CardDescription>
             </div>
-            <div className="mt-2 sm:mt-0">
+            <div className="mt-4 sm:mt-0">
                 <Select value={String(selectedRound)} onValueChange={(val) => setSelectedRound(Number(val))}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Seleccionar Ronda" />
                     </SelectTrigger>
                     <SelectContent>
@@ -108,7 +133,6 @@ export function XpSummary({ data }: XpSummaryProps) {
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">XP de la Ronda {selectedRound}: <span className="text-primary">{xpRonda} XP</span></h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <XpCard title="Finanzas" xp={currentData.xpFinanzas} icon={<DollarSign className="h-6 w-6 text-emerald-600" />} pebData={currentData.pebFinanzas} round={selectedRound} />
             <XpCard title="Reputación" xp={currentData.xpReputacion} icon={<Shield className="h-6 w-6 text-blue-600" />} pebData={currentData.pebReputacion} round={selectedRound} />

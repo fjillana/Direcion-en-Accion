@@ -77,15 +77,27 @@ const xpData: XpData[] = [
     xpMoral: 14,
     pebFinanzas: {
       total: 95,
-      breakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"],
+      breakdown: [
+        "Tesorería al 7% sobre ingresos -> 100 PEB",
+        "Coste Personal sobre ingresos al 76% -> 90 PEB"
+      ],
+      finalCalculation: "PEB Finanzas = (100 + 90) / 2 = 95"
     },
     pebReputacion: {
       total: 88,
-      breakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"],
+      breakdown: [
+        "Nota Media Alumnado (NMA) de 8.2 -> 82 PEB",
+        "Cuota de Mercado del 12% -> 94 PEB"
+      ],
+      finalCalculation: "PEB Reputación = (82 + 94) / 2 = 88"
     },
     pebMoral: {
       total: 71,
-      breakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"],
+      breakdown: [
+        "Moral del personal al 71% -> 71 PEB",
+        "Ratio Alumno/Profesor de 25.1 -> 100 PEB"
+      ],
+       finalCalculation: "PEB Moral = (71 + 100) / 2 = 85.5"
     },
   },
   {
@@ -96,14 +108,17 @@ const xpData: XpData[] = [
     pebFinanzas: {
       total: 105,
       breakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"],
+      finalCalculation: "PEB Finanzas = (110 + 100) / 2 = 105"
     },
     pebReputacion: {
       total: 110,
       breakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"],
+      finalCalculation: "PEB Reputación = (115 + 105) / 2 = 110"
     },
     pebMoral: {
       total: 98,
       breakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"],
+      finalCalculation: "PEB Moral = (78 + 118) / 2 = 98"
     },
   },
    {
@@ -114,14 +129,17 @@ const xpData: XpData[] = [
     pebFinanzas: {
       total: 110,
       breakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"],
+      finalCalculation: "PEB Finanzas = (120 + 100) / 2 = 110"
     },
     pebReputacion: {
       total: 115,
       breakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"],
+      finalCalculation: "PEB Reputación = (120 + 110) / 2 = 115"
     },
     pebMoral: {
       total: 100,
       breakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"],
+      finalCalculation: "PEB Moral = (85 + 115) / 2 = 100"
     },
   },
 ];

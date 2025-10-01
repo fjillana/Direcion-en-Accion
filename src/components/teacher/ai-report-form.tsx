@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Wand2, Edit, Check, Loader2 } from "lucide-react";
+import { Wand2, Edit, Check, Loader2, Users, School, UserX } from "lucide-react";
 import { useState } from "react";
 
 type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta";
@@ -42,6 +42,11 @@ const initialReportData = {
     marketShare: "14.2%",
     morale: "82%",
     studentTeacherRatio: "24.5",
+  },
+  marketAttractiveness: {
+    newStudents: 25,
+    centerCapacity: 800,
+    lostStudents: 0,
   },
   qualitativeAnalysis:
     "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 76.5%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
@@ -104,7 +109,7 @@ export function AIReportForm({ teams }: AIReportFormProps) {
       <CardContent className="space-y-6">
         {hasReport ? (
           <>
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               {/* Financial Summary */}
               <div>
                 <h3 className="font-semibold mb-2">Resumen Financiero (Ronda {initialReportData.financialSummary.round})</h3>
@@ -127,6 +132,24 @@ export function AIReportForm({ teams }: AIReportFormProps) {
                     <div className="flex justify-between"><span>Cuota de Mercado:</span><span className="font-mono">{initialReportData.kpiSummary.marketShare}</span></div>
                     <div className="flex justify-between"><span>Moral Personal:</span><span className="font-mono">{initialReportData.kpiSummary.morale}</span></div>
                     <div className="flex justify-between"><span>Ratio Alumnos/Profesor:</span><span className="font-mono">{initialReportData.kpiSummary.studentTeacherRatio}</span></div>
+                 </div>
+              </div>
+              {/* Market Attractiveness */}
+               <div>
+                 <h3 className="font-semibold mb-2">Captación y Capacidad (MAM)</h3>
+                 <div className="rounded-lg border p-4 space-y-4 text-sm">
+                    <div className="flex items-center gap-4">
+                        <Users className="h-6 w-6 text-blue-500" />
+                        <div className="flex flex-1 justify-between"><span>Nuevos Alumnos Captados:</span><span className="font-mono font-bold">{initialReportData.marketAttractiveness.newStudents}</span></div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <School className="h-6 w-6 text-gray-500" />
+                        <div className="flex flex-1 justify-between"><span>Capacidad del Centro:</span><span className="font-mono">{initialReportData.marketAttractiveness.centerCapacity}</span></div>
+                    </div>
+                     <div className="flex items-center gap-4">
+                        <UserX className="h-6 w-6 text-red-500" />
+                        <div className="flex flex-1 justify-between"><span>Alumnos Perdidos:</span><span className="font-mono text-red-500 font-bold">{initialReportData.marketAttractiveness.lostStudents}</span></div>
+                    </div>
                  </div>
               </div>
             </div>

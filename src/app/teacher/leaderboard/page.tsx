@@ -43,6 +43,8 @@ type TeamKPIs = {
   marketShare: number;
   morale: number;
   studentTeacherRatio: number;
+  currentStudents: number;
+  tuitionPrice: number;
 };
 
 type StrategicGoal = {
@@ -56,7 +58,7 @@ type Team = {
   name: string;
   xp: number;
   kpis: TeamKPIs;
-  strategicGoals: { [key in keyof TeamKPIs]?: StrategicGoal };
+  strategicGoals: { [key in keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>]?: StrategicGoal };
 };
 
 const teamsData: Team[] = [
@@ -64,7 +66,7 @@ const teamsData: Team[] = [
     rank: 1,
     name: "Equipo Delta",
     xp: 1800,
-    kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5 },
+    kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5, currentStudents: 825, tuitionPrice: 115 },
     strategicGoals: { 
       cash: { target: 40000, operator: "min" }, 
       personnelCost: { target: 70, operator: "max" },
@@ -78,7 +80,7 @@ const teamsData: Team[] = [
     rank: 2,
     name: "Equipo Beta",
     xp: 1500,
-    kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0 },
+    kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0, currentStudents: 810, tuitionPrice: 118 },
     strategicGoals: { 
       cash: { target: 25000, operator: "min" },
       personnelCost: { target: 75, operator: "max" },
@@ -92,7 +94,7 @@ const teamsData: Team[] = [
     rank: 3,
     name: "Equipo Alfa",
     xp: 1200,
-    kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1 },
+    kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1, currentStudents: 802, tuitionPrice: 125 },
     strategicGoals: { 
       cash: { target: 16000, operator: "range", range_max: 32000 }, 
       personnelCost: { target: 78, operator: "max" },
@@ -106,7 +108,7 @@ const teamsData: Team[] = [
     rank: 4,
     name: "Equipo Gamma",
     xp: 950,
-    kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8 },
+    kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8, currentStudents: 795, tuitionPrice: 130 },
     strategicGoals: { 
       cash: { target: 10000, operator: "min" },
       personnelCost: { target: 80, operator: "max" },
@@ -125,6 +127,8 @@ const kpiConfig = {
   marketShare: { label: "Cuota de mercado", unit: "%", format: (v: number) => `${v}%` },
   morale: { label: "Moral del personal", unit: "%", format: (v: number) => `${v}%` },
   studentTeacherRatio: { label: "Ratio Alumnos/Profesor", unit: "", format: (v: number) => v.toFixed(1) },
+  currentStudents: { label: "Alumnos Actuales", unit: "", format: (v: number) => v.toString() },
+  tuitionPrice: { label: "Precio Matrícula", unit: "CC", format: (v: number) => `${v} CC` },
 };
 
 function getProgress(value: number, goal: StrategicGoal): number {
@@ -187,7 +191,8 @@ export default function TeacherLeaderboardPage() {
                     <TableHead className="w-[80px]">Ranking</TableHead>
                     <TableHead>Equipo</TableHead>
                     <TableHead className="text-right">XP Total</TableHead>
-                    <TableHead className="text-right">Moral</TableHead>
+                    <TableHead className="text-right">Alumnos</TableHead>
+                    <TableHead className="text-right">Matrícula</TableHead>
                     <TableHead className="text-right">Nota Media</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -199,7 +204,8 @@ export default function TeacherLeaderboardPage() {
                       <TableCell className="text-right font-mono">
                         {new Intl.NumberFormat('es-ES').format(team.xp)}
                       </TableCell>
-                      <TableCell className="text-right">{team.kpis.morale}%</TableCell>
+                       <TableCell className="text-right font-mono">{team.kpis.currentStudents}</TableCell>
+                      <TableCell className="text-right font-mono">{team.kpis.tuitionPrice} CC</TableCell>
                       <TableCell className="text-right">{team.kpis.nma.toFixed(1)}</TableCell>
                     </TableRow>
                   ))}
@@ -248,7 +254,7 @@ export default function TeacherLeaderboardPage() {
                   {teamsForStrategicView.flatMap(team =>
                      Object.entries(team.strategicGoals).map(([key, goal]) => {
                        if (!goal) return null;
-                       const kpiKey = key as keyof TeamKPIs;
+                       const kpiKey = key as keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>;
                        const kpiInfo = kpiConfig[kpiKey];
                        const currentValue = team.kpis[kpiKey];
                        const progress = getProgress(currentValue, goal);
@@ -314,5 +320,3 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
-
-    

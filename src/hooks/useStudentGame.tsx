@@ -22,6 +22,18 @@ export interface RoundDecisions {
   roundConfirmed: boolean;
 }
 
+export type StrategicPlan = {
+  confirmed: boolean;
+  rankingGoal: string;
+  targets: {
+    [key: string]: {
+      target: number;
+      operator: 'min' | 'max' | 'range';
+      range_max?: number;
+    }
+  }
+}
+
 export interface StudentGameState {
   userId: string;
   status: StudentGameStatus;
@@ -33,12 +45,9 @@ export interface StudentGameState {
   roundSettings?: RoundSettings;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
-  kpis?: TeamPerformanceData['finances'] & TeamPerformanceData['reputation'] & TeamPerformanceData['morale'] & {
-    cash: number;
-    numStudents: number;
-    numTeachers: number;
-    marketShare: number;
-  }
+  kpis?: TeamPerformanceData['kpis'];
+  strategicPlan?: StrategicPlan;
+  planConfirmed: boolean;
 }
 
 interface StudentGameContextType {
@@ -51,6 +60,7 @@ interface StudentGameContextType {
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   getDecisionsByRound: (round: number) => RoundDecisions | null;
+  setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
 }
 
 const StudentGameContext = createContext<StudentGameContextType | undefined>(undefined);
@@ -72,6 +82,16 @@ const initialStudentState: StudentGameState = {
     tuitionPrice: 120,
     crisisResponse: null,
     roundConfirmed: false,
+  },
+  planConfirmed: false,
+  strategicPlan: {
+    confirmed: false,
+    rankingGoal: "",
+    targets: {
+        nma: { target: 8.5, operator: "min" },
+        marketShare: { target: 18, operator: "min" },
+        studentTeacherRatio: { target: 23, operator: "max" },
+    }
   }
 };
 
@@ -97,17 +117,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       if (typeof window === 'undefined') return null;
       // This is a simplification. In a real app, you'd query a backend.
       // Here, we can only find the current user's state.
-      const item = localStorage.getItem(getStorageKey());
-      if (item) {
-        try {
-            const state: StudentGameState = JSON.parse(item);
-            if (state.gameId === gameId) {
-                return state;
+      // A real implementation would loop through all localStorage keys with the prefix.
+      const allKeys = Object.keys(localStorage);
+      const studentKeys = allKeys.filter(k => k.startsWith(STUDENT_GAME_STORAGE_KEY_PREFIX));
+      
+      for(const key of studentKeys){
+          const item = localStorage.getItem(key);
+          if(item){
+            try {
+              const state: StudentGameState = JSON.parse(item);
+              if (state.gameId === gameId) {
+                  return state;
+              }
+            } catch (e) {
+                console.error("Failed to parse student game state for key", key, e);
             }
-        } catch (e) {
-            console.error("Failed to parse student game state", e);
-            return null;
-        }
+          }
       }
       return null;
   }, []);
@@ -129,6 +154,16 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     return item ? JSON.parse(item) : null;
   }, [studentGame]);
 
+   const setStrategicPlan = (plan: Partial<StrategicPlan>) => {
+    setStudentGame(prev => {
+        if (!prev) return null;
+        const newPlan = { ...(prev.strategicPlan || initialStudentState.strategicPlan), ...plan };
+        const newState = { ...prev, strategicPlan: newPlan, planConfirmed: newPlan.confirmed };
+        localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+        return newState;
+    });
+   };
+
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(getStorageKey());
@@ -136,6 +171,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
       if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
           storedState.decisions = { ...initialStudentState.decisions };
+      }
+      if(!storedState.strategicPlan){
+          storedState.strategicPlan = initialStudentState.strategicPlan;
+          storedState.planConfirmed = false;
       }
       
       if (storedState.gameId && storedState.teamName) {
@@ -162,26 +201,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
                   const lastRoundPerformance = performanceHistory[performanceHistory.length - 1];
                   if(lastRoundPerformance){
-                     currentKpis = {
-                       ...lastRoundPerformance.finances,
-                       ...lastRoundPerformance.reputation,
-                       ...lastRoundPerformance.morale,
-                       cash: lastRoundPerformance.kpis.cash,
-                       numStudents: lastRoundPerformance.kpis.numStudents,
-                       numTeachers: lastRoundPerformance.kpis.numTeachers,
-                       marketShare: lastRoundPerformance.kpis.marketShare
-                     };
+                     currentKpis = lastRoundPerformance.kpis;
                   }
               }
 
               if (!currentKpis) {
                  const initialTeamData = gameData.performance?.[0]?.find(p => p.name === storedState.teamName);
                  currentKpis = {
-                    peb: 100, xp: 20, pebBreakdown: [],
                     cash: gameData.initialFunds,
-                    numStudents: 800, // Starting value
-                    numTeachers: 32, // Starting value
-                    marketShare: 100 / (gameData.teams * 2)
+                    personnelCost: 240000,
+                    income: 320000,
+                    nma: 7.5,
+                    marketShare: 100 / (gameData.teams * 2),
+                    morale: 80,
+                    studentTeacherRatio: 25.0,
+                    numStudents: 800, 
+                    numTeachers: 32,
                  }
               }
 
@@ -258,6 +293,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     getDecisionsByRound,
+    setStrategicPlan,
   }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound]);
 
   return (

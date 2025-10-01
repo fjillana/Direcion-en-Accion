@@ -32,14 +32,8 @@ import { cn } from "@/lib/utils";
 import { useGame } from "@/hooks/use-game-context";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { TeamPerformanceData } from "@/hooks/use-games";
-
-
-type StrategicGoal = {
-  target: number;
-  operator: "min" | "max" | "range";
-  range_max?: number;
-};
+import type { TeamPerformanceData, Game } from "@/hooks/use-games";
+import { useStudentGame } from "@/hooks/useStudentGame";
 
 // Simplified team structure for the leaderboard view
 type LeaderboardTeam = {
@@ -47,15 +41,8 @@ type LeaderboardTeam = {
     name: string;
     type: 'H' | 'IA';
     totalXp: number;
-    kpis: {
-        nma: number;
-        marketShare: number;
-        studentTeacherRatio: number;
-        tuitionPrice: number;
-        numStudents: number;
-    };
-    // Strategic goals are optional and mostly for human teams.
-    strategicGoals?: { [key: string]: StrategicGoal };
+    kpis: TeamPerformanceData['kpis'];
+    strategicPlan?: Game['strategicPlan'];
 };
 
 const kpiConfig = {
@@ -67,7 +54,7 @@ const kpiConfig = {
 };
 
 
-function getProgress(value: number, goal: StrategicGoal): number {
+function getProgress(value: number, goal: { target: number; operator: string; }): number {
   if (goal.operator === 'min') {
     return Math.min((value / goal.target) * 100, 100);
   }
@@ -77,17 +64,14 @@ function getProgress(value: number, goal: StrategicGoal): number {
     }
     return 100;
   }
-  if (goal.operator === 'range' && goal.range_max) {
-      if(value < goal.target) return 0;
-      if(value > goal.range_max) return 0;
-      return 100;
-  }
   return 0;
 }
 
 
 export default function TeacherLeaderboardPage() {
   const { activeGame, setActiveGameId } = useGame();
+  // We need this hook to find the student state associated with a human team
+  const { getStudentGameByGameId } = useStudentGame();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -103,31 +87,33 @@ export default function TeacherLeaderboardPage() {
   const teams = useMemo(() => {
       if (!activeGame || !activeGame.performance) return [];
       
-      // Use performance data from the last completed round
       const lastRound = activeGame.round > 1 ? activeGame.round - 1 : 1;
       const performanceData = activeGame.performance[lastRound];
 
       if (!performanceData) return [];
+      
+      // Get the student's state to retrieve their strategic plan
+      const studentState = getStudentGameByGameId(activeGame.id);
 
-      return performanceData.map(p => ({
-          name: p.name,
-          type: p.type,
-          totalXp: p.totalXp,
-          kpis: {
-            // This is a mock until decisions and kpis are fully connected
-            nma: 8.5,
-            marketShare: 12,
-            studentTeacherRatio: 25,
-            tuitionPrice: 120,
-            numStudents: 810,
-          },
-      }))
+      return performanceData.map(p => {
+          let strategicPlan;
+          if (p.type === 'H' && p.name === studentState?.teamName) {
+              strategicPlan = studentState.strategicPlan;
+          }
+          return {
+              name: p.name,
+              type: p.type,
+              totalXp: p.totalXp,
+              kpis: p.kpis,
+              strategicPlan: strategicPlan,
+          }
+      })
       .sort((a, b) => b.totalXp - a.totalXp)
       .map((team, index) => ({
           ...team,
           rank: index + 1
       }));
-  }, [activeGame]);
+  }, [activeGame, getStudentGameByGameId]);
 
 
   if (!activeGame) {
@@ -144,13 +130,12 @@ export default function TeacherLeaderboardPage() {
     );
   }
 
-  const getKpiColor = (value: number, goal?: StrategicGoal) => {
+  const getKpiColor = (value: number, goal?: { target: number; operator: string; }) => {
     if (!goal) return "";
     const progress = getProgress(value, goal);
     if (progress === 100) return "text-emerald-600";
     if (goal.operator === 'min' && value < goal.target) return "text-red-600";
     if (goal.operator === 'max' && value > goal.target) return "text-red-600";
-    if (goal.operator === 'range' && (value < goal.target || value > goal.range_max!)) return "text-red-600";
     return "";
   };
 
@@ -183,9 +168,9 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="font-bold text-lg">{team.rank}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicGoals?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicGoals?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicGoals?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.kpis.tuitionPrice)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
                 </TableRow>
@@ -216,7 +201,7 @@ export default function TeacherLeaderboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {selectedTeam.type === 'H' && selectedTeam.strategicGoals ? Object.entries(selectedTeam.strategicGoals).map(([key, goal]) => {
+                     {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets ? Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
                        if (!goal) return null;
                        const kpiKey = key as keyof Omit<typeof kpiConfig, 'tuitionPrice' | 'numStudents'>;
                        const kpiInfo = kpiConfig[kpiKey];
@@ -226,7 +211,7 @@ export default function TeacherLeaderboardPage() {
                        return (
                          <TableRow key={`${selectedTeam.name}-${key}`}>
                            <TableCell>{kpiInfo.label}</TableCell>
-                           <TableCell className="font-mono">{goal.operator === 'range' ? `${kpiInfo.format(goal.target)} - ${kpiInfo.format(goal.range_max!)}` : `${goal.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal.target)}`}</TableCell>
+                           <TableCell className="font-mono">{`${goal.operator === 'min' ? '>' : '<'} ${kpiInfo.format(goal.target)}`}</TableCell>
                            <TableCell className="font-mono">{kpiInfo.format(currentValue)}</TableCell>
                            <TableCell>
                              <div className="flex items-center gap-2">
@@ -258,5 +243,3 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
-
-    

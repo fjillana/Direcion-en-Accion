@@ -40,3 +40,15 @@ export interface TeamState {
   decisions: TeamDecisions;
   archetype?: AIArchetype;
 }
+
+export type StrategicPlan = {
+  confirmed: boolean;
+  rankingGoal: string;
+  targets: {
+    [key: string]: {
+      target: number;
+      operator: 'min' | 'max' | 'range';
+      range_max?: number;
+    }
+  }
+}

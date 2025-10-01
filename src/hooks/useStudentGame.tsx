@@ -206,7 +206,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
               }
 
               if (!currentKpis) {
-                 // For the very first round, establish the initial state from game config
+                 // For the very first round, establish the initial state from game config to show in UI
                  const humanTeamsCount = gameData.teamNames.length;
                  const numIaTeams = humanTeamsCount;
                  currentKpis = {

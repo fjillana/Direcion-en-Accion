@@ -42,6 +42,7 @@ type LeaderboardTeam = {
     type: 'H' | 'IA';
     totalXp: number;
     kpis: TeamPerformanceData['kpis'];
+    decisions: TeamPerformanceData['decisions'];
     strategicPlan?: Game['strategicPlan'];
 };
 
@@ -108,6 +109,7 @@ export default function TeacherLeaderboardPage() {
               type: p.type,
               totalXp: p.totalXp,
               kpis: p.kpis,
+              decisions: p.decisions,
               strategicPlan: strategicPlan,
           }
       })
@@ -178,7 +180,7 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.kpis.tuitionPrice)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.decisions.tuitionPrice)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
                 </TableRow>
               ))}
@@ -212,7 +214,7 @@ export default function TeacherLeaderboardPage() {
                        if (!goal) return null;
                        const kpiKey = key as keyof typeof kpiConfig;
                        const kpiInfo = kpiConfig[kpiKey];
-                       if (!kpiInfo) return null; // FIX: Prevent rendering if kpiInfo is undefined
+                       if (!kpiInfo) return null;
                        
                        let currentValue: number;
                        let formattedValue: string;

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -128,10 +129,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const [reportData, setReportData] = useState<any>(null);
 
   useEffect(() => {
-    const currentHumanTeams = teamsData.filter(t => t.type === 'H');
-    if (!selectedTeam && currentHumanTeams.length > 0) {
-      setSelectedTeam(currentHumanTeams[0].name);
-    } else if (currentHumanTeams.length === 0) {
+    if (!selectedTeam && humanTeams.length > 0) {
+      setSelectedTeam(humanTeams[0].name);
+    } else if (humanTeams.length === 0) {
       setSelectedTeam(undefined);
     }
   }, [teamsData, selectedTeam]);
@@ -223,8 +223,10 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     if (!teamPerformance) return;
 
     const fullReportData = {
-      ...reportData,
-      kpis: teamPerformance.kpis, // Make sure current KPIs are in the report
+      ...initialReportData,
+      round: activeGame.round - 1,
+      kpis: teamPerformance.kpis,
+      decisions: teamPerformance.decisions,
       qualitativeAnalysis: qualitativeAnalysis,
       debriefingQuestions: debriefingQuestions,
       pedagogicalSuggestions: pedagogicalSuggestions,
@@ -290,14 +292,37 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         <AccordionItem value="item-1" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.financialSummary.income)}</span></Badge>
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal:</span> <span className="text-destructive">{formatCurrency(reportData.financialSummary.personnelCost)}</span></Badge>
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Inversiones:</span> <span className="text-destructive">{formatCurrency(reportData.financialSummary.investmentsCost)}</span></Badge>
-                                <Badge variant="outline" className="col-span-1 md:col-span-2 flex justify-between p-3 text-sm"><span>Resultado de la Ronda:</span> <span className={reportData.financialSummary.roundResult > 0 ? 'text-emerald-600' : 'text-destructive'}>{formatCurrency(reportData.financialSummary.roundResult)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal:</span> <span className="text-destructive">{formatCurrency(reportData.kpis.personnelCost)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Inversiones:</span> <span className="text-destructive">{formatCurrency((reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0))}</span></Badge>
+                                <Badge variant="outline" className="col-span-1 md:col-span-2 flex justify-between p-3 text-sm"><span>Resultado de la Ronda:</span> <span className={(reportData.kpis.income - reportData.kpis.personnelCost) > 0 ? 'text-emerald-600' : 'text-destructive'}>{formatCurrency(reportData.kpis.income - reportData.kpis.personnelCost)}</span></Badge>
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
                             </AccordionContent>
                         </AccordionItem>
 
+                        {/* Financial Details */}
+                        {reportData.decisions &&
+                         <AccordionItem value="item-financial-details" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                <div className="p-3 bg-muted/50 rounded-lg border">
+                                    <h4 className="font-semibold">Cálculos Clave</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">Ingresos: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.income)}</p>
+                                    <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                                </div>
+                                <div className="p-3 bg-muted/50 rounded-lg border">
+                                    <h4 className="font-semibold">Inversiones Realizadas</h4>
+                                    <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
+                                        {(reportData.decisions.investments || []).map((inv: any, index: number) => (
+                                            <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
+                                        ))}
+                                        {(reportData.decisions.investments || []).length === 0 && <li>No se realizaron inversiones esta ronda.</li>}
+                                    </ul>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                        }
+                        
                         {/* KPI Summary */}
                          <AccordionItem value="item-2" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
@@ -311,30 +336,6 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                             </AccordionContent>
                         </AccordionItem>
 
-                        {/* KPI Analysis */}
-                        <AccordionItem value="item-3" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs</h3></AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                {Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
-                                    <div key={key} className="p-3 bg-muted/50 rounded-lg border">
-                                        <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                        <p className="text-muted-foreground text-sm mt-1 whitespace-pre-wrap">{value.analysis}</p>
-                                        <p className="text-xs text-muted-foreground/70 mt-2 font-mono">Cálculo: {value.calculation}</p>
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/* Market Attractiveness */}
-                        <AccordionItem value="item-5" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Atractividad de Mercado (IAM)</h3></AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                <div className="p-4 bg-muted/50 rounded-lg border">
-                                    <p className="leading-relaxed text-sm whitespace-pre-wrap">{reportData.marketAttractiveness.analysis}</p>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                        
                         {/* AI Qualitative Analysis */}
                         <AccordionItem value="item-6" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">

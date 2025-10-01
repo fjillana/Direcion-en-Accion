@@ -81,11 +81,17 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getStudentGameByGameId = useCallback((gameId: string): StudentGameState | null => {
+      if (typeof window === 'undefined') return null;
       const item = localStorage.getItem(STUDENT_GAME_STORAGE_KEY);
       if (item) {
-        const state: StudentGameState = JSON.parse(item);
-        if (state.gameId === gameId) {
-            return state;
+        try {
+            const state: StudentGameState = JSON.parse(item);
+            if (state.gameId === gameId) {
+                return state;
+            }
+        } catch (e) {
+            console.error("Failed to parse student game state", e);
+            return null;
         }
       }
       return null;
@@ -180,7 +186,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     updateStudentGame,
     getStudentGameByGameId,
     setRoundDecisions
-  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame]);
 
   return (
     <StudentGameContext.Provider value={value}>

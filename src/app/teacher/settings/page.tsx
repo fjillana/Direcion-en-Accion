@@ -43,14 +43,6 @@ import { PlusCircle, Trash2, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStudentGame } from "@/hooks/useStudentGame";
 
-// This would come from a backend in a real app
-const allPendingTeams = [
-  { id: "team-epsilon-req", userId: "student-epsilon", teamName: "Equipo Epsilon" },
-  { id: "team-zeta-req", userId: "student-zeta", teamName: "Equipo Zeta" },
-  { id: "team-eta-req", userId: "student-eta", teamName: "Equipo Eta" },
-];
-
-
 export default function SettingsPage() {
   const { activeGame } = useGame();
   const { updateGame, getGameById } = useGames();
@@ -72,7 +64,7 @@ export default function SettingsPage() {
           const currentTeams = gameData.teamNames || [];
           setAcceptedTeams(currentTeams);
           
-          // Simulate fetching pending requests for THIS game
+          // Simulate fetching pending requests for THIS game by looking into student states
           const studentGameState = getStudentGameByGameId(activeGame.id);
           const pendingUser = studentGameState?.status === 'pending' ? {
               id: `${studentGameState.userId}-req`,
@@ -81,7 +73,7 @@ export default function SettingsPage() {
           } : null;
 
           const currentPending = pendingUser ? [pendingUser] : [];
-          setPendingTeams(currentPending.filter(pt => !currentTeams.includes(pt.teamName)));
+          setPendingTeams(currentPending.filter(pt => pt && !currentTeams.includes(pt.teamName)));
       }
     } else {
       setAcceptedTeams([]);
@@ -91,11 +83,12 @@ export default function SettingsPage() {
 
   
   const teamsWithRivals = useMemo(() => {
+      if (!activeGame) return [];
       const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
       // Create one AI rival per human team
       const rivalTeams = Array.from({length: humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
-  }, [acceptedTeams]);
+  }, [acceptedTeams, activeGame]);
 
   const handleDifficultyChange = (value: number[]) => {
     setAiDifficulty(value[0]);
@@ -134,12 +127,12 @@ export default function SettingsPage() {
   const handleRemoveTeam = (teamNameToRemove: string) => {
     if (!activeGame) return;
     setAcceptedTeams(prev => prev.filter(name => name !== teamNameToRemove));
-    // This part is tricky as we need to find the student associated with the team
-    // For now, we will just update their state to 'no-game'
+    // Find the student associated with the team and reset their state
     const studentGameState = getStudentGameByGameId(activeGame.id);
     if(studentGameState && studentGameState.teamName === teamNameToRemove) {
         updateStudentGame(studentGameState.userId, { status: 'no-game', gameId: null, gameName: null, teamName: null });
     }
+    handleSaveChanges(); // Persist the removal
   };
 
   const handleRequestCheckboxChange = (teamId: string, checked: boolean) => {

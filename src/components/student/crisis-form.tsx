@@ -1,3 +1,4 @@
+
 "use client";
 import {
   Card,
@@ -14,11 +15,11 @@ import { Label } from "@/components/ui/label";
 
 export function CrisisForm() {
   const crisisOptions = [
-    { id: 'op1', label: 'Aceptar todas las demandas (+30 moral, -25k CC)' },
-    { id: 'op2', label: 'Negociar un acuerdo parcial (+20 moral, -15k CC)' },
-    { id: 'op3', label: 'Mantener la postura (huelga 2 rondas, -20 XP all)' },
-    { id: 'op4', label: 'Recurrir a mediadores externos (+15 moral, -8k CC)' },
-    { id: 'op5', label: 'Despedir a los líderes del sindicato (-30 moral, -10k CC)' },
+    { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
+    { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
+    { id: 'op3', label: 'Mantener la postura' },
+    { id: 'op4', label: 'Recurrir a mediadores externos (-8.000 CC)' },
+    { id: 'op5', label: 'Despedir a los líderes del sindicato (-10.000 CC)' },
   ];
   return (
     <Card className="bg-destructive/5 border-destructive/20">

@@ -39,8 +39,8 @@ export default function Home() {
         <Image
           src="https://picsum.photos/seed/business-landing/1200/1800"
           alt="Business simulation"
-          layout="fill"
-          objectFit="cover"
+          fill={true}
+          className="object-cover"
           data-ai-hint="modern office"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

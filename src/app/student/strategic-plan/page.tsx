@@ -52,18 +52,18 @@ const kpis = [
   {
     key: 'marketShare',
     title: 'Cuota de mercado',
-    currentValue: 12.5,
-    targetValue: 15,
+    currentValue: 16.7,
+    targetValue: 18,
     min: 10,
     max: 25,
-    step: 0.5,
+    step: 0.1,
     format: (v: number) => `${v.toFixed(1)}%`,
     advice: "Una 'Campaña publicitaria en redes' (R1) es la forma más directa de aumentar tu visibilidad y captar nuevos alumnos. Esto es crucial para crecer, ya que compites con otros centros por un número limitado de estudiantes."
   },
   {
     key: 'morale',
     title: 'Moral del personal',
-    currentValue: 80,
+    currentValue: 100,
     targetValue: 90,
     min: 50,
     max: 100,

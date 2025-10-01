@@ -1,33 +1,22 @@
 
+"use client";
+
 import { StudentGate } from "@/components/student/student-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, HeartHandshake, Award, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const achievements = [
-  { 
-    name: "El Financiero", 
-    icon: DollarSign, 
-    description: "Maestría en la gestión de las finanzas. Otorgado al equipo que mejor gestiona sus recursos económicos, manteniendo un remanente prudente y maximizando el PEB de Finanzas.",
-    unlocked: true 
-  },
-  { 
-    name: "El de RR.PP.", 
-    icon: HeartHandshake, 
-    description: "Excelente reputación y relaciones públicas. Se concede al centro con mayor reputación, mejorando la Nota Media de Alumnos y subiendo en el ranking.",
-    unlocked: true 
-  },
-  { 
-    name: "El de Equipo", 
-    icon: Award, 
-    description: "Gran gestión del personal y alta moral. Destaca al grupo que mejor cuida la moral del personal, mantiene un buen ratio alumnos/profesor y evita huelgas.",
-    unlocked: false 
-  },
-];
+import { useStudentGame } from "@/hooks/useStudentGame";
+import { getAchievementsStatus, type Achievement } from "@/lib/achievements";
+import { useMemo } from "react";
 
 
 export default function AchievementsPage() {
+  const { studentGame } = useStudentGame();
+  const performanceHistory = studentGame?.performanceHistory || [];
+
+  const achievements = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
+
   return (
     <StudentGate>
        <div className="space-y-6">

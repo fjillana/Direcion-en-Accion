@@ -20,8 +20,6 @@ import {
   Users,
   Briefcase,
   Award,
-  DollarSign,
-  HeartHandshake,
   Inbox,
   Target,
   LogOut,
@@ -31,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStudentGame } from "@/hooks/useStudentGame";
+import { getAchievementsStatus } from "@/lib/achievements";
+import { useMemo } from "react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,15 +43,12 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const teamBadges = [
-  { name: "El Financiero", icon: DollarSign, description: "Maestría en la gestión de las finanzas." },
-  { name: "El de RR.PP.", icon: HeartHandshake, description: "Excelente reputación y relaciones públicas." },
-  { name: "El de Equipo", icon: Award, description: "Gran gestión del personal y alta moral.", unlocked: false },
-];
-
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
+  
+  const performanceHistory = studentGame?.performanceHistory || [];
+  const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
 
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
@@ -140,7 +137,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               <div className="flex items-center gap-1">
                 <TooltipProvider>
                   {teamBadges.map((badge) => (
-                      badge.unlocked !== false &&
+                      badge.unlocked &&
                       <Tooltip key={badge.name}>
                           <TooltipTrigger>
                               <Badge variant="secondary" className="px-2 py-1"><badge.icon className="h-4 w-4" /></Badge>

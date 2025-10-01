@@ -270,16 +270,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const abandonGame = () => {
     if (!studentGame || !studentGame.gameId || !studentGame.teamName) return;
 
-    // Remove team from the game
     const game = games.find(g => g.id === studentGame.gameId);
     if (game) {
       const updatedTeamNames = game.teamNames.filter(name => name !== studentGame.teamName);
       updateGame(game.id, { teamNames: updatedTeamNames });
     }
 
-    // Reset student state
     setStudentGame(initialStudentState);
-    localStorage.setItem(getStorageKey(), JSON.stringify(initialStudentState));
+    localStorage.removeItem(getStorageKey());
     router.push('/student/join-game');
   };
 
@@ -294,7 +292,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     getDecisionsByRound,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, getStudentGameByGameId, setRoundDecisions, updateStudentGame, getDecisionsByRound, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>

@@ -5,19 +5,19 @@ export default function CatalogPage() {
   const investments: Investment[] = [
     { id: 'F1', name: 'Implantación de ERP', costRange: '15.000-30.000', description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes administrativos un 2 %.', effect: '+5 a +10 XP Finanzas' },
     { id: 'F2', name: 'Contratación de asesoría financiera', costRange: '8.000-12.000', description: 'Apoyo experto para elaborar presupuestos y evaluar inversiones. Se contrata por ronda.', effect: '+3 a +8 XP Finanzas' },
-    { id: 'F3', name: 'Seguro de responsabilidad civil', costRange: '10.000 por ronda', description: 'Cubre sanciones legales en eventos negativos, reduciendo penalizaciones económicas.', effect: '+5 XP Finanzas' },
+    { id: 'F3', name: 'Seguro de responsabilidad civil', costRange: '10.000', description: 'Cubre sanciones legales en eventos negativos, reduciendo penalizaciones económicas.', effect: '+5 XP Finanzas' },
     { id: 'F4', name: 'Negociación agresiva de cuentas por pagar', costRange: '0', description: 'Retrasar el pago a proveedores genera liquidez inmediata (50.000 CC) pero daña la imagen del centro y puede afectar la confianza de la comunidad.', effect: '+8 XP Finanzas, −8 XP Reputación' },
-    { id: 'F5', name: 'Ampliación de aulas / capacidad', costRange: '50.000-150.000', description: 'Aumenta el número de plazas en bloques de 50 alumnos. Imprescindible si el centro supera la capacidad flexible de 810.', effect: '+10 XP Finanzas' },
+    { id: 'F5', name: 'Ampliación de aulas / capacidad', costRange: '50.000', description: 'Aumenta el número de plazas en bloques de 50 alumnos. Imprescindible si el centro supera la capacidad flexible de 810.', effect: '+10 XP Finanzas' },
     { id: 'R1', name: 'Campaña publicitaria en redes', costRange: '5.000-20.000', description: 'Mejora la visibilidad y atrae alumnos privados. Aumenta la cuota de mercado.', effect: '+2 a +10 XP Reputación' },
     { id: 'R2', name: 'Inversión en TIC', costRange: '10.000-75.000', description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA y la moral.', effect: '+3 a +15 XP Reputación, +3 XP Personal' },
     { id: 'R3', name: 'Mejora de instalaciones (patios, laboratorios)', costRange: '10.000-100.000', description: 'Mejora la percepción de calidad y la satisfacción de alumnos y familias.', effect: '+5 a +12 XP Reputación' },
     { id: 'R4', name: 'Desarrollo curricular innovador', costRange: '20.000-40.000', description: 'Introducir programas STEM, artes o idiomas mejora la NMA y la reputación.', effect: '+5 XP Reputación' },
     { id: 'R5', name: 'Programa de sostenibilidad y ecología', costRange: '5.000-15.000', description: 'Implementar reciclaje, huertos escolares o certificación ecológica atrae familias concienciadas.', effect: '+4 XP Reputación' },
     { id: 'P1', name: 'Formación docente', costRange: '5.000-15.000', description: 'Cursos de actualización, metodologías innovadoras. Cuanto mayor es la inversión, mayor el impacto.', effect: '+5 XP Personal, +10-20 puntos de moral' },
-    { id: 'P2', name: 'Contratación docente', costRange: '7.500 por ronda', description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes.', effect: '+10 XP Personal, +15 puntos de moral' },
+    { id: 'P2', name: 'Contratación docente', costRange: '7.500', description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes.', effect: '+10 XP Personal, +15 puntos de moral' },
     { id: 'P3', name: 'Poaching de profesor de la competencia', costRange: '7.500 + 10.000 prima', description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral <70.', effect: '+15 XP Personal, +20 puntos de moral, −5 XP Reputación para el competidor' },
-    { id: 'P4', name: 'Incremento salarial global (5-10 %)', costRange: '12.000-24.000 por ronda', description: 'Mejora la satisfacción, pero incrementa el coste de personal y puede comprometer la tesorería.', effect: '+15 XP Personal, +20 puntos de moral' },
-    { id: 'P5', name: 'Beneficios no monetarios / vacaciones', costRange: '2.000-8.000', description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral.', effect: '+8 XP Personal, +10 puntos de moral' },
+    { id: 'P4', name: 'Incremento salarial global (5-10 %)', costRange: '12.000-24.000', description: 'Mejora la satisfacción, pero incrementa el coste de personal y puede comprometer la tesorería.', effect: '+15 XP Personal, +20 puntos de moral' },
+    { id: 'P5', name: 'Actividades sociales internas', costRange: '2.000-8.000', description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral.', effect: '+8 XP Personal, +10 puntos de moral' },
   ];
   const crises: Crisis[] = [
     {

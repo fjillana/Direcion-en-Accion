@@ -39,7 +39,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   // 2. Calcular Ingresos y Costes
   const income = updatedNumStudents * decisions.tuitionPrice;
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
-  const investmentCost = decisions.investments.reduce((sum, inv) => sum + inv.cost, 0);
+  const investmentCost = (decisions.investments || []).reduce((sum, inv) => sum + inv.cost, 0);
   
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
       // Los costes de contratar y despedir ya se reflejan en el coste de personal de la siguiente ronda
@@ -64,11 +64,11 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
 
   // Impacto de inversiones
-  if (decisions.investments.some(inv => inv.id === 'R2')) { // Inversión en TIC
+  if ((decisions.investments || []).some(inv => inv.id === 'R2')) { // Inversión en TIC
       updatedNma += 0.2;
       updatedMorale += 5;
   }
-  if (decisions.investments.some(inv => inv.id === 'P1')) { // Formación docente
+  if ((decisions.investments || []).some(inv => inv.id === 'P1')) { // Formación docente
       updatedNma += 0.1;
       updatedMorale += 10;
   }

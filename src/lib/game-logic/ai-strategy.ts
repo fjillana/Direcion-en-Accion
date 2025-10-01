@@ -67,7 +67,8 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
 
     for (const investment of availableInvestments) {
         const priority = potentialInvestments[investment.id] || 0.2; // Base priority for non-listed investments
-        const cost = investment.cost || 20000; // Use average cost if range
+        const costRange = investment.costRange.replace(/[^0-9-]/g, '').split('-').map(Number);
+        const cost = costRange[0];
 
         if (Math.random() < investmentLikelihood * priority && budget >= cost) {
             // Higher difficulty AI checks if it can afford it more strictly

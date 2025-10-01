@@ -125,7 +125,7 @@ export function UserNav() {
               </DialogTrigger>
               <DialogTrigger asChild>
                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setPasswordOpen(true); }}>
-                  <KeyRound />
+                  <KeyRound className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
                 </DropdownMenuItem>
               </DialogTrigger>

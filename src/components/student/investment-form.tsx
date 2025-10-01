@@ -81,10 +81,10 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
                         {inv.name}
                       </label>
                       <p className="text-sm text-muted-foreground">
-                        Efecto: {inv.effect}
+                        {inv.effect}
                       </p>
                     </div>
-                    <div className="font-mono text-right">
+                    <div className="font-mono text-right text-sm text-muted-foreground">
                         {inv.costRange} CC
                     </div>
                   </div>

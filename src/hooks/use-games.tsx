@@ -7,7 +7,8 @@ export interface Game {
   id: string;
   name: string;
   round: number;
-  teams: string[];
+  teams: number; // Number of human teams
+  teamNames: string[]; // Names of the accepted teams
   status: "En curso" | "Finalizado";
   numRounds: number;
   aiDifficulty: number;

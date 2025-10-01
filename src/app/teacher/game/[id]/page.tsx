@@ -474,7 +474,7 @@ export default function GameDetailsPage() {
           </TabsContent>
           <TabsContent value="config">
             <RoundConfig
-              allTeams={game.teams}
+              allTeams={game.teamNames}
               fullInvestments={fullInvestments}
               fullCrises={fullCrises}
               numRounds={game.numRounds}
@@ -609,5 +609,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

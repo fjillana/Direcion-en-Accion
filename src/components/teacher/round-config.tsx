@@ -24,7 +24,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Investment, Crisis } from "./catalog-editor";
 
-type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | string;
+type TeamName = string;
 
 interface RoundConfigProps {
   allTeams: TeamName[];

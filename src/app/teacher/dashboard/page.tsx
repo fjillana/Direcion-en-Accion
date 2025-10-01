@@ -54,7 +54,8 @@ export default function TeacherDashboard() {
       id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
       round: 1,
-      teams: [], // Initialize with an empty array of strings
+      teams: data.numTeams,
+      teamNames: [], // Initialize with an empty array of names
       status: "En curso",
       numRounds: data.numRounds,
       aiDifficulty: data.aiDifficulty,
@@ -147,7 +148,7 @@ export default function TeacherDashboard() {
             </CardHeader>
             <CardContent className="flex-grow">
               <div className="text-sm text-muted-foreground">
-                <p>{game.teams.length} equipos participando.</p>
+                <p>{game.teamNames.length} de {game.teams} equipos humanos participando.</p>
               </div>
             </CardContent>
             <CardFooter>

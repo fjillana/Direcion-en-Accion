@@ -63,7 +63,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeGame) {
       setAiDifficulty(activeGame.aiDifficulty || 3);
-      const currentTeams = activeGame.teams || [];
+      const currentTeams = activeGame.teamNames || [];
       setAcceptedTeams(currentTeams);
       setPendingTeams(allPendingTeams.filter(pt => !currentTeams.includes(pt.name)));
     } else {
@@ -85,7 +85,7 @@ export default function SettingsPage() {
     if (activeGame) {
       updateGame(activeGame.id, { 
         aiDifficulty,
-        teams: acceptedTeams
+        teamNames: acceptedTeams
       });
       toast({
         title: "Ajustes guardados",
@@ -159,7 +159,7 @@ export default function SettingsPage() {
                     </div>
                     <Dialog open={isRequestsDialogOpen} onOpenChange={setRequestsDialogOpen}>
                       <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" disabled={acceptedTeams.length >= activeGame.teams}>
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Gestionar Solicitudes
                           </Button>
@@ -179,6 +179,7 @@ export default function SettingsPage() {
                                               id={`req-${team.id}`} 
                                               onCheckedChange={(checked) => handleRequestCheckboxChange(team.id, !!checked)}
                                               checked={selectedRequests.includes(team.id)}
+                                              disabled={acceptedTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.includes(team.id)}
                                           />
                                           <Label htmlFor={`req-${team.id}`} className="font-medium cursor-pointer">{team.name}</Label>
                                       </div>

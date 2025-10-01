@@ -133,26 +133,6 @@ export default function StudentDashboard() {
     )
   }
   
-    if (isRoundZero && planConfirmed && !roundConfirmed) {
-    return (
-       <StudentGate>
-        <div className="space-y-6">
-           <Alert variant="default" className="bg-emerald-50 border-emerald-200">
-              <CheckCircle className="h-4 w-4 !text-emerald-600" />
-              <AlertTitle className="text-emerald-800 font-bold">¡Plan Estratégico Confirmado!</AlertTitle>
-              <AlertDescription className="text-emerald-700">
-                  <p>Has bloqueado tus objetivos a largo plazo. Ahora, realiza tus inversiones iniciales y ajusta los datos del centro para la primera ronda.</p>
-                  <p className="mt-2">Cuando estés listo, finaliza la ronda desde esta misma página (Dashboard) para que el profesor pueda procesarla.</p>
-                   <Button asChild className="mt-4">
-                      <Link href="/student/decisions">Ir a Inversiones</Link>
-                   </Button>
-              </AlertDescription>
-           </Alert>
-        </div>
-       </StudentGate>
-    )
-  }
-
   return (
     <StudentGate>
       <div className="space-y-8">

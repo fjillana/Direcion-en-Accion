@@ -39,6 +39,7 @@ import type { Game } from "@/hooks/use-games";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type TeamDecision = {
@@ -70,8 +71,8 @@ const teamsData: TeamPerformance[] = [
   {
     name: "Equipo Alfa",
     type: 'H',
-    finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 98 PEB"] },
-    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 95 PEB", "Cuota Mercado (12%): 85 PEB"] },
+    finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
+    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 95 PEB", "Cuota Mercado (12%): 81 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
     totalXp: 51,
     decisions: {
@@ -215,35 +216,41 @@ export default function GameDetailsPage() {
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
+  const [selectedRound, setSelectedRound] = useState<string>("3");
+  const [monitoringData, setMonitoringData] = useState(teamsData);
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
     if (foundGame) {
       setGame(foundGame);
+      setSelectedRound((foundGame.round).toString());
     }
   }, [games, id]);
   
   useEffect(() => {
     if (selectedTeam) {
-        // Here you would typically fetch notes for the selected team,
-        // for now we'll just reset it or load from a mock map.
-        setTeacherNotes(`Notas para ${selectedTeam.name}...`);
+        setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${selectedRound}...`);
     }
-  }, [selectedTeam])
+  }, [selectedTeam, selectedRound])
+  
+    useEffect(() => {
+    if (parseInt(selectedRound) > (game?.round ?? 0)) {
+      setMonitoringData([]);
+    } else {
+      // In a real app, you would fetch data for the selected round.
+      // Here we just use the mock data for demonstration.
+      setMonitoringData(teamsData);
+    }
+  }, [selectedRound, game]);
 
   const handleProcessRound = () => {
     setIsProcessing(true);
-    // Simulate processing time
     setTimeout(() => {
-      // In a real scenario, this would be set to false when all teams submit.
-      // setIsProcessing(false); 
     }, 5000);
   };
   
   const handleTeamRowClick = (team: TeamPerformance) => {
     setSelectedTeam(team);
-    // We can decide which dialog to open, or have separate triggers.
-    // For now, let's assume clicking the row shows PEB details.
     setPebDetailOpen(true);
   };
 
@@ -295,46 +302,70 @@ export default function GameDetailsPage() {
           <TabsContent value="monitoring">
             <Card>
               <CardHeader>
-                <CardTitle>Progreso de Equipos</CardTitle>
-                <CardDescription>
-                  Vista general del rendimiento por áreas en la ronda actual. Haz clic en un equipo para ver el detalle.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Progreso de Equipos</CardTitle>
+                    <CardDescription>
+                      Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
+                    </CardDescription>
+                  </div>
+                  <div className="w-[180px]">
+                    <Select value={selectedRound} onValueChange={setSelectedRound}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar Ronda" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {Array.from({ length: game?.numRounds ?? 1 }, (_, i) => i + 1).map((r) => (
+                                <SelectItem key={r} value={r.toString()}>
+                                    Ronda {r}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Equipo</TableHead>
-                      <TableHead className="w-[50px] text-center">Tipo</TableHead>
-                      <TableHead className="text-center">PEB Finanzas</TableHead>
-                      <TableHead className="text-center">XP Finanzas</TableHead>
-                      <TableHead className="text-center">PEB Reputación</TableHead>
-                      <TableHead className="text-center">XP Reputación</TableHead>
-                      <TableHead className="text-center">PEB Moral</TableHead>
-                      <TableHead className="text-center">XP Moral</TableHead>
-                      <TableHead className="text-right">Total XP</TableHead>
-                      <TableHead className="w-[100px] text-center">Decisiones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {teamsData.map((team) => (
-                      <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
-                        <TableCell className="font-medium">{team.name}</TableCell>
-                        <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
-                        <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
-                        <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
-                        <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
-                        <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
-                        <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
-                        <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
-                        <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
-                        <TableCell className="text-center">
-                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
-                        </TableCell>
+                {monitoringData.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Equipo</TableHead>
+                        <TableHead className="w-[50px] text-center">Tipo</TableHead>
+                        <TableHead className="text-center">PEB Finanzas</TableHead>
+                        <TableHead className="text-center">XP Finanzas</TableHead>
+                        <TableHead className="text-center">PEB Reputación</TableHead>
+                        <TableHead className="text-center">XP Reputación</TableHead>
+                        <TableHead className="text-center">PEB Moral</TableHead>
+                        <TableHead className="text-center">XP Moral</TableHead>
+                        <TableHead className="text-right">Total XP</TableHead>
+                        <TableHead className="w-[100px] text-center">Decisiones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {monitoringData.map((team) => (
+                        <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
+                          <TableCell className="font-medium">{team.name}</TableCell>
+                          <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
+                          <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
+                          <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
+                          <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
+                          <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
+                          <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
+                          <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
+                          <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
+                          <TableCell className="text-center">
+                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-10 text-sm text-muted-foreground">
+                    No hay datos disponibles para la ronda {selectedRound}.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -398,83 +429,52 @@ export default function GameDetailsPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Detalles de la Ronda: {selectedTeam.name}</DialogTitle>
+                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {selectedRound}.</DialogDescription>
               </DialogHeader>
-              <Tabs defaultValue="decisions">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="decisions">Decisiones de la Ronda</TabsTrigger>
-                  <TabsTrigger value="plan">Plan Estratégico (Ronda 0)</TabsTrigger>
-                </TabsList>
-                <TabsContent value="decisions" className="py-4">
-                  <div className="space-y-6 text-sm">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold">Precio de Matrícula</h4>
-                      <p className="text-muted-foreground">El equipo ha fijado el precio trimestral de la matrícula en <span className="font-bold text-foreground">{selectedTeam.decisions.tuitionPrice} CC</span>.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="font-semibold">Inversiones Realizadas</h4>
-                      {selectedTeam.decisions.investments.length > 0 ? (
-                        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                          {selectedTeam.decisions.investments.map((inv, index) => (
-                            <li key={index}>
-                              <span className="font-semibold text-foreground">{inv.name}:</span> {inv.cost.toLocaleString()} CC
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
-                      )}
-                    </div>
-                    {selectedTeam.type === 'H' && <div className="space-y-2">
-                      <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
-                      <div className="p-3 bg-muted/50 rounded-md">
-                          <p className="font-medium">Opción elegida:</p>
-                          <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
-                          <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
-                        </div>
-                        <div className="p-3 bg-muted/50 rounded-md">
-                          <p className="font-medium">Justificación del equipo:</p>
-                          <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
-                        </div>
-                    </div>}
-                    <div className="space-y-2">
-                        <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
-                        <Textarea 
-                            id="teacher-notes" 
-                            placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
-                            value={teacherNotes}
-                            onChange={(e) => setTeacherNotes(e.target.value)}
-                            className="min-h-[100px]"
-                        />
-                    </div>
+              <div className="py-4">
+                <div className="space-y-6 text-sm">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Precio de Matrícula</h4>
+                    <p className="text-muted-foreground">El equipo ha fijado el precio trimestral de la matrícula en <span className="font-bold text-foreground">{selectedTeam.decisions.tuitionPrice} CC</span>.</p>
                   </div>
-                </TabsContent>
-                 <TabsContent value="plan" className="py-4">
-                   <Card>
-                      <CardHeader>
-                          <CardTitle>Plan Estratégico (Ronda 0)</CardTitle>
-                          <CardDescription>Objetivos iniciales definidos por el equipo.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid md:grid-cols-2 gap-6 text-sm">
-                          <div className="space-y-2">
-                              <h4 className="font-semibold">Objetivos de KPIs</h4>
-                              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                                  {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={i}>{target}</li>)}
-                              </ul>
-                          </div>
-                          <div className="space-y-3">
-                              <div className="space-y-2">
-                                  <h4 className="font-semibold">Objetivo de Ranking</h4>
-                                  <p className="text-muted-foreground">{selectedTeam.strategicPlan.rankingGoal}</p>
-                              </div>
-                              <div className="space-y-2">
-                                  <h4 className="font-semibold">Política de Precios</h4>
-                                  <p className="text-muted-foreground">{selectedTeam.strategicPlan.pricingPolicy}</p>
-                              </div>
-                          </div>
-                      </CardContent>
-                    </Card>
-                 </TabsContent>
-              </Tabs>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Inversiones Realizadas</h4>
+                    {selectedTeam.decisions.investments.length > 0 ? (
+                      <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                        {selectedTeam.decisions.investments.map((inv, index) => (
+                          <li key={index}>
+                            <span className="font-semibold text-foreground">{inv.name}:</span> {inv.cost.toLocaleString()} CC
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
+                    )}
+                  </div>
+                  {selectedTeam.type === 'H' && <div className="space-y-2">
+                    <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
+                    <div className="p-3 bg-muted/50 rounded-md">
+                        <p className="font-medium">Opción elegida:</p>
+                        <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
+                        <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <p className="font-medium">Justificación del equipo:</p>
+                        <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
+                      </div>
+                  </div>}
+                  <div className="space-y-2">
+                      <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
+                      <Textarea 
+                          id="teacher-notes" 
+                          placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
+                          value={teacherNotes}
+                          onChange={(e) => setTeacherNotes(e.target.value)}
+                          className="min-h-[100px]"
+                      />
+                  </div>
+                </div>
+              </div>
               <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
                 <Button onClick={() => setDecisionDetailOpen(false)}>Guardar Notas</Button>

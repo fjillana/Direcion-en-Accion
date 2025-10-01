@@ -7,7 +7,7 @@ export interface Game {
   id: string;
   name: string;
   round: number;
-  teams: number;
+  teams: string[];
   status: "En curso" | "Finalizado";
   numRounds: number;
 }
@@ -29,7 +29,7 @@ const initialGames: Game[] = [
     id: "1",
     name: "Simulación de Negocios 101",
     round: 3,
-    teams: 5,
+    teams: ["Equipo Alfa", "Equipo Beta", "Equipo Gamma", "Equipo Delta", "Equipo Epsilon"],
     status: "En curso",
     numRounds: 8,
   },
@@ -37,7 +37,7 @@ const initialGames: Game[] = [
     id: "2",
     name: "Marketing Avanzado",
     round: 5,
-    teams: 4,
+    teams: ["Equipo A", "Equipo B", "Equipo C", "Equipo D"],
     status: "En curso",
     numRounds: 10,
   },
@@ -45,7 +45,7 @@ const initialGames: Game[] = [
     id: "3",
     name: "Gestión Financiera",
     round: 8,
-    teams: 6,
+    teams: ["Equipo 1", "Equipo 2", "Equipo 3", "Equipo 4", "Equipo 5", "Equipo 6"],
     status: "Finalizado",
     numRounds: 8,
   },

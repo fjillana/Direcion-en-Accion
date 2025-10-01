@@ -64,9 +64,9 @@ export default function ConfigPage() {
   useEffect(() => {
     if (activeGame) {
       setSelectedGameId(activeGame.id);
-      // Simulate initial accepted teams for the active game
-      const initialTeams = Array.from({ length: activeGame.teams }, (_, i) => `Equipo ${String.fromCharCode(65 + i)}`);
-      setAcceptedTeams(initialTeams);
+      setAcceptedTeams(activeGame.teams || []);
+      // Filter pending teams to not include already accepted ones
+      setPendingTeams(allPendingTeams.filter(pt => !(activeGame.teams || []).includes(pt.name)));
     } else {
       setAcceptedTeams([]);
     }
@@ -77,15 +77,14 @@ export default function ConfigPage() {
     setSelectedGameId(gameId);
     const game = games.find(g => g.id === gameId);
     if (game) {
-      // When a game is selected, reset the accepted teams based on its config
-      const initialTeams = Array.from({ length: game.teams }, (_, i) => `Equipo ${String.fromCharCode(65 + i)}`);
-      setAcceptedTeams(initialTeams);
+      setAcceptedTeams(game.teams || []);
+      setPendingTeams(allPendingTeams.filter(pt => !(game.teams || []).includes(pt.name)));
     }
   }
   
   const handleSaveChanges = () => {
     if (selectedGameId) {
-      updateGame(selectedGameId, { teams: acceptedTeams.length });
+      updateGame(selectedGameId, { teams: acceptedTeams });
       toast({
         title: "Cambios guardados",
         description: "La configuración del juego ha sido actualizada.",
@@ -112,7 +111,7 @@ export default function ConfigPage() {
     // Optional: add team back to pending list
     const teamObject = allPendingTeams.find(t => t.name === teamNameToRemove);
     if (teamObject && !pendingTeams.some(pt => pt.id === teamObject.id)) {
-        setPendingTeams(prev => [...prev, teamObject]);
+        setPendingTeams(prev => [...prev, teamObject].sort((a, b) => a.name.localeCompare(b.name)));
     }
   };
 

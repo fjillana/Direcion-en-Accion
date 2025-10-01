@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +30,7 @@ const formSchema = z.object({
 export type GameConfig = z.infer<typeof formSchema>;
 
 interface GameConfigFormProps {
-  onCreateGame: (data: GameConfig) => void;
+  onCreateGame: (data: Omit<GameConfig, 'numTeams'>) => void;
 }
 
 export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
@@ -47,7 +48,8 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
   });
 
   function onSubmit(values: GameConfig) {
-    onCreateGame(values);
+    const { numTeams, ...rest } = values;
+    onCreateGame(rest);
   }
 
   return (
@@ -69,26 +71,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="numTeams"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Número de Equipos ({field.value})</FormLabel>
-                <FormControl>
-                  <Slider
-                    min={2}
-                    max={10}
-                    step={1}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
+        <FormField
             control={form.control}
             name="numRounds"
             render={({ field }) => (
@@ -106,7 +89,6 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
               </FormItem>
             )}
           />
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

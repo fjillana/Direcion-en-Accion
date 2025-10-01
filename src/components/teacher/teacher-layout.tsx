@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Briefcase, Settings } from "lucide-react";
 import { useGame } from "@/hooks/use-game-context";
 import { usePathname } from 'next/navigation';
+import { cn } from "@/lib/utils";
 
 export function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,6 +19,7 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     { href: "/teacher/catalog", label: "Catálogos" },
     { href: "/teacher/leaderboard", label: "Leaderboard" },
     { href: "/teacher/inbox", label: "Inbox" },
+    { href: "/teacher/config", label: "Configuración" },
   ];
   
   const getHref = (baseHref: string) => {
@@ -50,7 +52,11 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={getHref(item.href)}
-              className={`transition-colors hover:text-foreground ${pathname.startsWith(item.href) ? 'text-foreground' : 'text-muted-foreground'}`}
+              className={cn(`transition-colors hover:text-foreground`,
+                pathname === item.href || (item.href === "/teacher/dashboard" && pathname.startsWith("/teacher/game"))
+                  ? 'text-foreground' 
+                  : 'text-muted-foreground'
+              )}
             >
               {item.label}
             </Link>
@@ -77,7 +83,9 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={getHref(item.href)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className={cn("hover:text-foreground",
+                    pathname.startsWith(item.href) ? 'text-foreground' : 'text-muted-foreground'
+                  )}
                 >
                   {item.label}
                 </Link>

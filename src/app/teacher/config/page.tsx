@@ -67,7 +67,7 @@ export default function ConfigPage() {
       const currentTeams = activeGame.teams || [];
       setAcceptedTeams(currentTeams);
       // Filter pending teams to not include already accepted ones
-      setPendingTeams(allPendingTeams.filter(pt => !currentTeams.includes(pt.name)));
+      setPendingTeams(allPendingTeams.filter(pt => !(currentTeams).includes(pt.name)));
     } else {
       setAcceptedTeams([]);
     }

@@ -384,8 +384,9 @@ export default function GameDetailsPage() {
           </p>
 
         <Tabs defaultValue="monitoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="monitoring">Monitorización</TabsTrigger>
+            <TabsTrigger value="config">Configuración</TabsTrigger>
             <TabsTrigger value="reports">Reportes IA</TabsTrigger>
           </TabsList>
           <TabsContent value="monitoring">
@@ -461,6 +462,14 @@ export default function GameDetailsPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="config">
+            <RoundConfig
+              allTeams={game.teams}
+              fullInvestments={fullInvestments}
+              fullCrises={fullCrises}
+              numRounds={game.numRounds}
+            />
+          </TabsContent>
           <TabsContent value="reports">
             <AIReportForm teamsData={teamsData} />
           </TabsContent>
@@ -534,7 +543,7 @@ export default function GameDetailsPage() {
                     )}
                   </div>
 
-                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && currentRoundTab === "1" && (
+                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && parseInt(currentRoundTab) === 1 && (
                     <div className="space-y-2">
                         <h4 className="font-semibold">Plan Estratégico (Ronda 0)</h4>
                         <div className="p-3 bg-muted/50 rounded-md space-y-2">

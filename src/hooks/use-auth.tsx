@@ -84,16 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsLoading(true);
-    const usersDb = getLocalStorageItem(USERS_DB_KEY, null);
-    if (!usersDb) {
-      setLocalStorageItem(USERS_DB_KEY, defaultUsers);
-    }
-
-    const storedUser = getLocalStorageItem<User | null>(AUTH_STORAGE_KEY, null);
-    if(storedUser){
-        setUser(storedUser);
-        _setTheme(storedUser.theme);
-    }
+    // Force logout by clearing the stored user
+    setLocalStorageItem<User | null>(AUTH_STORAGE_KEY, null);
+    setUser(null);
+    _setTheme('light');
     setIsLoading(false);
   }, []);
   
@@ -120,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (email: string, password: string): User => {
-    const usersDb = getLocalStorageItem(USERS_DB_KEY, {});
+    const usersDb = getLocalStorageItem(USERS_DB_KEY, defaultUsers);
     const userData = usersDb[email];
 
     if (!userData || userData.password !== password) {
@@ -138,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const register = (email: string, password: string, name: string): User => {
-    const usersDb = getLocalStorageItem(USERS_DB_KEY, {});
+    const usersDb = getLocalStorageItem(USERS_DB_KEY, defaultUsers);
     if (usersDb[email]) {
         throw new Error("Este correo electrónico ya está registrado.");
     }

@@ -15,7 +15,7 @@ export default function DecisionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold font-headline">
-          Inversiones de la Ronda 3
+          Inversiones de la Ronda
         </h1>
         <p className="text-muted-foreground">
           Asigna los fondos de tu equipo para esta ronda. Las decisiones se pueden revertir hasta que confirmes la ronda en el Dashboard.

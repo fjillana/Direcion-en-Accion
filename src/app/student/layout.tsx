@@ -45,7 +45,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
-    { href: "/student/decisions", label: "Decisiones", icon: ClipboardList },
+    { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
     { href: "/student/strategic-plan", label: "Plan Estratégico", icon: Target },
     { href: "/student/report", label: "Reporte de Ronda", icon: Library },
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },

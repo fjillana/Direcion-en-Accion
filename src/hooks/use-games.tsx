@@ -30,7 +30,7 @@ const initialGames: Game[] = [
     id: "1",
     name: "Simulación de Negocios 101",
     round: 3,
-    teams: ['Equipo Alfa', 'Equipo Beta', 'Equipo Gamma', 'Equipo Delta', 'IA Rival 1'],
+    teams: ['Equipo Alfa', 'Equipo Beta', 'Equipo Gamma', 'Equipo Delta'],
     status: "En curso",
     numRounds: 8,
     aiDifficulty: 3,
@@ -39,7 +39,7 @@ const initialGames: Game[] = [
     id: "2",
     name: "Marketing Avanzado",
     round: 5,
-    teams: ['Equipo A', 'Equipo B', 'Equipo C', 'Equipo D'],
+    teams: ['Equipo A', 'Equipo B', 'Equipo C'],
     status: "En curso",
     numRounds: 10,
     aiDifficulty: 4,
@@ -76,8 +76,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // This effect runs when 'games' state changes, and persists it to localStorage.
-    // It is guarded to only run on the client side after the initial state has been set.
     if (games.length > 0) {
         try {
             window.localStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));

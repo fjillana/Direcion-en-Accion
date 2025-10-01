@@ -27,7 +27,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 
 type TeamKPIs = {
   cash: number;
@@ -49,6 +48,7 @@ type StrategicGoal = {
 type Team = {
   rank: number;
   name: string;
+  type: 'H' | 'IA';
   xp: number;
   kpis: TeamKPIs;
   strategicGoals: { [key in keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>]?: StrategicGoal };
@@ -58,6 +58,7 @@ const teamsData: Team[] = [
   {
     rank: 1,
     name: "Equipo Delta",
+    type: 'H',
     xp: 1800,
     kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5, currentStudents: 825, tuitionPrice: 115 },
     strategicGoals: { 
@@ -72,6 +73,7 @@ const teamsData: Team[] = [
   {
     rank: 2,
     name: "Equipo Beta",
+    type: 'H',
     xp: 1500,
     kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0, currentStudents: 810, tuitionPrice: 118 },
     strategicGoals: { 
@@ -83,9 +85,20 @@ const teamsData: Team[] = [
       studentTeacherRatio: { target: 24.5, operator: "max" }
     },
   },
-  {
+    {
     rank: 3,
+    name: "IA Rival 1",
+    type: 'IA',
+    xp: 1450,
+    kpis: { cash: 45000, personnelCost: 70, nma: 8.4, marketShare: 12.5, morale: 80, studentTeacherRatio: 25.0, currentStudents: 805, tuitionPrice: 120 },
+    strategicGoals: { 
+      cash: { target: 30000, operator: "min" },
+    },
+  },
+  {
+    rank: 4,
     name: "Equipo Alfa",
+    type: 'H',
     xp: 1200,
     kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1, currentStudents: 802, tuitionPrice: 125 },
     strategicGoals: { 
@@ -98,8 +111,9 @@ const teamsData: Team[] = [
     },
   },
   {
-    rank: 4,
+    rank: 5,
     name: "Equipo Gamma",
+    type: 'H',
     xp: 950,
     kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8, currentStudents: 795, tuitionPrice: 130 },
     strategicGoals: { 
@@ -111,7 +125,7 @@ const teamsData: Team[] = [
       studentTeacherRatio: { target: 26, operator: "max" }
     },
   },
-].sort((a, b) => b.xp - a.xp);
+].sort((a, b) => b.xp - a.xp).map((team, index) => ({...team, rank: index + 1}));
 
 const kpiConfig = {
   cash: { label: "Saldo de tesorería", unit: "CC", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
@@ -160,6 +174,7 @@ export default function TeacherLeaderboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Equipo</TableHead>
+                <TableHead className="w-[50px] text-center">Tipo</TableHead>
                 <TableHead className="w-[80px]">Ranking</TableHead>
                 <TableHead className="text-right">Tesorería</TableHead>
                 <TableHead className="text-right">Coste Personal</TableHead>
@@ -170,10 +185,11 @@ export default function TeacherLeaderboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teams.map((team, index) => (
+              {teams.map((team) => (
                 <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
                   <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell className="font-bold text-lg">{index + 1}</TableCell>
+                  <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
+                  <TableCell className="font-bold text-lg">{team.rank}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.nma.format(team.kpis.nma)}</TableCell>

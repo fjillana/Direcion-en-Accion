@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -20,10 +21,16 @@ import { Label } from "@/components/ui/label";
 import { Wand2, Edit, Check, Loader2, Users, School, UserX } from "lucide-react";
 import { useState } from "react";
 
-type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta";
+type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
+
+type TeamPerformance = {
+  name: TeamName;
+  type: 'H' | 'IA';
+};
+
 
 interface AIReportFormProps {
-  teams: TeamName[];
+  teamsData: TeamPerformance[];
 }
 
 const initialReportData = {
@@ -52,8 +59,8 @@ const initialReportData = {
     "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 76.5%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
 };
 
-export function AIReportForm({ teams }: AIReportFormProps) {
-  const [selectedTeam, setSelectedTeam] = useState<TeamName>(teams[0]);
+export function AIReportForm({ teamsData }: AIReportFormProps) {
+  const [selectedTeam, setSelectedTeam] = useState<TeamName>(teamsData[0].name);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [report, setReport] = useState(initialReportData.qualitativeAnalysis);
@@ -96,9 +103,9 @@ export function AIReportForm({ teams }: AIReportFormProps) {
                 <SelectValue placeholder="Seleccionar equipo" />
               </SelectTrigger>
               <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team} value={team}>
-                    {team}
+                {teamsData.map((team) => (
+                  <SelectItem key={team.name} value={team.name}>
+                    {team.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -199,3 +206,5 @@ export function AIReportForm({ teams }: AIReportFormProps) {
     </Card>
   );
 }
+
+    

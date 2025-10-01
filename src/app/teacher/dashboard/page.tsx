@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function TeacherDashboard() {
       round: 1,
       teams: data.numTeams,
       status: "En curso",
+      numRounds: data.numRounds,
     };
     addGame(newGame);
     setDialogOpen(false);
@@ -79,7 +81,7 @@ export default function TeacherDashboard() {
                 >
                   {game.status}
                 </Badge>
-                Ronda {game.round}
+                Ronda {game.round} / {game.numRounds}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
@@ -98,3 +100,5 @@ export default function TeacherDashboard() {
     </>
   );
 }
+
+    

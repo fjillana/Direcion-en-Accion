@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
@@ -8,6 +9,7 @@ export interface Game {
   round: number;
   teams: number;
   status: "En curso" | "Finalizado";
+  numRounds: number;
 }
 
 interface GamesContextType {
@@ -24,6 +26,7 @@ const initialGames: Game[] = [
     round: 3,
     teams: 5,
     status: "En curso",
+    numRounds: 8,
   },
   {
     id: "2",
@@ -31,6 +34,7 @@ const initialGames: Game[] = [
     round: 5,
     teams: 4,
     status: "En curso",
+    numRounds: 10,
   },
   {
     id: "3",
@@ -38,6 +42,7 @@ const initialGames: Game[] = [
     round: 8,
     teams: 6,
     status: "Finalizado",
+    numRounds: 8,
   },
 ];
 
@@ -81,3 +86,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

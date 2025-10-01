@@ -38,6 +38,7 @@ interface RoundConfigProps {
   allTeams: TeamName[];
   fullInvestments: Investment[];
   fullCrises: Crisis[];
+  numRounds: number;
 }
 
 type RoundInvestment = Investment & { availableTo: TeamName[] };
@@ -47,6 +48,7 @@ export function RoundConfig({
   allTeams,
   fullInvestments,
   fullCrises,
+  numRounds,
 }: RoundConfigProps) {
   const [selectedRound, setSelectedRound] = useState("1");
   const [roundInvestments, setRoundInvestments] = useState<RoundInvestment[]>([]);
@@ -133,7 +135,7 @@ export function RoundConfig({
                   <SelectValue placeholder="Seleccionar Ronda" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 8 }, (_, i) => i + 1).map((r) => (
+                  {Array.from({ length: numRounds }, (_, i) => i + 1).map((r) => (
                     <SelectItem key={r} value={r.toString()}>
                       Ronda {r}
                     </SelectItem>
@@ -299,3 +301,5 @@ export function RoundConfig({
     </>
   );
 }
+
+    

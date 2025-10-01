@@ -52,7 +52,8 @@ type TeamDecision = {
 };
 
 type TeamPerformance = {
-  name: "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta";
+  name: "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
+  type: 'H' | 'IA';
   finances: { peb: number; xp: number; pebBreakdown: string[] };
   reputation: { peb: number; xp: number; pebBreakdown: string[] };
   morale: { peb: number; xp: number; pebBreakdown: string[] };
@@ -68,6 +69,7 @@ type TeamPerformance = {
 const teamsData: TeamPerformance[] = [
   {
     name: "Equipo Alfa",
+    type: 'H',
     finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 98 PEB"] },
     reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 95 PEB", "Cuota Mercado (12%): 85 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
@@ -92,6 +94,7 @@ const teamsData: TeamPerformance[] = [
   },
   {
     name: "Equipo Beta",
+    type: 'H',
     finances: { peb: 105, xp: 21, pebBreakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"] },
     reputation: { peb: 110, xp: 22, pebBreakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"] },
     morale: { peb: 98, xp: 20, pebBreakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"] },
@@ -115,6 +118,7 @@ const teamsData: TeamPerformance[] = [
   },
   {
     name: "Equipo Gamma",
+    type: 'H',
     finances: { peb: 88, xp: 18, pebBreakdown: ["Tesorería (4%): 80 PEB", "Coste Personal (79%): 96 PEB"] },
     reputation: { peb: 92, xp: 18, pebBreakdown: ["NMA (7.8): 90 PEB", "Cuota Mercado (11%): 94 PEB"] },
     morale: { peb: 65, xp: 13, pebBreakdown: ["Moral (65%): 65 PEB", "Ratio Alumno/Prof (25.8): 92 PEB"] },
@@ -138,6 +142,7 @@ const teamsData: TeamPerformance[] = [
   },
   {
     name: "Equipo Delta",
+    type: 'H',
     finances: { peb: 110, xp: 22, pebBreakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"] },
     reputation: { peb: 115, xp: 23, pebBreakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"] },
     morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"] },
@@ -158,6 +163,42 @@ const teamsData: TeamPerformance[] = [
         kpiTargets: ["Tesorería > 50k", "Coste Personal < 70%", "NMA > 9.0"],
         rankingGoal: "Ganar",
         pricingPolicy: "Bajo coste para ganar mercado"
+    }
+  },
+    {
+    name: "IA Rival 1",
+    type: 'IA',
+    finances: { peb: 100, xp: 20, pebBreakdown: ["Tesorería (10%): 100 PEB", "Coste Personal (75%): 100 PEB"] },
+    reputation: { peb: 100, xp: 20, pebBreakdown: ["NMA (8.5): 100 PEB", "Cuota Mercado (12.5%): 100 PEB"] },
+    morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (80%): 80 PEB", "Ratio Alumno/Prof (25.0): 120 PEB"] },
+    totalXp: 60,
+    decisions: {
+      investments: [ { name: "Campaña publicitaria en redes", cost: 10000 } ],
+      tuitionPrice: 120,
+      crisisResponse: { crisisName: "Huelga docente", option: "Negociar un acuerdo parcial", justification: "Respuesta automática de la IA." }
+    },
+    strategicPlan: {
+      kpiTargets: ["Estrategia de IA: Equilibrada"],
+      rankingGoal: "Mantenerse competitivo",
+      pricingPolicy: "Adaptativa según el mercado"
+    }
+  },
+  {
+    name: "IA Rival 2",
+    type: 'IA',
+    finances: { peb: 115, xp: 23, pebBreakdown: ["Tesorería (20%): 130 PEB", "Coste Personal (65%): 100 PEB"] },
+    reputation: { peb: 95, xp: 19, pebBreakdown: ["NMA (8.0): 90 PEB", "Cuota Mercado (11.5%): 100 PEB"] },
+    morale: { peb: 90, xp: 18, pebBreakdown: ["Moral (70%): 70 PEB", "Ratio Alumno/Prof (24.5): 110 PEB"] },
+    totalXp: 60,
+    decisions: {
+      investments: [ { name: "Implantación de ERP", cost: 30000 } ],
+      tuitionPrice: 128,
+      crisisResponse: { crisisName: "Huelga docente", option: "Mantener la postura", justification: "Respuesta automática de la IA." }
+    },
+    strategicPlan: {
+      kpiTargets: ["Estrategia de IA: Financiera Agresiva"],
+      rankingGoal: "Maximizar tesorería",
+      pricingPolicy: "Premium"
     }
   },
 ];
@@ -194,7 +235,8 @@ export default function GameDetailsPage() {
     setIsProcessing(true);
     // Simulate processing time
     setTimeout(() => {
-      // setIsProcessing(false); // Disabled for demo purposes
+      // In a real scenario, this would be set to false when all teams submit.
+      // setIsProcessing(false); 
     }, 5000);
   };
   
@@ -263,6 +305,7 @@ export default function GameDetailsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Equipo</TableHead>
+                      <TableHead className="w-[50px] text-center">Tipo</TableHead>
                       <TableHead className="text-center">PEB Finanzas</TableHead>
                       <TableHead className="text-center">XP Finanzas</TableHead>
                       <TableHead className="text-center">PEB Reputación</TableHead>
@@ -277,6 +320,7 @@ export default function GameDetailsPage() {
                     {teamsData.map((team) => (
                       <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
                         <TableCell className="font-medium">{team.name}</TableCell>
+                        <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                         <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
                         <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
                         <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
@@ -293,35 +337,9 @@ export default function GameDetailsPage() {
                 </Table>
               </CardContent>
             </Card>
-
-            {selectedTeam && (
-               <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle>Plan Estratégico (Ronda 0) - {selectedTeam.name}</CardTitle>
-                    <CardDescription>Objetivos iniciales definidos por el equipo.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-3 gap-6 text-sm">
-                    <div className="space-y-2">
-                        <h4 className="font-semibold">Objetivos de KPIs</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                            {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={i}>{target}</li>)}
-                        </ul>
-                    </div>
-                     <div className="space-y-2">
-                        <h4 className="font-semibold">Objetivo de Ranking</h4>
-                        <p className="text-muted-foreground">{selectedTeam.strategicPlan.rankingGoal}</p>
-                    </div>
-                     <div className="space-y-2">
-                        <h4 className="font-semibold">Política de Precios</h4>
-                        <p className="text-muted-foreground">{selectedTeam.strategicPlan.pricingPolicy}</p>
-                    </div>
-                </CardContent>
-               </Card>
-            )}
-
           </TabsContent>
           <TabsContent value="reports">
-            <AIReportForm teams={teamsData.map(t => t.name)} />
+            <AIReportForm teamsData={teamsData} />
           </TabsContent>
         </Tabs>
 
@@ -329,6 +347,7 @@ export default function GameDetailsPage() {
           allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
+          numRounds={game?.numRounds ?? 8}
         />
 
       </div>
@@ -374,61 +393,92 @@ export default function GameDetailsPage() {
       
       {/* Decision Details Dialog */}
       <Dialog open={isDecisionDetailOpen} onOpenChange={setDecisionDetailOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           {selectedTeam && (
             <>
               <DialogHeader>
-                <DialogTitle>Decisiones de la Ronda: {selectedTeam.name}</DialogTitle>
-                <DialogDescription>
-                  Detalle de las acciones tomadas por el equipo en esta ronda.
-                </DialogDescription>
+                <DialogTitle>Detalles de la Ronda: {selectedTeam.name}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-6 py-4 text-sm">
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Precio de Matrícula</h4>
-                  <p className="text-muted-foreground">El equipo ha fijado el precio trimestral de la matrícula en <span className="font-bold text-foreground">{selectedTeam.decisions.tuitionPrice} CC</span>.</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Inversiones Realizadas</h4>
-                  {selectedTeam.decisions.investments.length > 0 ? (
-                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                      {selectedTeam.decisions.investments.map((inv, index) => (
-                        <li key={index}>
-                          <span className="font-semibold text-foreground">{inv.name}:</span> {inv.cost.toLocaleString()} CC
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
-                   <div className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">Opción elegida:</p>
-                      <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
-                      <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
+              <Tabs defaultValue="decisions">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="decisions">Decisiones de la Ronda</TabsTrigger>
+                  <TabsTrigger value="plan">Plan Estratégico (Ronda 0)</TabsTrigger>
+                </TabsList>
+                <TabsContent value="decisions" className="py-4">
+                  <div className="space-y-6 text-sm">
+                    <div className="space-y-2">
+                      <h4 className="font-semibold">Precio de Matrícula</h4>
+                      <p className="text-muted-foreground">El equipo ha fijado el precio trimestral de la matrícula en <span className="font-bold text-foreground">{selectedTeam.decisions.tuitionPrice} CC</span>.</p>
                     </div>
-                     <div className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">Justificación del equipo:</p>
-                      <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold">Inversiones Realizadas</h4>
+                      {selectedTeam.decisions.investments.length > 0 ? (
+                        <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                          {selectedTeam.decisions.investments.map((inv, index) => (
+                            <li key={index}>
+                              <span className="font-semibold text-foreground">{inv.name}:</span> {inv.cost.toLocaleString()} CC
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
+                      )}
                     </div>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
-                    <Textarea 
-                        id="teacher-notes" 
-                        placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
-                        value={teacherNotes}
-                        onChange={(e) => setTeacherNotes(e.target.value)}
-                        className="min-h-[100px]"
-                    />
-                 </div>
-              </div>
-               <DialogFooter>
-                  <Button onClick={() => setDecisionDetailOpen(false)}>Guardar Notas</Button>
-                  <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
-               </DialogFooter>
+                    {selectedTeam.type === 'H' && <div className="space-y-2">
+                      <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
+                      <div className="p-3 bg-muted/50 rounded-md">
+                          <p className="font-medium">Opción elegida:</p>
+                          <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
+                        </div>
+                        <div className="p-3 bg-muted/50 rounded-md">
+                          <p className="font-medium">Justificación del equipo:</p>
+                          <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
+                        </div>
+                    </div>}
+                    <div className="space-y-2">
+                        <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
+                        <Textarea 
+                            id="teacher-notes" 
+                            placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
+                            value={teacherNotes}
+                            onChange={(e) => setTeacherNotes(e.target.value)}
+                            className="min-h-[100px]"
+                        />
+                    </div>
+                  </div>
+                </TabsContent>
+                 <TabsContent value="plan" className="py-4">
+                   <Card>
+                      <CardHeader>
+                          <CardTitle>Plan Estratégico (Ronda 0)</CardTitle>
+                          <CardDescription>Objetivos iniciales definidos por el equipo.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid md:grid-cols-2 gap-6 text-sm">
+                          <div className="space-y-2">
+                              <h4 className="font-semibold">Objetivos de KPIs</h4>
+                              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                                  {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={i}>{target}</li>)}
+                              </ul>
+                          </div>
+                          <div className="space-y-3">
+                              <div className="space-y-2">
+                                  <h4 className="font-semibold">Objetivo de Ranking</h4>
+                                  <p className="text-muted-foreground">{selectedTeam.strategicPlan.rankingGoal}</p>
+                              </div>
+                              <div className="space-y-2">
+                                  <h4 className="font-semibold">Política de Precios</h4>
+                                  <p className="text-muted-foreground">{selectedTeam.strategicPlan.pricingPolicy}</p>
+                              </div>
+                          </div>
+                      </CardContent>
+                    </Card>
+                 </TabsContent>
+              </Tabs>
+              <DialogFooter className="mt-4">
+                <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
+                <Button onClick={() => setDecisionDetailOpen(false)}>Guardar Notas</Button>
+              </DialogFooter>
             </>
           )}
         </DialogContent>

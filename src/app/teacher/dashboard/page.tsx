@@ -54,7 +54,7 @@ export default function TeacherDashboard() {
       id: (games.length > 100 ? Math.random() : games.length + 1).toString(),
       name: data.gameName,
       round: 1,
-      teams: [],
+      teams: [], // Initialize with an empty array of strings
       status: "En curso",
       numRounds: data.numRounds,
       aiDifficulty: data.aiDifficulty,

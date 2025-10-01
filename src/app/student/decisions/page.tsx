@@ -5,17 +5,17 @@
 import { InvestmentForm } from "@/components/student/investment-form";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
-import { useState } from "react";
 import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
 
 export default function DecisionsPage() {
-  const [roundConfirmed, setRoundConfirmed] = useState(false);
   const { studentGame, setRoundDecisions } = useStudentGame();
 
   const availableInvestments = studentGame?.roundSettings?.investments || [];
   const selectedInvestments = studentGame?.decisions?.selectedInvestments || [];
   const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
+  const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
+  const teamCash = studentGame?.kpis?.cash || 0;
 
   const centerActionsCosts = {
     'P2': 7500, // Contratar Docente
@@ -55,6 +55,7 @@ export default function DecisionsPage() {
           selectedInvestments={selectedInvestments}
           onInvestmentChange={(investments) => setRoundDecisions({ selectedInvestments: investments })}
           totalOtherCosts={centerActionCosts}
+          teamCash={teamCash}
         />
       </div>
     </StudentGate>

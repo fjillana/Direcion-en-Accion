@@ -5,8 +5,11 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Shield, Heart } from "lucide-react";
+import { DollarSign, Shield, Heart, Info } from "lucide-react";
 import { Button } from "../ui/button";
+import type { TeamPerformanceData } from "@/hooks/use-games";
+import { Alert, AlertTitle } from "../ui/alert";
+
 
 type PebData = {
   total: number;
@@ -25,19 +28,22 @@ export type XpData = {
 };
 
 interface XpSummaryProps {
-  data: XpData[];
+  performanceHistory: TeamPerformanceData[];
 }
 
 interface XpCardProps {
   title: string;
   xp: number;
   icon: React.ReactNode;
-  pebData: PebData;
+  peb: number;
+  pebBreakdown: string[];
   round: number;
 }
 
-function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
-  const calculatedXp = (pebData.total * (80 / 3) / 100).toFixed(2);
+function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
+    const calculatedXp = (peb * (80 / 3) / 100);
+    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / 2 = ${peb.toFixed(2)}`;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -47,7 +53,7 @@ function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-xl font-bold">{xp} XP</p>
+            <p className="text-xl font-bold">{xp.toFixed(1)} XP</p>
           </div>
         </div>
       </DialogTrigger>
@@ -62,19 +68,19 @@ function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
             <div>
                 <h4 className="font-semibold mb-1">1. Desglose de Puntuación Base (PEB)</h4>
                 <ul className="list-disc space-y-1 rounded-md border bg-muted/50 p-4 pl-8 text-muted-foreground">
-                    {pebData.breakdown.map((line, index) => <li key={index}><span className="text-foreground">{line}</span></li>)}
+                    {pebBreakdown.map((line, index) => <li key={index}><span className="text-foreground">{line}</span></li>)}
                 </ul>
             </div>
              <div>
                 <h4 className="font-semibold mb-1">2. Cálculo del PEB Total del Área</h4>
                  <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
-                    {pebData.finalCalculation}
+                    {finalCalculation}
                  </div>
             </div>
             <div>
                 <h4 className="font-semibold mb-1">3. Conversión de PEB a Puntos de Experiencia (XP)</h4>
                  <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
-                    XP = {pebData.total} PEB * (26.67 / 100) = <span className="font-bold">{calculatedXp} XP</span>
+                    XP = {peb.toFixed(2)} PEB * (26.67 / 100) = <span className="font-bold">{calculatedXp.toFixed(2)} XP</span>
                  </div>
                  <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100.</p>
             </div>
@@ -89,23 +95,40 @@ function XpCard({ title, xp, icon, pebData, round }: XpCardProps) {
   );
 }
 
-export function XpSummary({ data }: XpSummaryProps) {
-  const latestRound = Math.max(...data.map(d => d.round));
+export function XpSummary({ performanceHistory }: XpSummaryProps) {
+
+  if (!performanceHistory || performanceHistory.length === 0) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Resumen de Puntuación</CardTitle>
+            </CardHeader>
+             <CardContent>
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>¡Comienza la partida!</AlertTitle>
+                    <CardDescription>
+                        Los resultados y la puntuación de la primera ronda aparecerán aquí una vez que el profesor la procese.
+                    </CardDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+    );
+  }
+
+  const latestRound = Math.max(...performanceHistory.map(d => d.round));
   const [selectedRound, setSelectedRound] = useState<number>(latestRound);
 
   const currentData = useMemo(() => {
-    return data.find(d => d.round === selectedRound) || data[data.length - 1];
-  }, [data, selectedRound]);
+    return performanceHistory.find(d => d.round === selectedRound) || performanceHistory[performanceHistory.length - 1];
+  }, [performanceHistory, selectedRound]);
 
-  const xpRonda = currentData.xpFinanzas + currentData.xpReputacion + currentData.xpMoral;
+  const xpRonda = currentData.totalXp;
 
   const averageXp = useMemo(() => {
-    if (data.length === 0) return 0;
-    const totalXp = data.reduce((acc, roundData) => {
-        return acc + roundData.xpFinanzas + roundData.xpReputacion + roundData.xpMoral;
-    }, 0);
-    return (totalXp / data.length).toFixed(1);
-  }, [data]);
+    const totalXp = performanceHistory.reduce((acc, roundData) => acc + roundData.totalXp, 0);
+    return (totalXp / performanceHistory.length).toFixed(1);
+  }, [performanceHistory]);
 
   return (
     <Card>
@@ -114,7 +137,7 @@ export function XpSummary({ data }: XpSummaryProps) {
             <div className="flex-1">
                 <CardTitle>Resumen de Puntuación</CardTitle>
                 <CardDescription>
-                    XP de la Ronda {selectedRound}: <span className="font-bold text-primary">{xpRonda} XP</span>
+                    XP de la Ronda {selectedRound}: <span className="font-bold text-primary">{xpRonda.toFixed(1)} XP</span>
                 </CardDescription>
             </div>
             <div className="mt-4 sm:mt-0">
@@ -123,7 +146,7 @@ export function XpSummary({ data }: XpSummaryProps) {
                         <SelectValue placeholder="Seleccionar Ronda" />
                     </SelectTrigger>
                     <SelectContent>
-                        {data.map(d => (
+                        {performanceHistory.map(d => (
                             <SelectItem key={d.round} value={String(d.round)}>Ronda {d.round}</SelectItem>
                         ))}
                     </SelectContent>
@@ -134,9 +157,9 @@ export function XpSummary({ data }: XpSummaryProps) {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <XpCard title="Finanzas" xp={currentData.xpFinanzas} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} pebData={currentData.pebFinanzas} round={selectedRound} />
-            <XpCard title="Reputación" xp={currentData.xpReputacion} icon={<Shield className="h-5 w-5 text-blue-600" />} pebData={currentData.pebReputacion} round={selectedRound} />
-            <XpCard title="Moral" xp={currentData.xpMoral} icon={<Heart className="h-5 w-5 text-red-600" />} pebData={currentData.pebMoral} round={selectedRound} />
+            <XpCard title="Finanzas" xp={currentData.finances.xp} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} peb={currentData.finances.peb} pebBreakdown={currentData.finances.pebBreakdown} round={selectedRound} />
+            <XpCard title="Reputación" xp={currentData.reputation.xp} icon={<Shield className="h-5 w-5 text-blue-600" />} peb={currentData.reputation.peb} pebBreakdown={currentData.reputation.pebBreakdown} round={selectedRound} />
+            <XpCard title="Moral" xp={currentData.morale.xp} icon={<Heart className="h-5 w-5 text-red-600" />} peb={currentData.morale.peb} pebBreakdown={currentData.morale.pebBreakdown} round={selectedRound} />
           </div>
         </div>
         <div className="flex items-center justify-center rounded-lg bg-muted/50 p-4">

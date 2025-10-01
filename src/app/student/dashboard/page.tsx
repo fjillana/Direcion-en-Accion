@@ -26,127 +26,13 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
-import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
-import { XpSummary, XpData } from "@/components/student/xp-summary";
+import { XpSummary } from "@/components/student/xp-summary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useStudentGame } from "@/hooks/useStudentGame";
-
-const kpiHistoryData = {
-  cash: [
-    { round: 0, value: 50000 },
-    { round: 1, value: 45000 },
-    { round: 2, value: 65000 },
-    { round: 3, value: 25000 },
-  ],
-  personnelCost: [
-    { round: 0, value: 70 },
-    { round: 1, value: 72 },
-    { round: 2, value: 78 },
-    { round: 3, value: 75 },
-  ],
-  nma: [
-    { round: 0, value: 7.0 },
-    { round: 1, value: 7.2 },
-    { round: 2, value: 7.4 },
-    { round: 3, value: 7.5 },
-  ],
-  marketShare: [
-    { round: 0, value: 10 },
-    { round: 1, value: 11.5 },
-    { round: 2, value: 12 },
-    { round: 3, value: 12.5 },
-  ],
-  morale: [
-    { round: 0, value: 80 },
-    { round: 1, value: 75 },
-    { round: 2, value: 90 },
-    { round: 3, value: 100 },
-  ],
-  studentTeacherRatio: [
-    { round: 0, value: 26.0 },
-    { round: 1, value: 25.8 },
-    { round: 2, value: 25.5 },
-    { round: 3, value: 25.0 },
-  ],
-};
-
-const xpData: XpData[] = [
-  {
-    round: 1,
-    xpFinanzas: 19,
-    xpReputacion: 18,
-    xpMoral: 14,
-    pebFinanzas: {
-      total: 95,
-      breakdown: [
-        "Tesorería al 7% sobre ingresos -> 100 PEB",
-        "Coste Personal sobre ingresos al 76% -> 90 PEB"
-      ],
-      finalCalculation: "PEB Finanzas = (100 + 90) / 2 = 95"
-    },
-    pebReputacion: {
-      total: 88,
-      breakdown: [
-        "Nota Media Alumnado (NMA) de 8.2 -> 82 PEB",
-        "Cuota de Mercado del 12% -> 94 PEB"
-      ],
-      finalCalculation: "PEB Reputación = (82 + 94) / 2 = 88"
-    },
-    pebMoral: {
-      total: 85.5,
-      breakdown: [
-        "Moral del personal al 71% -> 71 PEB",
-        "Ratio Alumno/Profesor de 25.1 -> 100 PEB"
-      ],
-       finalCalculation: "PEB Moral = (71 + 100) / 2 = 85.5"
-    },
-  },
-  {
-    round: 2,
-    xpFinanzas: 21,
-    xpReputacion: 22,
-    xpMoral: 20,
-    pebFinanzas: {
-      total: 105,
-      breakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"],
-      finalCalculation: "PEB Finanzas = (110 + 100) / 2 = 105"
-    },
-    pebReputacion: {
-      total: 110,
-      breakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"],
-      finalCalculation: "PEB Reputación = (115 + 105) / 2 = 110"
-    },
-    pebMoral: {
-      total: 98,
-      breakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"],
-      finalCalculation: "PEB Moral = (78 + 118) / 2 = 98"
-    },
-  },
-   {
-    round: 3,
-    xpFinanzas: 22,
-    xpReputacion: 23,
-    xpMoral: 20,
-    pebFinanzas: {
-      total: 110,
-      breakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"],
-      finalCalculation: "PEB Finanzas = (120 + 100) / 2 = 110"
-    },
-    pebReputacion: {
-      total: 115,
-      breakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"],
-      finalCalculation: "PEB Reputación = (120 + 110) / 2 = 115"
-    },
-    pebMoral: {
-      total: 100,
-      breakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"],
-      finalCalculation: "PEB Moral = (85 + 115) / 2 = 100"
-    },
-  },
-];
+import { useMemo } from "react";
 
 const mockCrises: Record<string, CrisisProps> = {
     'C1': {
@@ -165,13 +51,57 @@ const mockCrises: Record<string, CrisisProps> = {
 
 export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
-  const [roundConfirmed, setRoundConfirmed] = useState(false);
 
-  // All decision state is now managed by the useStudentGame hook
-  const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
-  const tuitionPrice = studentGame?.decisions?.tuitionPrice || 120;
-  const crisisResponse = studentGame?.decisions?.crisisResponse || null;
+  const { decisions, kpis, performanceHistory } = studentGame || {};
+  const roundConfirmed = decisions?.roundConfirmed || false;
+
+  const handleConfirmRound = () => {
+    if(!decisions) return;
+    setRoundDecisions({ ...decisions, roundConfirmed: true });
+    
+    // Save decisions for this round
+    if(studentGame?.gameId && studentGame.teamName && studentGame.round){
+        const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
+        localStorage.setItem(key, JSON.stringify(decisions));
+    }
+  }
+
+  const kpiHistoryData = useMemo(() => {
+    if (!performanceHistory) return {};
+    
+    const history = {
+      cash: [],
+      personnelCost: [],
+      nma: [],
+      marketShare: [],
+      morale: [],
+      studentTeacherRatio: [],
+    };
+
+    performanceHistory.forEach(perf => {
+      history.cash.push({ round: perf.round, value: perf.kpis.cash });
+      history.personnelCost.push({ round: perf.round, value: (perf.kpis.personnelCost / perf.kpis.income) * 100 });
+      history.nma.push({ round: perf.round, value: perf.kpis.nma });
+      history.marketShare.push({ round: perf.round, value: perf.kpis.marketShare });
+      history.morale.push({ round: perf.round, value: perf.kpis.morale });
+      history.studentTeacherRatio.push({ round: perf.round, value: perf.kpis.studentTeacherRatio });
+    });
+    
+    return history;
+
+  }, [performanceHistory]);
   
+  const getTrend = (data: {round: number, value: number}[]) => {
+      if(data.length < 2) return { trend: "up" as "up" | "down", change: "N/A"};
+      const last = data[data.length-1].value;
+      const prev = data[data.length-2].value;
+      const diff = last - prev;
+      return {
+          trend: diff >= 0 ? "up" as "up" : "down" as "down",
+          change: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}`
+      }
+  }
+
   const currentCrisisId = studentGame?.roundSettings?.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
   const currentCrisis = currentCrisisId ? mockCrises[currentCrisisId] : undefined;
 
@@ -193,6 +123,7 @@ export default function StudentDashboard() {
                   <div className="text-center">
                       <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
                       <h3 className="mt-2 text-base font-semibold">Decisiones Enviadas</h3>
+                      <p className="text-sm text-muted-foreground">Esperando al profesor...</p>
                   </div>
               </div>
             ) : (
@@ -209,7 +140,7 @@ export default function StudentDashboard() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => setRoundConfirmed(true)}>Sí, finalizar ronda</AlertDialogAction>
+                    <AlertDialogAction onClick={handleConfirmRound}>Sí, finalizar ronda</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -218,7 +149,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <XpSummary data={xpData} />
+        <XpSummary performanceHistory={performanceHistory || []} />
         
         <Card>
           <CardHeader>
@@ -229,7 +160,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Saldo de tesorería" value="25,000 CC" trend="up" change="+2.5%" />
+                    <KpiCard title="Saldo de tesorería" value={`${(kpis?.cash || 0).toLocaleString('es-ES')} CC`} {...getTrend(kpiHistoryData.cash || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -239,14 +170,14 @@ export default function StudentDashboard() {
                       Historial de la tesorería de tu equipo a lo largo de las rondas.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.cash} dataKey="value" unit=" CC" />
+                  <KpiChart data={kpiHistoryData.cash || []} dataKey="value" unit=" CC" />
                 </DialogContent>
               </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Coste personal / Ingresos" value="75%" trend="down" change="-1.0%" />
+                    <KpiCard title="Coste personal / Ingresos" value={`${(kpis?.peb || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -256,14 +187,14 @@ export default function StudentDashboard() {
                       Historial del ratio de coste de personal sobre ingresos.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.personnelCost} dataKey="value" unit="%" />
+                  <KpiChart data={kpiHistoryData.personnelCost || []} dataKey="value" unit="%" />
                 </DialogContent>
               </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Nota Media Alumnado" value="7.5" trend="up" change="+0.1" />
+                    <KpiCard title="Nota Media Alumnado" value={`${(kpis?.peb || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -273,14 +204,14 @@ export default function StudentDashboard() {
                       Historial de la nota media de los alumnos.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.nma} dataKey="value" />
+                  <KpiChart data={kpiHistoryData.nma || []} dataKey="value" />
                 </DialogContent>
               </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                      <KpiCard title="Cuota de mercado" value="12.5%" trend="up" change="+0.5%" />
+                      <KpiCard title="Cuota de mercado" value={`${(kpis?.marketShare || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.marketShare || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -290,14 +221,14 @@ export default function StudentDashboard() {
                       Historial de la cuota de mercado de tu equipo.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.marketShare} dataKey="value" unit="%" />
+                  <KpiChart data={kpiHistoryData.marketShare || []} dataKey="value" unit="%" />
                 </DialogContent>
               </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Moral del personal" value="100%" trend="up" change="0%" />
+                    <KpiCard title="Moral del personal" value={`${(kpis?.peb || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -307,14 +238,14 @@ export default function StudentDashboard() {
                       Historial de la moral del equipo docente.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.morale} dataKey="value" unit="%" />
+                  <KpiChart data={kpiHistoryData.morale || []} dataKey="value" unit="%" />
                 </DialogContent>
               </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Ratio Alumnos/Profesor" value="25.0" trend="down" change="-0.5" />
+                    <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.peb || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>
@@ -324,7 +255,7 @@ export default function StudentDashboard() {
                       Historial del ratio de alumnos por cada profesor.
                     </DialogDescription>
                   </DialogHeader>
-                  <KpiChart data={kpiHistoryData.studentTeacherRatio} dataKey="value" />
+                  <KpiChart data={kpiHistoryData.studentTeacherRatio || []} dataKey="value" />
                 </DialogContent>
               </Dialog>
             </div>
@@ -333,10 +264,12 @@ export default function StudentDashboard() {
         
         <CenterDataForm 
           disabled={roundConfirmed} 
-          selectedActions={selectedCenterActions}
+          selectedActions={decisions?.selectedCenterActions || []}
           onActionChange={(actions) => setRoundDecisions({ selectedCenterActions: actions })}
-          tuitionPrice={tuitionPrice}
+          tuitionPrice={decisions?.tuitionPrice || 120}
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
+          numStudents={kpis?.numStudents || 0}
+          numTeachers={kpis?.numTeachers || 0}
         />
         
         {currentCrisis && (
@@ -344,7 +277,7 @@ export default function StudentDashboard() {
             <CrisisForm 
               disabled={roundConfirmed}
               onResponseChange={(response) => setRoundDecisions({ crisisResponse: response })}
-              currentResponse={crisisResponse}
+              currentResponse={decisions?.crisisResponse || null}
               {...currentCrisis} 
             />
           </div>

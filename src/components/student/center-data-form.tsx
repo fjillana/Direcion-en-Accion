@@ -18,6 +18,8 @@ interface CenterDataFormProps {
   onActionChange: (selected: string[]) => void;
   tuitionPrice: number;
   onPriceChange: (price: number) => void;
+  numStudents: number;
+  numTeachers: number;
 }
 
 const personnelActions = [
@@ -29,7 +31,7 @@ const capacityActions = [
     { id: 'F5', name: 'Ampliación de Aulas', cost: 50000, effect: '+10 XP Finanzas' },
 ];
 
-export function CenterDataForm({ disabled = false, selectedActions, onActionChange, tuitionPrice, onPriceChange }: CenterDataFormProps) {
+export function CenterDataForm({ disabled = false, selectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
   
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
     onActionChange(
@@ -50,7 +52,7 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
                   <p className="text-sm text-muted-foreground">Nº de Alumnos</p>
-                  <p className="text-2xl font-bold">810</p>
+                  <p className="text-2xl font-bold">{numStudents}</p>
               </div>
               <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
                   <p className="text-sm text-muted-foreground">Capacidad Total</p>
@@ -58,7 +60,7 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
               </div>
               <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
                   <p className="text-sm text-muted-foreground">Nº de Profesores</p>
-                  <p className="text-2xl font-bold">32</p>
+                  <p className="text-2xl font-bold">{numTeachers}</p>
               </div>
               <div className="p-4 rounded-lg bg-muted/50 border flex flex-col justify-center">
                 <Label htmlFor="tuition-price" className="text-sm text-muted-foreground text-center mb-1">Precio Matrícula (CC)</Label>

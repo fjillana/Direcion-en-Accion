@@ -16,22 +16,23 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Investment } from "@/components/teacher/catalog-editor";
 
-const teamCash = 65000;
-
 interface InvestmentFormProps {
   disabled?: boolean;
   availableInvestments: Investment[];
   selectedInvestments: string[];
   onInvestmentChange: (selected: string[]) => void;
   totalOtherCosts: number;
+  teamCash: number;
 }
 
-export function InvestmentForm({ disabled = false, availableInvestments, selectedInvestments, onInvestmentChange, totalOtherCosts }: InvestmentFormProps) {
+export function InvestmentForm({ disabled = false, availableInvestments, selectedInvestments, onInvestmentChange, totalOtherCosts, teamCash }: InvestmentFormProps) {
   const [confirmed, setConfirmed] = useState(false);
 
   const investmentCost = selectedInvestments.reduce((acc, id) => {
     const investment = availableInvestments.find(inv => inv.id === id);
-    return acc + (investment?.cost || 0);
+    // A simple way to get a deterministic cost from a range string for simulation
+    const costString = investment?.costRange.split('-')[0].replace(/\D/g, '') || '0';
+    return acc + (parseInt(costString, 10));
   }, 0);
 
   const totalCost = investmentCost + totalOtherCosts;
@@ -107,7 +108,7 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
                       </p>
                     </div>
                     <div className="font-mono text-right">
-                        {inv.cost?.toLocaleString('es-ES')} CC
+                        {inv.costRange} CC
                     </div>
                   </div>
                 )) : (

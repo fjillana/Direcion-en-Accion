@@ -87,8 +87,8 @@ export default function TeacherLeaderboardPage() {
   const teams = useMemo(() => {
       if (!activeGame || !activeGame.performance) return [];
       
-      const lastRound = activeGame.round > 1 ? activeGame.round - 1 : 1;
-      const performanceData = activeGame.performance[lastRound];
+      const lastCompletedRound = activeGame.round > 0 ? activeGame.round - 1 : 0;
+      const performanceData = activeGame.performance[lastCompletedRound];
 
       if (!performanceData) return [];
       

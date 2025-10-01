@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { PlayCircle, Loader2, LogOut } from "lucide-react";
 import { AIReportForm } from "@/components/teacher/ai-report-form";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -122,7 +122,12 @@ export default function GameDetailsPage() {
       if (performanceForRound) {
         setMonitoringData(performanceForRound);
       } else {
-        setMonitoringData([]);
+        // For round 0, show initial state if no performance data exists
+        if(game.round === 0 && game.performance?.[0]){
+            setMonitoringData(game.performance[0]);
+        } else {
+            setMonitoringData([]);
+        }
       }
     }
   }, [game]);
@@ -196,10 +201,28 @@ export default function GameDetailsPage() {
       return `Procesar Ronda ${game.round}`;
   }
   
+  const allTeamsConfirmed = useMemo(() => {
+      if (!game || game.teamNames.length === 0) {
+          return true; // No human teams to wait for
+      }
+      return game.teamNames.every(teamName => {
+          const key = `decisions_${game.id}_${teamName}_${game.round}`;
+          const decisions = localStorage.getItem(key);
+          if (!decisions) return false;
+          try {
+              const parsedDecisions = JSON.parse(decisions);
+              return parsedDecisions.roundConfirmed === true;
+          } catch (e) {
+              return false;
+          }
+      });
+  }, [game]);
+
+
   const isButtonDisabled = () => {
       if (isProcessing) return true;
       if (game.status === 'Finalizado') return true;
-      // TODO: Add logic to check if all human teams have submitted their decisions
+      if (game.round > 0 && !allTeamsConfirmed) return true; // Disable if not all teams have confirmed
       return false;
   }
 
@@ -459,4 +482,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-

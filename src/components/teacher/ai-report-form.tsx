@@ -128,15 +128,14 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const [reportData, setReportData] = useState<any>(null);
 
   useEffect(() => {
-    if (activeGame && teamsData) {
-        const currentHumanTeams = teamsData.filter(t => t.type === 'H');
-        if (!selectedTeam && currentHumanTeams.length > 0) {
-            setSelectedTeam(currentHumanTeams[0].name);
-        } else if (currentHumanTeams.length === 0) {
-            setSelectedTeam(undefined);
-        }
+    const currentHumanTeams = teamsData.filter(t => t.type === 'H');
+    if (!selectedTeam && currentHumanTeams.length > 0) {
+      setSelectedTeam(currentHumanTeams[0].name);
+    } else if (currentHumanTeams.length === 0) {
+      setSelectedTeam(undefined);
     }
-  }, [teamsData, activeGame, selectedTeam]);
+  }, [teamsData, selectedTeam]);
+
 
   useEffect(() => {
     if (activeGame && selectedTeam) {
@@ -156,6 +155,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             setPedagogicalSuggestions("");
             setReportData(null);
         }
+    } else {
+      setHasReport(false);
     }
   }, [selectedTeam, activeGame, getGameById]);
 
@@ -164,7 +165,14 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     if (!activeGame || !selectedTeam) return;
     
     const teamPerformance = teamsData.find(t => t.name === selectedTeam);
-    if (!teamPerformance) return;
+    if (!teamPerformance) {
+        toast({
+            variant: "destructive",
+            title: "Error al generar el informe",
+            description: "No se encontraron los datos de rendimiento para el equipo seleccionado.",
+        });
+        return;
+    }
 
     setIsGenerating(true);
     try {
@@ -180,11 +188,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       
       const newReportData = {
-          ...initialReportData,
+          ...initialReportData, // Using dummy data as a base for structure
           qualitativeAnalysis: result.reporteCualitativo,
           debriefingQuestions: result.preguntasMayeuticas,
           pedagogicalSuggestions: result.sugerenciasPedagogicas,
           round: activeGame.round - 1,
+          kpis: teamPerformance.kpis,
       };
 
       setReportData(newReportData);
@@ -274,7 +283,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 <TabsTrigger value="debriefing">Debriefing IA</TabsTrigger>
             </TabsList>
             <TabsContent value="analysis">
-                 {hasReport && reportData && reportData.kpis ? (
+                 {hasReport && reportData ? (
                     <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-6']} className="w-full space-y-4 pt-4">
                         
                         {/* Financial Summary */}
@@ -371,7 +380,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                     ) : (
                         <Wand2 className="mr-2 h-4 w-4" />
                     )}
-                    {isGenerating ? "Generando..." : `Generar Reporte para ${selectedTeam}`}
+                    {isGenerating ? "Generando..." : `Generar Reporte para ${selectedTeam || ''}`}
                     </Button>
                 </div>
                 )}

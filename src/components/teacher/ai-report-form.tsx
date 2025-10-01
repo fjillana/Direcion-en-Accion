@@ -25,25 +25,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Wand2, Edit, Check, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebriefingQuestions } from "./debriefing-questions";
 import { useGames } from "@/hooks/use-games";
 import { useGame } from "@/hooks/use-game-context";
 import { useToast } from "@/hooks/use-toast";
+import { generateRoundReport } from "@/ai/flows/generate-round-report";
+import type { TeamPerformanceData } from "@/hooks/use-games";
 
 
-type TeamName = "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
-
-type TeamPerformance = {
-  name: TeamName;
-  type: 'H' | 'IA';
-};
-
+type TeamName = string;
 
 interface AIReportFormProps {
-  teamsData: TeamPerformance[];
+  teamsData: TeamPerformanceData[];
 }
 
 const initialReportData = {
@@ -105,42 +101,93 @@ const initialReportData = {
   },
   qualitativeAnalysis:
     "El equipo ha gestionado eficientemente la crisis de la huelga, optando por una negociación parcial que ha contenido la caída de moral sin un coste excesivo. La inversión en TIC ha sido clave para mejorar la NMA, y se refleja positivamente en el IAM. Sin embargo, el coste de personal ha subido al 76.5%, superando el umbral del 75%. Es crucial vigilar este indicador en la próxima ronda para no comprometer la viabilidad financiera a largo plazo.",
+  debriefingQuestions: [
+      "Vuestra inversión en TIC (R2) ha mejorado la NMA un 0.2, pero vuestro coste de personal ha superado el 75%. ¿Creéis que el beneficio en reputación compensa el riesgo financiero que estáis asumiendo? ¿Qué haríais diferente la próxima ronda?",
+      "Elegisteis 'Negociar un acuerdo parcial' en la crisis de la huelga. ¿Qué os llevó a esa decisión en lugar de una más drástica como 'Aceptar todas las demandas' o 'Mantener la postura'? ¿Cómo creéis que impactará en la moral a largo plazo?",
+  ],
+  pedagogicalSuggestions: "Fomenta la discusión sobre el equilibrio entre KPIs de reputación (NMA, cuota de mercado) y los KPIs financieros (tesorería, coste de personal). Usa el ejemplo del Equipo Gamma para ilustrar que una estrategia de precios altos puede funcionar si se acompaña de una fuerte inversión en calidad percibida (instalaciones)."
 };
 
 export function AIReportForm({ teamsData }: AIReportFormProps) {
   const { activeGame } = useGame();
-  const { updateReport } = useGames();
+  const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName>(teamsData[0].name);
+  const [selectedTeam, setSelectedTeam] = useState<TeamName>(teamsData.length > 0 ? teamsData[0].name : "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [reportText, setReportText] = useState(initialReportData.qualitativeAnalysis);
-  const [hasReport, setHasReport] = useState(true); // Default to true for demo
+  
+  const [qualitativeAnalysis, setQualitativeAnalysis] = useState("");
+  const [debriefingQuestions, setDebriefingQuestions] = useState<string[]>([]);
+  const [pedagogicalSuggestions, setPedagogicalSuggestions] = useState("");
+  
+  const [hasReport, setHasReport] = useState(false);
 
-  const handleGenerateReport = () => {
+  useEffect(() => {
+    if (activeGame && selectedTeam) {
+        const gameData = getGameById(activeGame.id);
+        const report = gameData?.reports?.[activeGame.round]?.[selectedTeam];
+        if (report) {
+            setQualitativeAnalysis(report.qualitativeAnalysis || "");
+            setDebriefingQuestions(report.debriefingQuestions || []);
+            setPedagogicalSuggestions(report.pedagogicalSuggestions || "");
+            setHasReport(true);
+        } else {
+            setHasReport(false);
+            setQualitativeAnalysis("");
+            setDebriefingQuestions([]);
+            setPedagogicalSuggestions("");
+        }
+    }
+  }, [selectedTeam, activeGame, getGameById]);
+
+
+  const handleGenerateReport = async () => {
+    if (!activeGame || !selectedTeam) return;
+    
+    const teamPerformance = teamsData.find(t => t.name === selectedTeam);
+    if (!teamPerformance) return;
+
     setIsGenerating(true);
-    setTimeout(() => {
-      setReportText(initialReportData.qualitativeAnalysis);
+    try {
+      const result = await generateRoundReport({
+        gameId: activeGame.id,
+        roundNumber: activeGame.round,
+        teamPerformanceData: JSON.stringify(teamPerformance, null, 2),
+        marketConditions: "Mercado estable, 50 nuevos alumnos disponibles.",
+      });
+
+      setQualitativeAnalysis(result.report);
+      setDebriefingQuestions(result.mayeuticQuestions.split('\n').filter(q => q.trim() !== ''));
+      setPedagogicalSuggestions(result.pedagogicalSuggestions);
       setHasReport(true);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al generar el informe",
+        description: "No se pudo comunicar con el servicio de IA. Inténtalo de nuevo.",
+      });
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   const handleTeamChange = (value: string) => {
     setSelectedTeam(value as TeamName);
-    setHasReport(true); 
-    setReportText(initialReportData.qualitativeAnalysis);
     setIsEditing(false);
   };
 
   const handlePublishReport = () => {
-    if (!activeGame) return;
+    if (!activeGame || !selectedTeam) return;
     
     // We assemble the full report data to be saved.
     const fullReportData = {
-      ...initialReportData,
-      qualitativeAnalysis: reportText, // Use the potentially edited text
+      ...initialReportData, // Using this as a base, should be dynamic in a real scenario
+      qualitativeAnalysis: qualitativeAnalysis,
+      debriefingQuestions: debriefingQuestions,
+      pedagogicalSuggestions: pedagogicalSuggestions,
+      round: activeGame.round,
     };
     
     updateReport(activeGame.id, activeGame.round, selectedTeam, fullReportData);
@@ -164,17 +211,17 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {initialReportData.round}.
+              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {activeGame?.round || 'N/A'}.
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">
-            <Select onValueChange={handleTeamChange} defaultValue={selectedTeam}>
+            <Select onValueChange={handleTeamChange} value={selectedTeam}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Seleccionar equipo" />
               </SelectTrigger>
               <SelectContent>
                 {teamsData.map((team) => (
-                  <SelectItem key={team.name} value={team.name}>
+                  <SelectItem key={team.name} value={team.name} disabled={team.type === 'IA'}>
                     {team.name}
                   </SelectItem>
                 ))}
@@ -191,123 +238,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             </TabsList>
             <TabsContent value="analysis">
                  {hasReport ? (
-                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6']} className="w-full space-y-4 pt-4">
-                        
-                        {/* Resumen Financiero */}
-                        <AccordionItem value="item-1" className="border rounded-lg">
-                        <AccordionTrigger className="px-4 hover:no-underline">
-                            <h3 className="font-semibold text-lg">Resumen Financiero</h3>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-4">
-                            <div className="rounded-lg border p-4 space-y-2 text-sm">
-                            <div className="flex justify-between"><span>Ingresos:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.income)}</span></div>
-                            <div className="flex justify-between"><span>Coste Personal:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.personnelCost)}</span></div>
-                            <div className="flex justify-between"><span>Inversiones:</span> <span className="font-mono text-red-500">- {formatCurrency(initialReportData.financialSummary.investmentsCost)}</span></div>
-                            <div className="flex justify-between font-bold border-t pt-2"><span>Resultado Ronda:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.roundResult)}</span></div>
-                            <div className="flex justify-between font-bold"><span>Tesorería Final:</span> <span className="font-mono">{formatCurrency(initialReportData.financialSummary.cashFlow)}</span></div>
-                            </div>
-                        </AccordionContent>
-                        </AccordionItem>
-                        
-                        {/* Detalle Financiero */}
-                        <AccordionItem value="item-2" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline">
-                                <h3 className="font-semibold text-lg">Detalle Financiero</h3>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                <div>
-                                    <h4 className="font-medium mb-2">Ingresos</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {initialReportData.financialDetail.numStudents} alumnos x {formatCurrency(initialReportData.financialDetail.tuitionPrice)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.income)}</span>
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium mb-2">Coste de Personal</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {initialReportData.financialDetail.numTeachers} profesores x {formatCurrency(initialReportData.financialDetail.teacherCost)}/trimestre = <span className="font-bold text-foreground">{formatCurrency(initialReportData.financialSummary.personnelCost)}</span>
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium mb-2">Inversiones Realizadas</h4>
-                                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                                        {initialReportData.financialDetail.investments.map(inv => (
-                                            <li key={inv.name}>
-                                                <span className="font-semibold">{inv.name}</span> ({formatCurrency(inv.cost)}): <span className="text-muted-foreground">Impacto -> {inv.effect}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/* KPIs Summary */}
-                        <AccordionItem value="item-3" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline">
-                                <h3 className="font-semibold text-lg">Resumen de KPIs Finales</h3>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4">
-                                <div className="rounded-lg border p-4 space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>Saldo Tesorería:</span><span className="font-mono">{initialReportData.kpiSummary.cash}</span></div>
-                                    <div className="flex justify-between"><span>Coste Personal/Ingreso:</span><span className="font-mono">{initialReportData.kpiSummary.personnelCost}</span></div>
-                                    <div className="flex justify-between"><span>Nota Media Alumnado:</span><span className="font-mono">{initialReportData.kpiSummary.nma}</span></div>
-                                    <div className="flex justify-between"><span>Cuota de Mercado:</span><span className="font-mono">{initialReportData.kpiSummary.marketShare}</span></div>
-                                    <div className="flex justify-between"><span>Moral Personal:</span><span className="font-mono">{initialReportData.kpiSummary.morale}</span></div>
-                                    <div className="flex justify-between"><span>Ratio Alumnos/Profesor:</span><span className="font-mono">{initialReportData.kpiSummary.studentTeacherRatio}</span></div>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                        
-
-                        {/* KPIs Analysis */}
-                        <AccordionItem value="item-4" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline">
-                                <h3 className="font-semibold text-lg">Análisis de KPIs</h3>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                {Object.entries(initialReportData.kpiAnalysis).map(([key, value]) => (
-                                    <div key={key}>
-                                        <h4 className="font-medium flex items-center gap-2 flex-wrap">
-                                            {key === 'personnelCost' && 'Coste Personal / Ingresos'}
-                                            {key === 'nma' && 'Nota Media Alumnado'}
-                                            {key === 'marketShare' && 'Cuota de Mercado'}
-                                            {key === 'morale' && 'Moral del Personal'}
-                                            {key === 'studentTeacherRatio' && 'Ratio Alumnos/Profesor'}
-                                            <Badge variant="secondary">{value.value}</Badge>
-                                            {value.calculation && <Badge variant="outline" className="font-mono">{value.calculation}</Badge>}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground mt-1">{value.analysis}</p>
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-                        
-                        {/* Captación y Capacidad */}
-                        <AccordionItem value="item-5" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline">
-                                <h3 className="font-semibold text-lg">Captación y Capacidad (IAM)</h3>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                <div className="grid grid-cols-3 gap-4 text-center">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">IAM</p>
-                                        <p className="text-2xl font-bold">{initialReportData.marketAttractiveness.iam}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Alumnos Captados</p>
-                                        <p className="text-2xl font-bold text-emerald-600">{initialReportData.marketAttractiveness.newStudents}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Alumnos Perdidos</p>
-                                        <p className="text-2xl font-bold text-red-600">{initialReportData.marketAttractiveness.lostStudents}</p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium">Análisis de Mercado</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">{initialReportData.marketAttractiveness.analysis}</p>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-
+                    <Accordion type="multiple" defaultValue={['item-6']} className="w-full space-y-4 pt-4">
                         {/* AI Qualitative Analysis */}
                         <AccordionItem value="item-6" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline">
@@ -320,10 +251,11 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                     </Label>
                                     <Textarea
                                         id="qualitative-analysis"
-                                        value={reportText}
-                                        onChange={(e) => setReportText(e.target.value)}
+                                        value={qualitativeAnalysis}
+                                        onChange={(e) => setQualitativeAnalysis(e.target.value)}
                                         readOnly={!isEditing}
-                                        className="min-h-[150px] leading-relaxed bg-muted/50"
+                                        className="min-h-[250px] leading-relaxed bg-muted/50"
+                                        placeholder="El análisis cualitativo generado por la IA aparecerá aquí..."
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2">
@@ -358,12 +290,15 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 )}
             </TabsContent>
             <TabsContent value="debriefing">
-                <DebriefingQuestions />
+                <DebriefingQuestions 
+                    questions={debriefingQuestions}
+                    suggestions={pedagogicalSuggestions}
+                    onGenerate={handleGenerateReport}
+                    isGenerating={isGenerating}
+                />
             </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
   );
 }
-
-    

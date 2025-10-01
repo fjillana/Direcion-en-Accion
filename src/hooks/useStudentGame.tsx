@@ -2,8 +2,8 @@
 
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
-import { useGames } from "./use-games";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
+import { useGames, type RoundSettings, type GameMessage } from "./use-games";
 import { useRouter } from "next/navigation";
 
 // This would be the current logged-in user ID
@@ -15,6 +15,11 @@ interface RoundDecisions {
   selectedInvestments: string[];
   selectedCenterActions: string[];
   tuitionPrice: number;
+  crisisResponse: {
+      crisisId: string;
+      optionId: string;
+      justification: string;
+  } | null;
 }
 
 export interface StudentGameState {
@@ -25,6 +30,8 @@ export interface StudentGameState {
   teamName: string | null;
   round?: number;
   decisions?: RoundDecisions;
+  roundSettings?: RoundSettings;
+  messages?: GameMessage[];
 }
 
 interface StudentGameContextType {
@@ -52,6 +59,7 @@ const initialStudentState: StudentGameState = {
     selectedInvestments: [],
     selectedCenterActions: [],
     tuitionPrice: 120,
+    crisisResponse: null,
   }
 };
 
@@ -93,24 +101,35 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     });
   };
 
-
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(STUDENT_GAME_STORAGE_KEY);
-      const storedState = item ? JSON.parse(item) : initialStudentState;
+      let storedState = item ? JSON.parse(item) : initialStudentState;
       // Ensure decisions object exists
       if (!storedState.decisions) {
         storedState.decisions = initialStudentState.decisions;
       }
+      if (storedState.gameId) {
+          const gameData = games.find(g => g.id === storedState.gameId);
+          if (gameData) {
+              const round = gameData.round;
+              storedState = {
+                ...storedState,
+                round,
+                roundSettings: gameData.roundSettings?.[round],
+                messages: gameData.messages?.filter(m => m.to === 'all' || m.to === storedState.teamName || m.from === storedState.teamName)
+              };
+          }
+      }
       setStudentGame(storedState);
-
     } catch (error) {
       console.error(error);
       setStudentGame(initialStudentState);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [games]);
+
 
   const requestToJoinGame = (gameId: string, gameName: string, teamName: string) => {
     const newState: StudentGameState = {
@@ -152,8 +171,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     router.push('/student/join-game');
   };
 
+  const value = useMemo(() => ({
+    studentGame,
+    isLoading,
+    requestToJoinGame,
+    abandonGame,
+    checkGameStatus,
+    updateStudentGame,
+    getStudentGameByGameId,
+    setRoundDecisions
+  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions]);
+
   return (
-    <StudentGameContext.Provider value={{ studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions }}>
+    <StudentGameContext.Provider value={value}>
       {children}
     </StudentGameContext.Provider>
   );

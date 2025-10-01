@@ -14,24 +14,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export const availableInvestments = [
-  { id: 'F1', name: 'Implantación de ERP', cost: 25000, effect: '+5 a +10 XP Finanzas' },
-  { id: 'R1', name: 'Campaña publicitaria en redes', cost: 10000, effect: '+2 a +10 XP Reputación' },
-  { id: 'P1', name: 'Formación docente', cost: 7500, effect: '+5 XP Personal, +10-20 moral' },
-  { id: 'R2', name: 'Inversión en TIC', cost: 50000, effect: '+3 a +15 XP Reputación, +3 XP Personal' },
-];
+import type { Investment } from "@/components/teacher/catalog-editor";
 
 const teamCash = 65000;
 
 interface InvestmentFormProps {
   disabled?: boolean;
+  availableInvestments: Investment[];
   selectedInvestments: string[];
   onInvestmentChange: (selected: string[]) => void;
   totalOtherCosts: number;
 }
 
-export function InvestmentForm({ disabled = false, selectedInvestments, onInvestmentChange, totalOtherCosts }: InvestmentFormProps) {
+export function InvestmentForm({ disabled = false, availableInvestments, selectedInvestments, onInvestmentChange, totalOtherCosts }: InvestmentFormProps) {
   const [confirmed, setConfirmed] = useState(false);
 
   const investmentCost = selectedInvestments.reduce((acc, id) => {
@@ -93,7 +88,7 @@ export function InvestmentForm({ disabled = false, selectedInvestments, onInvest
           <fieldset disabled={isEffectivelyDisabled} className="group">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 group-disabled:opacity-50">
               <div className="lg:col-span-2 space-y-4">
-                {availableInvestments.map((inv) => (
+                {availableInvestments.length > 0 ? availableInvestments.map((inv) => (
                   <div
                     key={inv.id}
                     className={cn("flex items-start space-x-3 rounded-md border p-4", confirmed && 'bg-muted/50')}
@@ -112,10 +107,14 @@ export function InvestmentForm({ disabled = false, selectedInvestments, onInvest
                       </p>
                     </div>
                     <div className="font-mono text-right">
-                        {inv.cost.toLocaleString('es-ES')} CC
+                        {inv.cost?.toLocaleString('es-ES')} CC
                     </div>
                   </div>
-                ))}
+                )) : (
+                    <div className="flex items-center justify-center h-full rounded-lg border border-dashed">
+                        <p className="text-muted-foreground text-center p-8">El profesor no ha habilitado ninguna inversión para esta ronda.</p>
+                    </div>
+                )}
               </div>
               <div className="space-y-6">
                   <Card>
@@ -152,5 +151,3 @@ export function InvestmentForm({ disabled = false, selectedInvestments, onInvest
     </>
   );
 }
-
-    

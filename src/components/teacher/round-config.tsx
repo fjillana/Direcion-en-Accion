@@ -28,6 +28,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Investment, Crisis } from "./catalog-editor";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useGame } from "@/hooks/use-game-context";
+import { useGames } from "@/hooks/use-games";
+
 
 type TeamName = string;
 
@@ -37,29 +40,30 @@ interface RoundConfigProps {
   fullCrises: Crisis[];
 }
 
-type RoundInvestment = Investment;
-type TeamCrisis = { teamName: TeamName; crisisIds: string[] };
-
 export function RoundConfig({
   allTeams,
   fullInvestments,
   fullCrises,
 }: RoundConfigProps) {
   const { toast } = useToast();
-  const [roundInvestments, setRoundInvestments] = useState<RoundInvestment[]>(
-    []
+  const { activeGame } = useGame();
+  const { updateRoundSettings } = useGames();
+
+  const [roundInvestments, setRoundInvestments] = useState<Investment[]>(
+    activeGame?.roundSettings?.[activeGame.round]?.investments || []
   );
-  const [teamCrises, setTeamCrises] = useState<TeamCrisis[]>(() =>
-    allTeams.map((teamName) => ({ teamName, crisisIds: [] }))
-  );
+  
+  const [teamCrises, setTeamCrises] = useState<{ teamName: string; crisisIds: string[] }[]>(() => {
+    const savedCrises = activeGame?.roundSettings?.[activeGame.round]?.teamCrises;
+    if (savedCrises) return savedCrises;
+    return allTeams.map((teamName) => ({ teamName, crisisIds: [] }))
+  });
 
   const [isInvestmentsDialogOpen, setInvestmentsDialogOpen] = useState(false);
   const [isCrisesDialogOpen, setCrisesDialogOpen] = useState(false);
   const [selectedTeamForCrisis, setSelectedTeamForCrisis] = useState<TeamName | null>(null);
   const [selectedCrisesInDialog, setSelectedCrisesInDialog] = useState<string[]>([]);
-  const [detailedCrisis, setDetailedCrisis] = useState<Crisis | null>(null);
-
-
+  
   const [selectedCatalogInvestments, setSelectedCatalogInvestments] = useState<
     string[]
   >([]);
@@ -78,18 +82,26 @@ export function RoundConfig({
   };
   
   const handleSendInvestments = () => {
-    // Here you would typically send the data to your backend
+    if (!activeGame) return;
+    updateRoundSettings(activeGame.id, activeGame.round, {
+        investments: roundInvestments,
+        teamCrises: teamCrises
+    });
     toast({
-        title: "Inversiones Enviadas",
-        description: `${roundInvestments.length} inversiones han sido enviadas a los equipos para la ronda actual.`,
+        title: "Inversiones Guardadas",
+        description: `${roundInvestments.length} inversiones han sido guardadas para la ronda actual.`,
     });
   }
   
   const handleSendCrises = () => {
-     // Here you would typically send the data to your backend
+    if (!activeGame) return;
+    updateRoundSettings(activeGame.id, activeGame.round, {
+        investments: roundInvestments,
+        teamCrises: teamCrises
+    });
     toast({
-        title: "Crisis Enviadas",
-        description: `Las crisis individuales han sido asignadas a los equipos.`,
+        title: "Crisis Guardadas",
+        description: `Las crisis individuales han sido guardadas para los equipos.`,
     });
   }
 

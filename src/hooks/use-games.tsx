@@ -2,6 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
+import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 
 export interface TeamPerformanceData {
   name: string;
@@ -11,6 +12,22 @@ export interface TeamPerformanceData {
   morale: { peb: number; xp: number; pebBreakdown: string[] };
   totalXp: number;
 }
+
+export type RoundSettings = {
+  investments: Investment[];
+  teamCrises: { teamName: string; crisisIds: string[] }[];
+};
+
+export type GameMessage = {
+  id: string;
+  from: 'teacher' | 'system' | string; // teamName for student messages
+  to: 'all' | string; // teamName or 'teacher'
+  content: string;
+  timestamp: number;
+  readBy: string[];
+  type?: 'crisis' | 'report' | 'message';
+  title?: string;
+};
 
 
 export interface Game {
@@ -24,15 +41,20 @@ export interface Game {
   aiDifficulty: number;
   reports?: Record<string, Record<string, any>>; // round -> teamName -> reportData
   performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances
+  roundSettings?: Record<number, RoundSettings>;
+  messages?: GameMessage[];
 }
 
 interface GamesContextType {
   games: Game[];
   addGame: (game: Game) => void;
   removeGame: (gameId: string) => void;
-  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance'>>) => void;
+  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance' | 'roundSettings' | 'messages'>>) => void;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
   updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[]) => void;
+  updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
+  addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp'>) => void;
+  markMessageAsRead: (gameId: string, messageId: string, userId: string) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -131,6 +153,60 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateRoundSettings = useCallback((gameId: string, round: number, settings: RoundSettings) => {
+    setGames(prevGames => {
+      const newGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          const newSettings = { ...(game.roundSettings || {}) };
+          newSettings[round] = settings;
+          return { ...game, roundSettings: newSettings };
+        }
+        return game;
+      });
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
+  }, []);
+
+  const addMessage = useCallback((gameId: string, message: Omit<GameMessage, 'id' | 'timestamp'>) => {
+    setGames(prevGames => {
+      const newGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          const newMessage: GameMessage = {
+            ...message,
+            id: `msg-${Date.now()}-${Math.random()}`,
+            timestamp: Date.now(),
+            readBy: [],
+          };
+          const newMessages = [...(game.messages || []), newMessage];
+          return { ...game, messages: newMessages };
+        }
+        return game;
+      });
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
+  }, []);
+
+  const markMessageAsRead = useCallback((gameId: string, messageId: string, userId: string) => {
+     setGames(prevGames => {
+      const newGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          const newMessages = (game.messages || []).map(msg => {
+            if (msg.id === messageId && !msg.readBy.includes(userId)) {
+              return { ...msg, readBy: [...msg.readBy, userId] };
+            }
+            return msg;
+          });
+          return { ...game, messages: newMessages };
+        }
+        return game;
+      });
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
+  }, []);
+
 
   const getGameById = useCallback((gameId: string) => {
     return games.find(g => g.id === gameId);
@@ -142,7 +218,20 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, updateReport, getGameById, activeGameId, setActiveGameId, updateTeamPerformance }}>
+    <GamesContext.Provider value={{ 
+        games, 
+        addGame, 
+        removeGame, 
+        updateGame, 
+        updateReport, 
+        getGameById, 
+        activeGameId, 
+        setActiveGameId, 
+        updateTeamPerformance,
+        updateRoundSettings,
+        addMessage,
+        markMessageAsRead
+    }}>
       {children}
     </GamesContext.Provider>
   );

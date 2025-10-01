@@ -2,7 +2,7 @@
 
 "use client";
 
-import { InvestmentForm, availableInvestments } from "@/components/student/investment-form";
+import { InvestmentForm } from "@/components/student/investment-form";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
 import { useState } from "react";
@@ -10,11 +10,10 @@ import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
 
 export default function DecisionsPage() {
-  // This state would likely come from a shared context or parent component
-  // For now, we simulate it here. You'd need to lift this state up.
   const [roundConfirmed, setRoundConfirmed] = useState(false);
   const { studentGame, setRoundDecisions } = useStudentGame();
 
+  const availableInvestments = studentGame?.roundSettings?.investments || [];
   const selectedInvestments = studentGame?.decisions?.selectedInvestments || [];
   const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
 
@@ -27,7 +26,6 @@ export default function DecisionsPage() {
   const centerActionCosts = selectedCenterActions.reduce((acc, id) => {
     return acc + (centerActionsCosts[id as keyof typeof centerActionsCosts] || 0);
   }, 0);
-
 
   return (
     <StudentGate>
@@ -53,6 +51,7 @@ export default function DecisionsPage() {
 
         <InvestmentForm 
           disabled={roundConfirmed}
+          availableInvestments={availableInvestments}
           selectedInvestments={selectedInvestments}
           onInvestmentChange={(investments) => setRoundDecisions({ selectedInvestments: investments })}
           totalOtherCosts={centerActionCosts}

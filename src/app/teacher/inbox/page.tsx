@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -9,47 +9,61 @@ import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const teams = [
-  { id: 'alfa', name: 'Equipo Alfa', avatar: '/avatars/alfa.png', lastMessage: 'Tenemos una duda sobre la inversión F3.' },
-  { id: 'beta', name: 'Equipo Beta', avatar: '/avatars/beta.png', lastMessage: 'Ok, entendido. Gracias!' },
-  { id: 'gamma', name: 'Equipo Gamma', avatar: '/avatars/gamma.png', lastMessage: '¿Podemos solicitar un préstamo?' },
-  { id: 'delta', name: 'Equipo Delta', avatar: '/avatars/delta.png', lastMessage: 'Confirmamos las decisiones.' },
-];
-
-const messagesData = {
-  alfa: [
-    { from: 'team', text: 'Hola profesor, tenemos una duda sobre la inversión F3, ¿cubre cualquier tipo de sanción legal?' },
-    { from: 'teacher', text: 'Hola Equipo Alfa. El seguro de responsabilidad civil (F3) cubre las sanciones económicas derivadas de eventos negativos, pero no todas las posibles sanciones. Leed bien la descripción.' },
-    { from: 'team', text: 'Tenemos una duda sobre la inversión F3.' },
-  ],
-  beta: [
-    { from: 'teacher', text: 'Equipo Beta, recordad que el plazo para enviar decisiones termina en 1 hora.' },
-    { from: 'team', text: 'Ok, entendido. Gracias!' },
-  ],
-  gamma: [
-     { from: 'team', text: '¿Podemos solicitar un préstamo?' },
-  ],
-  delta: [
-     { from: 'team', text: 'Confirmamos las decisiones.' },
-  ]
-};
-
-type Message = { from: 'team' | 'teacher', text: string };
+import { useGame } from '@/hooks/use-game-context';
+import { useGames, type GameMessage } from '@/hooks/use-games';
 
 export default function InboxPage() {
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('alfa');
-  const [messages, setMessages] = useState<Record<string, Message[]>>(messagesData);
+  const { activeGame } = useGame();
+  const { addMessage, markMessageAsRead } = useGames();
+
+  const teams = useMemo(() => activeGame?.teamNames.map(name => ({ id: name, name, avatar: `https://picsum.photos/seed/${name}/40/40` })) || [], [activeGame]);
+  
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teams.length > 0 ? teams[0].id : null);
   const [newMessage, setNewMessage] = useState('');
 
+  useEffect(() => {
+    if (teams.length > 0 && !selectedTeamId) {
+      setSelectedTeamId(teams[0].id);
+    }
+    if(teams.length === 0) {
+        setSelectedTeamId(null);
+    }
+  }, [teams, selectedTeamId]);
+
+  const messages = useMemo(() => {
+    if (!activeGame || !activeGame.messages || !selectedTeamId) return [];
+    return activeGame.messages.filter(msg => 
+      (msg.from === selectedTeamId && msg.to === 'teacher') ||
+      (msg.from === 'teacher' && msg.to === selectedTeamId)
+    ).sort((a, b) => a.timestamp - b.timestamp);
+  }, [activeGame, selectedTeamId]);
+
+
   const handleSendMessage = () => {
-    if (newMessage.trim() === '') return;
-    const newMessagesForTeam = [...(messages[selectedTeamId] || []), { from: 'teacher', text: newMessage }];
-    setMessages(prev => ({...prev, [selectedTeamId]: newMessagesForTeam}));
+    if (newMessage.trim() === '' || !activeGame || !selectedTeamId) return;
+    addMessage(activeGame.id, {
+      from: 'teacher',
+      to: selectedTeamId,
+      content: newMessage,
+      readBy: []
+    });
     setNewMessage('');
   };
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
+
+  if (!activeGame) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Inbox</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
+                <p className="text-muted-foreground">Por favor, selecciona una partida para ver los mensajes.</p>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 h-[calc(100vh-10rem)]">
@@ -75,16 +89,16 @@ export default function InboxPage() {
                   </Avatar>
                   <div className="flex-1 truncate">
                     <p className="font-semibold">{team.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{team.lastMessage}</p>
                   </div>
                 </button>
               ))}
+              {teams.length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No hay equipos en esta partida.</p>}
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
       <Card className="flex flex-col">
-        {selectedTeam && (
+        {selectedTeam ? (
           <>
             <CardHeader className="flex-row items-center gap-3 space-y-0 border-b">
                <Avatar className="h-10 w-10 border">
@@ -93,19 +107,21 @@ export default function InboxPage() {
                 </Avatar>
               <CardTitle>{selectedTeam.name}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 p-6 space-y-4 overflow-y-auto">
+            <CardContent className="flex-1 p-6 overflow-y-auto">
               <ScrollArea className="h-full pr-4">
-                 {(messages[selectedTeamId] || []).map((msg, index) => (
+                 <div className="space-y-4">
+                 {messages.map((msg) => (
                   <div
-                    key={index}
+                    key={msg.id}
                     className={cn(
                       'flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm',
                       msg.from === 'teacher' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-muted'
                     )}
                   >
-                    {msg.text}
+                    {msg.content}
                   </div>
                 ))}
+                 </div>
               </ScrollArea>
             </CardContent>
             <CardFooter className="p-3 border-t">
@@ -123,6 +139,10 @@ export default function InboxPage() {
               </div>
             </CardFooter>
           </>
+        ) : (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Selecciona un equipo para ver los mensajes.</p>
+            </div>
         )}
       </Card>
     </div>

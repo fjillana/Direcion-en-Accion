@@ -9,59 +9,37 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, FileText, MessageSquare } from "lucide-react";
 import { StudentGate } from "@/components/student/student-gate";
-
-const messages = [
-  {
-    type: "crisis",
-    title: "¡Evento de Crisis! - Huelga docente",
-    from: "Sistema",
-    content: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión en el Dashboard.",
-    timestamp: "Hace 5 minutos",
-    read: false,
-  },
-  {
-    type: "report",
-    title: "Nuevo Reporte de Ronda 2 Disponible",
-    from: "Sistema",
-    content: "El reporte de la Ronda 2 ya está disponible. Consulta tu rendimiento y las sugerencias del profesor en la sección 'Reporte de Ronda'.",
-    timestamp: "Hace 1 hora",
-    read: false,
-  },
-  {
-    type: "message",
-    title: "Duda sobre inversiones",
-    from: "Profesor",
-    fromAvatar: "https://picsum.photos/seed/teacher-avatar/40/40",
-    content: "Equipo Beta, revisad vuestra asignación a 'Inversión en TIC'. El coste es mayor de lo que habéis presupuestado en el plan inicial. ¿Estáis seguros?",
-    timestamp: "Hace 3 horas",
-    read: true,
-  },
-  {
-    type: "message",
-    title: "Propuesta de alianza",
-    from: "Equipo Gamma",
-    fromAvatar: "https://picsum.photos/seed/gamma/40/40",
-    content: "Hola Equipo Beta, hemos visto vuestro buen desempeño en reputación. ¿Estaríais interesados en no competir en el próximo contrato de publicidad?",
-    timestamp: "Ayer",
-    read: true,
-  },
-];
+import { useStudentGame } from "@/hooks/useStudentGame";
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const getIcon = (type: string) => {
     switch (type) {
         case "crisis": return <AlertTriangle className="h-5 w-5 text-destructive" />;
         case "report": return <FileText className="h-5 w-5 text-blue-500" />;
         case "message": return <MessageSquare className="h-5 w-5 text-muted-foreground" />;
-        default: return null;
+        default: return <MessageSquare className="h-5 w-5 text-muted-foreground" />;
     }
 }
 
 export default function InboxPage() {
+  const { studentGame } = useStudentGame();
+  const messages = studentGame?.messages || [];
+  const teamName = studentGame?.teamName || '';
+  const userId = studentGame?.userId || '';
+  
+  const sortedMessages = [...messages].sort((a, b) => b.timestamp - a.timestamp);
+
+  const getSenderName = (from: string) => {
+    if (from === 'teacher') return 'Profesor';
+    if (from === 'system') return 'Sistema';
+    return from; // Team name
+  }
+
   return (
     <StudentGate>
       <div className="space-y-6">
@@ -81,39 +59,49 @@ export default function InboxPage() {
           <CardContent>
               <ScrollArea className="h-[60vh]">
                   <div className="space-y-4">
-                  {messages.map((msg, index) => (
+                  {sortedMessages.map((msg) => {
+                    const isRead = msg.readBy.includes(userId);
+                    const senderName = getSenderName(msg.from);
+                    return (
                       <div
-                      key={index}
+                      key={msg.id}
                       className={cn(
                           "flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50",
-                          !msg.read && "bg-muted/40"
+                          !isRead && "bg-muted/40"
                       )}
                       >
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                          {msg.type === 'message' ? (
+                          {msg.from !== 'system' ? (
                               <Avatar className="h-10 w-10 border">
-                                  <AvatarImage src={msg.fromAvatar} alt={msg.from} />
-                                  <AvatarFallback>{msg.from.charAt(0)}</AvatarFallback>
+                                  <AvatarImage src={`https://picsum.photos/seed/${msg.from}/40/40`} alt={senderName} />
+                                  <AvatarFallback>{senderName.charAt(0)}</AvatarFallback>
                               </Avatar>
-                          ) : getIcon(msg.type)}
+                          ) : getIcon(msg.type || 'message')}
                       </div>
                       <div className="flex-1">
                           <div className="flex items-center justify-between">
                           <p className="font-semibold">
-                              {msg.title}
+                              {msg.title || 'Mensaje'}
                           </p>
-                          <p className="text-xs text-muted-foreground">{msg.timestamp}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: es })}
+                          </p>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                              <span className="font-medium text-foreground/80">{msg.from}: </span>
+                              <span className="font-medium text-foreground/80">{senderName}: </span>
                               {msg.content}
                           </p>
                       </div>
-                      {!msg.read && (
+                      {!isRead && (
                           <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5" />
                       )}
                       </div>
-                  ))}
+                  )})}
+                  {sortedMessages.length === 0 && (
+                    <div className="text-center py-10 text-muted-foreground">
+                        No tienes mensajes nuevos.
+                    </div>
+                  )}
                   </div>
               </ScrollArea>
           </CardContent>

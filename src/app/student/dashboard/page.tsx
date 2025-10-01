@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm, type CrisisProps } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
-import { InvestmentForm, availableInvestments } from "@/components/student/investment-form";
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
@@ -149,17 +148,19 @@ const xpData: XpData[] = [
   },
 ];
 
-const currentCrisis: CrisisProps = {
-  id: "C1",
-  title: "¡Evento de Crisis! - Huelga docente",
-  description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
-  options: [
-    { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
-    { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
-    { id: 'op3', label: 'Mantener la postura' },
-    { id: 'op4', label: 'Recurrir a mediadores externos (-8.000 CC)' },
-    { id: 'op5', label: 'Despedir a los líderes del sindicato (-10.000 CC)' },
-  ]
+const mockCrises: Record<string, CrisisProps> = {
+    'C1': {
+      id: "C1",
+      title: "¡Evento de Crisis! - Huelga docente",
+      description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
+      options: [
+        { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
+        { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
+        { id: 'op3', label: 'Mantener la postura' },
+        { id: 'op4', label: 'Recurrir a mediadores externos (-8.000 CC)' },
+        { id: 'op5', label: 'Despedir a los líderes del sindicato (-10.000 CC)' },
+      ]
+    }
 };
 
 export default function StudentDashboard() {
@@ -169,17 +170,21 @@ export default function StudentDashboard() {
   // All decision state is now managed by the useStudentGame hook
   const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
   const tuitionPrice = studentGame?.decisions?.tuitionPrice || 120;
+  const crisisResponse = studentGame?.decisions?.crisisResponse || null;
   
+  const currentCrisisId = studentGame?.roundSettings?.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
+  const currentCrisis = currentCrisisId ? mockCrises[currentCrisisId] : undefined;
+
   return (
     <StudentGate>
       <div className="space-y-8">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold font-headline">
-              Resumen del Equipo Beta
+              Resumen del Equipo {studentGame?.teamName || 'Beta'}
             </h1>
             <p className="text-muted-foreground">
-              Ronda 1 - ¡Tus decisiones marcarán la diferencia!
+              Ronda {studentGame?.round || 1} - ¡Tus decisiones marcarán la diferencia!
             </p>
           </div>
           <div className="text-right">
@@ -334,13 +339,17 @@ export default function StudentDashboard() {
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
         />
         
-        <div className="w-full">
-          <CrisisForm disabled={roundConfirmed} {...currentCrisis} />
-        </div>
-
+        {currentCrisis && (
+          <div className="w-full">
+            <CrisisForm 
+              disabled={roundConfirmed}
+              onResponseChange={(response) => setRoundDecisions({ crisisResponse: response })}
+              currentResponse={crisisResponse}
+              {...currentCrisis} 
+            />
+          </div>
+        )}
       </div>
     </StudentGate>
   );
 }
-
-    

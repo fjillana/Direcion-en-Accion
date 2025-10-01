@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -40,6 +39,7 @@ interface RoundConfigProps {
   fullInvestments: Investment[];
   fullCrises: Crisis[];
   numRounds: number;
+  currentRound: number;
 }
 
 type RoundInvestment = Investment & { availableTo: TeamName[] };
@@ -50,8 +50,9 @@ export function RoundConfig({
   fullInvestments,
   fullCrises,
   numRounds,
+  currentRound,
 }: RoundConfigProps) {
-  const [selectedRound, setSelectedRound] = useState("1");
+  const [selectedRound, setSelectedRound] = useState(currentRound.toString());
   const [roundInvestments, setRoundInvestments] = useState<RoundInvestment[]>([]);
   const [roundCrises, setRoundCrises] = useState<RoundCrisis[]>([]);
 
@@ -302,3 +303,5 @@ export function RoundConfig({
     </>
   );
 }
+
+    

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -73,9 +72,9 @@ const teamsData: TeamPerformance[] = [
     name: "Equipo Alfa",
     type: 'H',
     finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
-    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
+    reputation: { peb: 82, xp: 16, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
-    totalXp: 51,
+    totalXp: 49,
     decisions: {
       investments: [
         { name: "Formación docente", cost: 10000 },
@@ -210,38 +209,38 @@ export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { games } = useGames();
-
-  const [game, setGame] = useState<Game | undefined>(undefined);
+  const [game, setGame] = useState<Game | null>(null);
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<TeamPerformance | null>(null);
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
-  const [selectedRound, setSelectedRound] = useState<string | undefined>(undefined);
   const [monitoringData, setMonitoringData] = useState<TeamPerformance[]>([]);
+  const [roundForDisplay, setRoundForDisplay] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
-    setGame(foundGame);
     if (foundGame) {
-      setSelectedRound(foundGame.round.toString());
+      setGame(foundGame);
+      setRoundForDisplay(foundGame.round.toString());
     }
   }, [games, id]);
   
   useEffect(() => {
-    if (selectedTeam && selectedRound) {
-        setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${selectedRound}...`);
+    if (selectedTeam && roundForDisplay) {
+        setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${roundForDisplay}...`);
     }
-  }, [selectedTeam, selectedRound])
+  }, [selectedTeam, roundForDisplay]);
   
   useEffect(() => {
-    if (!game || !selectedRound || parseInt(selectedRound) > game.round) {
+    if (!game || !roundForDisplay || parseInt(roundForDisplay) > game.round) {
       setMonitoringData([]);
     } else {
       const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
       setMonitoringData(shuffledData);
     }
-  }, [selectedRound, game]);
+  }, [roundForDisplay, game]);
 
   const handleProcessRound = () => {
     setIsProcessing(true);
@@ -274,7 +273,7 @@ export default function GameDetailsPage() {
     },
   ];
   
-  if (!game || !selectedRound) {
+  if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
@@ -315,20 +314,22 @@ export default function GameDetailsPage() {
                       Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
                     </CardDescription>
                   </div>
-                  <div className="w-[180px]">
-                    <Select value={selectedRound} onValueChange={setSelectedRound}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar Ronda" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                                <SelectItem key={r} value={r.toString()}>
-                                    Ronda {r}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                  </div>
+                   {roundForDisplay && (
+                    <div className="w-[180px]">
+                        <Select value={roundForDisplay} onValueChange={setRoundForDisplay}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar Ronda" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
+                                    <SelectItem key={r} value={r.toString()}>
+                                        Ronda {r}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                   )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -369,7 +370,7 @@ export default function GameDetailsPage() {
                   </Table>
                 ) : (
                   <div className="text-center py-10 text-sm text-muted-foreground">
-                    No hay datos disponibles para la ronda {selectedRound}.
+                    No hay datos disponibles para la ronda {roundForDisplay}.
                   </div>
                 )}
               </CardContent>
@@ -379,13 +380,16 @@ export default function GameDetailsPage() {
             <AIReportForm teamsData={teamsData} />
           </TabsContent>
         </Tabs>
-
+        
+        {roundForDisplay && (
         <RoundConfig
           allTeams={teamsData.map(t => t.name)}
           fullInvestments={fullInvestments}
           fullCrises={fullCrises}
           numRounds={game.numRounds}
+          currentRound={parseInt(roundForDisplay)}
         />
+        )}
 
       </div>
       
@@ -435,7 +439,7 @@ export default function GameDetailsPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Detalles de la Ronda: {selectedTeam.name}</DialogTitle>
-                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {selectedRound}.</DialogDescription>
+                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {roundForDisplay}.</DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <div className="space-y-6 text-sm">

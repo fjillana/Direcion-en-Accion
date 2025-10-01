@@ -10,6 +10,7 @@ export interface Game {
   teams: string[];
   status: "En curso" | "Finalizado";
   numRounds: number;
+  aiDifficulty: number;
 }
 
 interface GamesContextType {
@@ -32,6 +33,7 @@ const initialGames: Game[] = [
     teams: ['Equipo Alfa', 'Equipo Beta', 'Equipo Gamma', 'Equipo Delta', 'IA Rival 1'],
     status: "En curso",
     numRounds: 8,
+    aiDifficulty: 3,
   },
   {
     id: "2",
@@ -40,6 +42,7 @@ const initialGames: Game[] = [
     teams: ['Equipo A', 'Equipo B', 'Equipo C', 'Equipo D'],
     status: "En curso",
     numRounds: 10,
+    aiDifficulty: 4,
   },
   {
     id: "3",
@@ -48,6 +51,7 @@ const initialGames: Game[] = [
     teams: ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Team 6'],
     status: "Finalizado",
     numRounds: 8,
+    aiDifficulty: 5,
   },
 ];
 

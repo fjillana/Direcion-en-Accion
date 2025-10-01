@@ -28,7 +28,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "../ui/badge";
 
 type TeamKPIs = {
   cash: number;
@@ -161,7 +160,6 @@ function getProgress(value: number, goal: StrategicGoal): number {
 export function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>(teamsData);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const currentUserTeam = "Equipo Beta";
 
   const getKpiColor = (value: number, goal?: StrategicGoal) => {
     if (!goal) return "";
@@ -199,15 +197,8 @@ export function Leaderboard() {
             </TableHeader>
             <TableBody>
               {teams.map((team) => (
-                <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className={
-                    `cursor-pointer ${team.name === currentUserTeam ? "bg-accent/50" : ""}`
-                  }>
-                  <TableCell className="font-medium">
-                    {team.name}
-                    {team.name === currentUserTeam && (
-                      <Badge className="ml-2">Tu Equipo</Badge>
-                    )}
-                  </TableCell>
+                <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
+                  <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="font-bold text-lg">{team.rank}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.cash, team.strategicGoals.cash))}>{kpiConfig.cash.format(team.kpis.cash)}</TableCell>

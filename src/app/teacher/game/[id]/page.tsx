@@ -93,6 +93,13 @@ const fullCrises: Crisis[] = [
     },
 ];
 
+const centerActionsMap: Record<string, { name: string; cost: number }> = {
+    'P2': { name: 'Contratar Docente', cost: 7500 },
+    'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
+    'F5': { name: 'Ampliación de Aulas', cost: 50000 },
+};
+
+
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
@@ -394,13 +401,15 @@ export default function GameDetailsPage() {
                                                 <TableCell className="text-right font-mono">{formatCurrency(inv.cost)} CC</TableCell>
                                             </TableRow>
                                         ))}
-                                        {/* You'd need a mapping from action ID to name/cost here */}
-                                        {(selectedTeam.decisions.selectedCenterActions || []).map(actionId => (
-                                            <TableRow key={actionId}>
-                                                <TableCell>{actionId}</TableCell>
-                                                <TableCell className="text-right font-mono">-- CC</TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {(selectedTeam.decisions.selectedCenterActions || []).map(actionId => {
+                                            const actionInfo = centerActionsMap[actionId];
+                                            return (
+                                                <TableRow key={actionId}>
+                                                    <TableCell>{actionInfo ? actionInfo.name : actionId}</TableCell>
+                                                    <TableCell className="text-right font-mono">{actionInfo ? `${formatCurrency(actionInfo.cost)} CC` : '-- CC'}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </>
                                 )}
                             </TableBody>
@@ -452,4 +461,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-

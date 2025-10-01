@@ -331,12 +331,16 @@ export default function GameDetailsPage() {
     setIsProcessing(true);
     setTimeout(() => {
       if (game) {
+        // 1. Simulate the round to get performance results
         const performanceResults = simulateRound(game);
+
+        // 2. Update the game state with the new performance data
         updateTeamPerformance(game.id, game.round, performanceResults);
 
+        // 3. Move to the next round or end the game
         if (game.round < game.numRounds) {
           updateGame(game.id, { round: game.round + 1 });
-        } else if (game.round === game.numRounds) {
+        } else {
           updateGame(game.id, { status: "Finalizado" });
         }
       }
@@ -553,3 +557,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

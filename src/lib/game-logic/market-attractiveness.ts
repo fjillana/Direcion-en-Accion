@@ -18,42 +18,39 @@ export function calculateMarketAttractiveness(teams: TeamState[]) {
     return {};
   }
 
-  // 1. Calcular las medias del mercado para el precio y la NMA.
-  // Estas medias sirven como benchmark contra el que se compara cada equipo.
+  // 1. Calcular el precio medio del mercado.
+  // Este valor sirve como benchmark contra el que se compara cada equipo.
   const totalTuition = teams.reduce((sum, team) => sum + team.decisions.tuitionPrice, 0);
   const averageTuition = totalTuition / teams.length;
 
-  const totalNma = teams.reduce((sum, team) => sum + team.kpis.nma, 0);
-  const averageNma = totalNma / teams.length;
-  
   let totalIamPoints = 0;
   const teamIamResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number } }> = {};
 
-  // 2. Calcular los puntos IAM para cada equipo. Cada equipo parte de una base de 50 puntos.
+  // 2. Calcular el IAM para cada equipo siguiendo la fórmula del manual técnico.
+  // IAM = (NMA * 10) + (Precio medio / Precio del equipo * 30) + (Inversión en Marketing / 1000)
   for (const team of teams) {
-    // a. Puntos por NMA: Más puntos por tener un NMA por encima de la media.
-    // La calidad educativa es un factor clave de atracción.
-    const nmaDifference = team.kpis.nma - averageNma;
-    const nmaPoints = Math.round(nmaDifference * 20); // Ej: 0.5 puntos de NMA por encima de la media = 10 puntos IAM.
+    // a. Componente de Calidad (NMA): Pondera un 50%
+    // Se multiplica la NMA por 10 para escalarla.
+    const nmaPoints = team.kpis.nma * 10;
 
-    // b. Puntos por Precio: Más puntos por tener un precio por debajo de la media.
-    // Un precio competitivo atrae a más alumnos.
-    const priceDifference = averageTuition - team.decisions.tuitionPrice;
-    const pricePoints = Math.round(priceDifference / 5); // Ej: Ser 50 CC más barato que la media = 10 puntos IAM.
+    // b. Componente de Precio: Pondera un 30%
+    // Se calcula la competitividad del precio en relación a la media del mercado.
+    const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
     
-    // c. Puntos por Marketing: Puntos directos por la inversión realizada.
-    // Se asume que 'R1' es la inversión en marketing. Esto debería ser más robusto en el futuro.
+    // c. Componente de Marketing: Pondera un 20%
+    // Se calcula en base a la inversión en la campaña "R1".
     const marketingInvestment = team.decisions.investments.find(inv => inv.id === 'R1');
-    const marketingPoints = marketingInvestment ? Math.round(marketingInvestment.cost / 1000) : 0; // Ej: 10.000 CC = 10 puntos IAM.
+    const marketingPoints = marketingInvestment ? marketingInvestment.cost / 1000 : 0;
 
-    const totalPoints = 50 + nmaPoints + pricePoints + marketingPoints; // Base de 50 puntos para todos.
-    const iam = Math.max(0, totalPoints); // El IAM no puede ser negativo.
+    // Fórmula completa del IAM
+    const iam = nmaPoints + pricePoints + marketingPoints;
+    const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
 
     teamIamResults[team.name] = {
-        iam,
+        iam: finalIam,
         points: { nma: nmaPoints, price: pricePoints, marketing: marketingPoints }
     };
-    totalIamPoints += iam;
+    totalIamPoints += finalIam;
   }
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.

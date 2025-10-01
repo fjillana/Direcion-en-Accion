@@ -115,7 +115,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
 
   const humanTeams = teamsData.filter(t => t.type === 'H');
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName>(humanTeams.length > 0 ? humanTeams[0].name : "");
+  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(humanTeams.length > 0 ? humanTeams[0].name : undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -148,7 +148,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     } else if (humanTeams.length > 0) {
         setSelectedTeam(humanTeams[0].name);
     } else {
-        setSelectedTeam("");
+        setSelectedTeam(undefined);
     }
   }, [selectedTeam, activeGame, getGameById, humanTeams]);
 
@@ -240,11 +240,17 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 <SelectValue placeholder="Seleccionar equipo" />
               </SelectTrigger>
               <SelectContent>
-                {humanTeams.length > 0 ? humanTeams.map((team) => (
-                  <SelectItem key={team.name} value={team.name}>
-                    {team.name}
-                  </SelectItem>
-                )) : <SelectItem value="" disabled>No hay equipos humanos</SelectItem>}
+                {humanTeams.length > 0 ? (
+                  humanTeams.map((team) => (
+                    <SelectItem key={team.name} value={team.name}>
+                      {team.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No hay equipos humanos
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>

@@ -35,39 +35,16 @@ import { useParams, useRouter } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
-import type { Game, TeamPerformanceData } from "@/hooks/use-games";
+import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { simulateRound } from "@/lib/game-logic/round-simulation";
+import { Separator } from "@/components/ui/separator";
 
-type TeamDecision = {
-  investments: { name: string; cost: number }[];
-  tuitionPrice: number;
-  crisisResponse: {
-    crisisName: string;
-    option: string;
-    justification: string;
-  };
-};
 
-type TeamPerformance = {
-  name: "Equipo Alfa" | "Equipo Beta" | "Equipo Gamma" | "Equipo Delta" | "IA Rival 1" | "IA Rival 2";
-  type: 'H' | 'IA';
-  finances: { peb: number; xp: number; pebBreakdown: string[] };
-  reputation: { peb: number; xp: number; pebBreakdown: string[] };
-  morale: { peb: number; xp: number; pebBreakdown: string[] };
-  totalXp: number;
-  decisions: TeamDecision;
-  strategicPlan: {
-    kpiTargets: string[];
-    rankingGoal: string;
-    pricingPolicy: string;
-  }
-};
-
-const initialTeamsData: TeamPerformance[] = [
+const initialTeamsData: TeamPerformanceData[] = [
   {
     name: "Equipo Alfa",
     type: 'H',
@@ -77,20 +54,16 @@ const initialTeamsData: TeamPerformance[] = [
     totalXp: 51,
     decisions: {
       investments: [
-        { name: "Formación docente", cost: 10000 },
-        { name: "Campaña publicitaria en redes", cost: 5000 },
+        { id: 'P1', name: "Formación docente", cost: 10000, effect: '' },
+        { id: 'R1', name: "Campaña publicitaria en redes", cost: 5000, effect: '' },
       ],
       tuitionPrice: 125,
       crisisResponse: {
         crisisName: "Huelga docente",
         option: "Recurrir a mediadores externos",
         justification: "Buscamos una solución negociada y menos costosa a corto plazo para no impactar la tesorería."
-      }
-    },
-    strategicPlan: {
-      kpiTargets: ["Tesorería > 20k", "Coste Personal < 80%", "NMA > 8.0"],
-      rankingGoal: "Top 3",
-      pricingPolicy: "Premium, por encima de la media"
+      },
+      selectedCenterActions: [],
     }
   },
   {
@@ -101,20 +74,14 @@ const initialTeamsData: TeamPerformance[] = [
     morale: { peb: 98, xp: 20, pebBreakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"] },
     totalXp: 63,
     decisions: {
-      investments: [
-        { name: "Inversión en TIC", cost: 25000 },
-      ],
+      investments: [ { id: 'R2', name: "Inversión en TIC", cost: 25000, effect: '' } ],
       tuitionPrice: 118,
       crisisResponse: {
         crisisName: "Huelga docente",
         option: "Negociar un acuerdo parcial",
         justification: "Preferimos una solución intermedia para subir la moral sin comprometer demasiado el presupuesto de la ronda."
-      }
-    },
-    strategicPlan: {
-        kpiTargets: ["Tesorería > 30k", "Coste Personal < 75%", "NMA > 8.5"],
-        rankingGoal: "Top 2",
-        pricingPolicy: "Competitiva, en línea con la media"
+      },
+      selectedCenterActions: [],
     }
   },
   {
@@ -125,20 +92,14 @@ const initialTeamsData: TeamPerformance[] = [
     morale: { peb: 65, xp: 13, pebBreakdown: ["Moral (65%): 65 PEB", "Ratio Alumno/Prof (25.8): 92 PEB"] },
     totalXp: 49,
     decisions: {
-      investments: [
-        { name: "Mejora de instalaciones (patios, laboratorios)", cost: 15000 },
-      ],
+      investments: [ { id: 'R3', name: "Mejora de instalaciones (patios, laboratorios)", cost: 15000, effect: '' } ],
       tuitionPrice: 130,
       crisisResponse: {
         crisisName: "Huelga docente",
         option: "Mantener la postura",
         justification: "Creemos que ceder a las demandas sentaría un precedente negativo para futuras negociaciones."
-      }
-    },
-    strategicPlan: {
-        kpiTargets: ["Tesorería > 15k", "Coste Personal < 82%", "NMA > 7.8"],
-        rankingGoal: "No ser último",
-        pricingPolicy: "Premium, la más alta"
+      },
+      selectedCenterActions: [],
     }
   },
   {
@@ -150,20 +111,16 @@ const initialTeamsData: TeamPerformance[] = [
     totalXp: 65,
     decisions: {
       investments: [
-        { name: "Implantación de ERP", cost: 20000 },
-        { name: "Incremento salarial global (5-10 %)", cost: 12000 },
+        { id: 'F1', name: "Implantación de ERP", cost: 20000, effect: '' },
+        { id: 'P4', name: "Incremento salarial global (5-10 %)", cost: 12000, effect: '' },
       ],
       tuitionPrice: 115,
       crisisResponse: {
         crisisName: "Huelga docente",
         option: "Aceptar todas las demandas",
         justification: "La moral es clave para la calidad educativa. Preferimos hacer la inversión para resolver la crisis de raíz y evitar futuras huelgas."
-      }
-    },
-    strategicPlan: {
-        kpiTargets: ["Tesorería > 50k", "Coste Personal < 70%", "NMA > 9.0"],
-        rankingGoal: "Ganar",
-        pricingPolicy: "Bajo coste para ganar mercado"
+      },
+      selectedCenterActions: [],
     }
   },
     {
@@ -174,14 +131,10 @@ const initialTeamsData: TeamPerformance[] = [
     morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (80%): 80 PEB", "Ratio Alumno/Prof (25.0): 120 PEB"] },
     totalXp: 60,
     decisions: {
-      investments: [ { name: "Campaña publicitaria en redes", cost: 10000 } ],
+      investments: [ { id: 'R1', name: "Campaña publicitaria en redes", cost: 10000, effect: '' } ],
       tuitionPrice: 120,
-      crisisResponse: { crisisName: "Huelga docente", option: "Negociar un acuerdo parcial", justification: "Respuesta automática de la IA." }
-    },
-    strategicPlan: {
-      kpiTargets: ["Estrategia de IA: Equilibrada"],
-      rankingGoal: "Mantenerse competitivo",
-      pricingPolicy: "Adaptativa según el mercado"
+      crisisResponse: { crisisName: "Huelga docente", option: "Negociar un acuerdo parcial", justification: "Respuesta automática de la IA." },
+      selectedCenterActions: [],
     }
   },
   {
@@ -192,14 +145,10 @@ const initialTeamsData: TeamPerformance[] = [
     morale: { peb: 90, xp: 18, pebBreakdown: ["Moral (70%): 70 PEB", "Ratio Alumno/Prof (24.5): 110 PEB"] },
     totalXp: 60,
     decisions: {
-      investments: [ { name: "Implantación de ERP", cost: 30000 } ],
+      investments: [ { id: 'F1', name: "Implantación de ERP", cost: 30000, effect: '' } ],
       tuitionPrice: 128,
-      crisisResponse: { crisisName: "Huelga docente", option: "Mantener la postura", justification: "Respuesta automática de la IA." }
-    },
-    strategicPlan: {
-      kpiTargets: ["Estrategia de IA: Financiera Agresiva"],
-      rankingGoal: "Maximizar tesorería",
-      pricingPolicy: "Premium"
+      crisisResponse: { crisisName: "Huelga docente", option: "Mantener la postura", justification: "Respuesta automática de la IA." },
+      selectedCenterActions: [],
     }
   },
 ];
@@ -381,6 +330,8 @@ export default function GameDetailsPage() {
       return false;
   }
 
+  const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES').format(value);
+
   return (
     <>
       <div className="space-y-6">
@@ -433,7 +384,7 @@ export default function GameDetailsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                                <SelectItem key={r} value={r.toString()} disabled={r >= game.round}>
+                                <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
                                     Ronda {r}
                                 </SelectItem>
                                 ))}
@@ -539,13 +490,83 @@ export default function GameDetailsPage() {
       
       <Dialog open={isDecisionDetailOpen} onOpenChange={setDecisionDetailOpen}>
         <DialogContent className="sm:max-w-2xl">
-          {selectedTeam && (
+          {selectedTeam && selectedTeam.decisions && (
             <>
               <DialogHeader>
-                <DialogTitle>Detalles de la Ronda: {selectedTeam.name}</DialogTitle>
-                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {currentRoundTab}. (Datos de ejemplo)</DialogDescription>
+                <DialogTitle>Decisiones de Ronda: {selectedTeam.name}</DialogTitle>
+                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {currentRoundTab}.</DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className="py-4 space-y-6">
+                
+                {/* Investments and Center Actions */}
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-base">Inversiones y Acciones</h4>
+                    <div className="rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Decisión</TableHead>
+                                <TableHead className="text-right w-[120px]">Coste</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {selectedTeam.decisions.investments.length === 0 && selectedTeam.decisions.selectedCenterActions.length === 0 ? (
+                                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No se realizaron inversiones ni acciones.</TableCell></TableRow>
+                                ) : (
+                                    <>
+                                        {selectedTeam.decisions.investments.map(inv => (
+                                            <TableRow key={inv.id}>
+                                                <TableCell>{inv.name}</TableCell>
+                                                <TableCell className="text-right font-mono">{formatCurrency(inv.cost)} CC</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {/* You'd need a mapping from action ID to name/cost here */}
+                                        {selectedTeam.decisions.selectedCenterActions.map(actionId => (
+                                            <TableRow key={actionId}>
+                                                <TableCell>{actionId}</TableCell>
+                                                <TableCell className="text-right font-mono">-- CC</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+
+                {/* Pricing */}
+                <div className="space-y-2">
+                    <h4 className="font-semibold text-base">Precio de Matrícula</h4>
+                    <p className="font-mono text-lg p-3 bg-muted rounded-md w-fit">{formatCurrency(selectedTeam.decisions.tuitionPrice)} CC</p>
+                </div>
+
+                <Separator />
+
+                {/* Crisis Response */}
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-base">Respuesta a Crisis</h4>
+                     {selectedTeam.decisions.crisisResponse ? (
+                         <div className="space-y-4">
+                            <div>
+                                <Label className="text-muted-foreground">Crisis</Label>
+                                <p className="font-medium">{selectedTeam.decisions.crisisResponse.crisisName}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">Opción Elegida</Label>
+                                <p className="font-medium">{selectedTeam.decisions.crisisResponse.option}</p>
+                            </div>
+                             <div>
+                                <Label className="text-muted-foreground">Justificación del Equipo</Label>
+                                <blockquote className="mt-1 border-l-2 pl-6 italic text-sm">
+                                    "{selectedTeam.decisions.crisisResponse.justification}"
+                                </blockquote>
+                            </div>
+                         </div>
+                     ) : (
+                        <p className="text-sm text-muted-foreground">No hubo crisis para este equipo en esta ronda.</p>
+                     )}
+                </div>
+
               </div>
               <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
@@ -557,5 +578,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

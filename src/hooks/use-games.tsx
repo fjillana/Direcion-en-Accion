@@ -4,6 +4,26 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 
+export interface InvestmentDecision {
+  id: string;
+  name: string;
+  cost: number;
+  effect: string;
+}
+
+export interface CrisisDecision {
+  crisisName: string;
+  option: string;
+  justification: string;
+}
+
+export interface TeamDecision {
+  investments: InvestmentDecision[];
+  tuitionPrice: number;
+  crisisResponse: CrisisDecision | null;
+  selectedCenterActions: string[];
+}
+
 export interface TeamPerformanceData {
   name: string;
   type: 'H' | 'IA';
@@ -11,6 +31,7 @@ export interface TeamPerformanceData {
   reputation: { peb: number; xp: number; pebBreakdown: string[] };
   morale: { peb: number; xp: number; pebBreakdown: string[] };
   totalXp: number;
+  decisions: TeamDecision;
 }
 
 export type RoundSettings = {

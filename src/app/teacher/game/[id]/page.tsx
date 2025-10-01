@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -39,6 +38,7 @@ import type { Game } from "@/hooks/use-games";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type TeamDecision = {
@@ -71,9 +71,9 @@ const teamsData: TeamPerformance[] = [
     name: "Equipo Alfa",
     type: 'H',
     finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
-    reputation: { peb: 82, xp: 16, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
+    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
     morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
-    totalXp: 49,
+    totalXp: 51,
     decisions: {
       investments: [
         { name: "Formación docente", cost: 10000 },
@@ -275,8 +275,8 @@ export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { games } = useGames();
-  const [game, setGame] = useState<Game | null>(null);
   
+  const [game, setGame] = useState<Game | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<TeamPerformance | null>(null);
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
@@ -358,71 +358,78 @@ export default function GameDetailsPage() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="monitoring">Monitorización</TabsTrigger>
             <TabsTrigger value="reports">Reportes IA</TabsTrigger>
-            <TabsTrigger value="config">Configuración de Rondas</TabsTrigger>
+            <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
           <TabsContent value="monitoring">
             <Card>
               <CardHeader>
-                <CardTitle>Progreso de Equipos</CardTitle>
-                <CardDescription>
-                  Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
-                </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Progreso de Equipos</CardTitle>
+                        <CardDescription>
+                            Vista general del rendimiento por áreas. Haz clic en un equipo para ver el detalle.
+                        </CardDescription>
+                    </div>
+                     <div className="w-[180px]">
+                        <Select
+                            value={currentRoundTab}
+                            onValueChange={setCurrentRoundTab}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar Ronda" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
+                                <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
+                                    Ronda {r}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <Tabs value={currentRoundTab} onValueChange={setCurrentRoundTab} className="w-full">
-                  <TabsList>
-                    {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                      <TabsTrigger key={r} value={r.toString()} disabled={r > game.round}>
-                        Ronda {r}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-
-                  {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                    <TabsContent key={r} value={r.toString()} className="mt-4">
-                      {monitoringData.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Equipo</TableHead>
-                              <TableHead className="w-[50px] text-center">Tipo</TableHead>
-                              <TableHead className="text-center">PEB Finanzas</TableHead>
-                              <TableHead className="text-center">XP Finanzas</TableHead>
-                              <TableHead className="text-center">PEB Reputación</TableHead>
-                              <TableHead className="text-center">XP Reputación</TableHead>
-                              <TableHead className="text-center">PEB Moral</TableHead>
-                              <TableHead className="text-center">XP Moral</TableHead>
-                              <TableHead className="text-right">Total XP</TableHead>
-                              <TableHead className="w-[100px] text-center">Decisiones</TableHead>
+                {monitoringData.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Equipo</TableHead>
+                            <TableHead className="w-[50px] text-center">Tipo</TableHead>
+                            <TableHead className="text-center">PEB Finanzas</TableHead>
+                            <TableHead className="text-center">XP Finanzas</TableHead>
+                            <TableHead className="text-center">PEB Reputación</TableHead>
+                            <TableHead className="text-center">XP Reputación</TableHead>
+                            <TableHead className="text-center">PEB Moral</TableHead>
+                            <TableHead className="text-center">XP Moral</TableHead>
+                            <TableHead className="text-right">Total XP</TableHead>
+                            <TableHead className="w-[100px] text-center">Decisiones</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {monitoringData.map((team) => (
+                            <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
+                            <TableCell className="font-medium">{team.name}</TableCell>
+                            <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
+                            <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
+                            <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
+                            <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
+                            <TableCell className="text-center">
+                                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
+                            </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {monitoringData.map((team) => (
-                              <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
-                                <TableCell className="font-medium">{team.name}</TableCell>
-                                <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
-                                <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
-                                <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
-                                <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
-                                <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
-                                <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
-                                <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
-                                <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
-                                <TableCell className="text-center">
-                                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <div className="text-center py-10 text-sm text-muted-foreground">
-                          No hay datos disponibles para la ronda {currentRoundTab}.
-                        </div>
-                      )}
-                    </TabsContent>
-                  ))}
-                </Tabs>
+                        ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <div className="text-center py-10 text-sm text-muted-foreground">
+                        No hay datos disponibles para la ronda {currentRoundTab}.
+                    </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

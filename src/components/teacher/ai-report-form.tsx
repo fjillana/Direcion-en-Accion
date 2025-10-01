@@ -115,7 +115,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
 
   const humanTeams = teamsData.filter(t => t.type === 'H');
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(humanTeams.length > 0 ? humanTeams[0].name : undefined);
+  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -126,6 +126,15 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const [hasReport, setHasReport] = useState(false);
   
   const [reportData, setReportData] = useState<any>(null);
+
+  useEffect(() => {
+    const humanTeams = teamsData.filter(t => t.type === 'H');
+    if (!selectedTeam && humanTeams.length > 0) {
+      setSelectedTeam(humanTeams[0].name);
+    } else if (humanTeams.length === 0) {
+      setSelectedTeam(undefined);
+    }
+  }, [teamsData, activeGame, selectedTeam]);
 
   useEffect(() => {
     if (activeGame && selectedTeam) {
@@ -145,12 +154,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
             setPedagogicalSuggestions("");
             setReportData(null);
         }
-    } else if (humanTeams.length > 0) {
-        setSelectedTeam(humanTeams[0].name);
-    } else {
-        setSelectedTeam(undefined);
     }
-  }, [selectedTeam, activeGame, getGameById, humanTeams]);
+  }, [selectedTeam, activeGame, getGameById]);
 
 
   const handleGenerateReport = async () => {

@@ -23,9 +23,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Moon, Sun, Camera } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export function UserNav({
   userType = "teacher",
@@ -33,15 +37,38 @@ export function UserNav({
   userType?: "teacher" | "student";
 }) {
   const isTeacher = userType === "teacher";
-  const user = {
+  const initialUser = {
     name: isTeacher ? "Profesor" : "Estudiante Beta",
     email: isTeacher ? "profesor@example.com" : "estudiante.beta@example.com",
     avatar: `https://picsum.photos/seed/${userType}-avatar/40/40`,
+  };
+
+  const [user, setUser] = useState(initialUser);
+  const [isProfileOpen, setProfileOpen] = useState(false);
+  
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  
+  useEffect(() => {
+    setName(user.name);
+    setEmail(user.email);
+  }, [user]);
+
+  const handleSaveChanges = () => {
+    setUser(prevUser => ({ ...prevUser, name, email }));
+    setProfileOpen(false);
+  };
+  
+  const changeAvatar = () => {
+    const randomSeed = Math.random().toString(36).substring(7);
+    setUser(prevUser => ({...prevUser, avatar: `https://picsum.photos/seed/${randomSeed}/40/40`}));
+  }
+
+  const userDetails = {
     memberSince: isTeacher ? "1 Enero, 2024" : "15 Febrero, 2024",
     lastLogin: new Date().toLocaleString("es-ES"),
   };
 
-  const [isProfileOpen, setProfileOpen] = useState(false);
 
   return (
     <Dialog open={isProfileOpen} onOpenChange={setProfileOpen}>
@@ -82,8 +109,6 @@ export function UserNav({
                     <Moon className="mr-2 h-4 w-4" />
                     <span>Oscuro</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Idioma (ES)</DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
@@ -97,31 +122,45 @@ export function UserNav({
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Perfil de Usuario</DialogTitle>
+          <DialogTitle>Editar Perfil</DialogTitle>
           <DialogDescription>
-            Información de tu cuenta en la plataforma.
+            Realiza cambios en tu perfil. Haz clic en guardar cuando hayas terminado.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center space-x-4 pt-4">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <h3 className="text-xl font-semibold">{user.name}</h3>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+        <div className="space-y-4 py-4">
+           <div className="flex items-center space-x-4">
+            <div className="relative">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <Button size="icon" variant="outline" className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full" onClick={changeAvatar}>
+                    <Camera className="h-4 w-4"/>
+                    <span className="sr-only">Cambiar avatar</span>
+                </Button>
+            </div>
+            <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Miembro desde: {userDetails.memberSince}</p>
+                <p className="text-sm text-muted-foreground">Última conexión: {userDetails.lastLogin}</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Nombre</Label>
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo Electrónico</Label>
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </div>
-        <div className="space-y-2 pt-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Miembro desde:</span>
-            <span>{user.memberSince}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Última conexión:</span>
-            <span>{user.lastLogin}</span>
-          </div>
-        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancelar
+            </Button>
+          </DialogClose>
+          <Button type="button" onClick={handleSaveChanges}>Guardar Cambios</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 interface CenterDataFormProps {
   disabled?: boolean;
@@ -34,7 +36,7 @@ export function CenterDataForm({ disabled = false }: CenterDataFormProps) {
       <CardHeader>
         <CardTitle>Datos del Centro</CardTitle>
         <CardDescription>
-          Gestiona el personal y la capacidad de tu centro.
+          Gestiona el personal, la capacidad y los precios de tu centro para esta ronda.
         </CardDescription>
       </CardHeader>
       <fieldset disabled={disabled} className="group">
@@ -58,6 +60,18 @@ export function CenterDataForm({ disabled = false }: CenterDataFormProps) {
 
             {/* Actions */}
             <div className="md:col-span-2 space-y-4">
+              <div>
+                <h4 className="font-medium mb-2">Precio de Matrícula Trimestral</h4>
+                <div className="flex items-center gap-4 rounded-md border p-4">
+                  <div className="flex-1 space-y-1">
+                     <Label htmlFor="tuition-price">Precio (CC)</Label>
+                     <Input id="tuition-price" type="number" defaultValue="120" />
+                  </div>
+                  <p className="text-xs text-muted-foreground max-w-[200px]">
+                    El precio base es 120 CC/trimestre. Subidas o bajadas bruscas afectan tu reputación y capacidad para atraer alumnos.
+                  </p>
+                </div>
+              </div>
                <div>
                     <h4 className="font-medium mb-2">Personal Docente</h4>
                      {personnelActions.map((action) => (

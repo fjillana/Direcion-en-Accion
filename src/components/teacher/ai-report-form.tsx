@@ -115,7 +115,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
 
   const humanTeams = teamsData.filter(t => t.type === 'H');
 
-  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>();
+  const [selectedTeam, setSelectedTeam] = useState<TeamName | undefined>(humanTeams.length > 0 ? humanTeams[0].name : undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -128,11 +128,13 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const [reportData, setReportData] = useState<any>(null);
 
   useEffect(() => {
-    const humanTeams = teamsData.filter(t => t.type === 'H');
-    if (!selectedTeam && humanTeams.length > 0) {
-      setSelectedTeam(humanTeams[0].name);
-    } else if (humanTeams.length === 0) {
-      setSelectedTeam(undefined);
+    if (activeGame && teamsData) {
+        const currentHumanTeams = teamsData.filter(t => t.type === 'H');
+        if (!selectedTeam && currentHumanTeams.length > 0) {
+            setSelectedTeam(currentHumanTeams[0].name);
+        } else if (currentHumanTeams.length === 0) {
+            setSelectedTeam(undefined);
+        }
     }
   }, [teamsData, activeGame, selectedTeam]);
 
@@ -208,8 +210,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
   const handlePublishReport = () => {
     if (!activeGame || !selectedTeam) return;
     
+    const teamPerformance = teamsData.find(t => t.name === selectedTeam);
+    if (!teamPerformance) return;
+
     const fullReportData = {
       ...reportData,
+      kpis: teamPerformance.kpis, // Make sure current KPIs are in the report
       qualitativeAnalysis: qualitativeAnalysis,
       debriefingQuestions: debriefingQuestions,
       pedagogicalSuggestions: pedagogicalSuggestions,
@@ -268,8 +274,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                 <TabsTrigger value="debriefing">Debriefing IA</TabsTrigger>
             </TabsList>
             <TabsContent value="analysis">
-                 {hasReport && reportData ? (
-                    <Accordion type="multiple" defaultValue={['item-6']} className="w-full space-y-4 pt-4">
+                 {hasReport && reportData && reportData.kpis ? (
+                    <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-6']} className="w-full space-y-4 pt-4">
                         
                         {/* Financial Summary */}
                         <AccordionItem value="item-1" className="border rounded-lg">
@@ -279,7 +285,20 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal:</span> <span className="text-destructive">{formatCurrency(reportData.financialSummary.personnelCost)}</span></Badge>
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Inversiones:</span> <span className="text-destructive">{formatCurrency(reportData.financialSummary.investmentsCost)}</span></Badge>
                                 <Badge variant="outline" className="col-span-1 md:col-span-2 flex justify-between p-3 text-sm"><span>Resultado de la Ronda:</span> <span className={reportData.financialSummary.roundResult > 0 ? 'text-emerald-600' : 'text-destructive'}>{formatCurrency(reportData.financialSummary.roundResult)}</span></Badge>
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.financialSummary.cashFlow)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        {/* KPI Summary */}
+                         <AccordionItem value="item-2" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
+                            <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal / Ingresos:</span> <span className="font-bold">{reportData.kpis.income ? ((reportData.kpis.personnelCost / reportData.kpis.income) * 100).toFixed(1) : '0.0'}%</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Nota Media Alumnado:</span> <span className="font-bold">{reportData.kpis.nma.toFixed(1)}</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Cuota de Mercado:</span> <span className="font-bold">{reportData.kpis.marketShare.toFixed(1)}%</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Moral del Personal:</span> <span className="font-bold">{reportData.kpis.morale.toFixed(0)}%</span></Badge>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ratio Alumnos/Profesor:</span> <span className="font-bold">{reportData.kpis.studentTeacherRatio.toFixed(1)}</span></Badge>
                             </AccordionContent>
                         </AccordionItem>
 

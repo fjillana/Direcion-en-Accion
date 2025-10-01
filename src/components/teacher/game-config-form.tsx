@@ -24,7 +24,6 @@ const formSchema = z.object({
   initialFunds: z.number().min(1000),
   newStudentsPerRound: z.number().min(0),
   aiDifficulty: z.number().min(1).max(5),
-  publicLeaderboard: z.boolean(),
 });
 
 export type GameConfig = z.infer<typeof formSchema>;
@@ -43,7 +42,6 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
       initialFunds: 50000,
       newStudentsPerRound: 50,
       aiDifficulty: 3,
-      publicLeaderboard: true,
     },
   });
 
@@ -163,23 +161,6 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
                   step={1}
                   value={[field.value]}
                   onValueChange={(value) => field.onChange(value[0])}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="publicLeaderboard"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Leaderboard Público</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
                 />
               </FormControl>
             </FormItem>

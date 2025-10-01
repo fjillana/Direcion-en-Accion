@@ -73,7 +73,22 @@ export function StudentReport() {
             </div>
         </CardHeader>
         <CardContent>
-            <Accordion type="multiple" defaultValue={['item-6']} className="w-full space-y-4 pt-4">
+            <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-6']} className="w-full space-y-4 pt-4">
+                {/* KPI Summary */}
+                {reportData.kpis &&
+                    <AccordionItem value="item-2" className="border rounded-lg">
+                        <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
+                        <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal / Ingresos:</span> <span className="font-bold">{reportData.kpis.income ? ((reportData.kpis.personnelCost / reportData.kpis.income) * 100).toFixed(1) : '0.0'}%</span></Badge>
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Nota Media Alumnado:</span> <span className="font-bold">{reportData.kpis.nma.toFixed(1)}</span></Badge>
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Cuota de Mercado:</span> <span className="font-bold">{reportData.kpis.marketShare.toFixed(1)}%</span></Badge>
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Moral del Personal:</span> <span className="font-bold">{reportData.kpis.morale.toFixed(0)}%</span></Badge>
+                            <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ratio Alumnos/Profesor:</span> <span className="font-bold">{reportData.kpis.studentTeacherRatio.toFixed(1)}</span></Badge>
+                        </AccordionContent>
+                    </AccordionItem>
+                }
+                
                 {/* AI Qualitative Analysis */}
                 <AccordionItem value="item-6" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline">

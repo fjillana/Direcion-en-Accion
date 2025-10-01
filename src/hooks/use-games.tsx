@@ -3,6 +3,16 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 
+export interface TeamPerformanceData {
+  name: string;
+  type: 'H' | 'IA';
+  finances: { peb: number; xp: number; pebBreakdown: string[] };
+  reputation: { peb: number; xp: number; pebBreakdown: string[] };
+  morale: { peb: number; xp: number; pebBreakdown: string[] };
+  totalXp: number;
+}
+
+
 export interface Game {
   id: string;
   name: string;
@@ -13,14 +23,16 @@ export interface Game {
   numRounds: number;
   aiDifficulty: number;
   reports?: Record<string, Record<string, any>>; // round -> teamName -> reportData
+  performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances
 }
 
 interface GamesContextType {
   games: Game[];
   addGame: (game: Game) => void;
   removeGame: (gameId: string) => void;
-  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports'>>) => void;
+  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance'>>) => void;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
+  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[]) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -103,6 +115,22 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return newGames;
     });
   }, []);
+  
+  const updateTeamPerformance = useCallback((gameId: string, round: number, performanceData: TeamPerformanceData[]) => {
+    setGames(prevGames => {
+        const newGames = prevGames.map(game => {
+            if (game.id === gameId) {
+                const newPerformance = { ...(game.performance || {}) };
+                newPerformance[round] = performanceData;
+                return { ...game, performance: newPerformance };
+            }
+            return game;
+        });
+        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+        return newGames;
+    });
+  }, []);
+
 
   const getGameById = useCallback((gameId: string) => {
     return games.find(g => g.id === gameId);
@@ -114,7 +142,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, updateReport, getGameById, activeGameId, setActiveGameId }}>
+    <GamesContext.Provider value={{ games, addGame, removeGame, updateGame, updateReport, getGameById, activeGameId, setActiveGameId, updateTeamPerformance }}>
       {children}
     </GamesContext.Provider>
   );

@@ -35,12 +35,12 @@ import { useParams, useRouter } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
-import type { Game } from "@/hooks/use-games";
+import type { Game, TeamPerformanceData } from "@/hooks/use-games";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { simulateRound } from "@/lib/game-logic/round-simulation";
 
 type TeamDecision = {
   investments: { name: string; cost: number }[];
@@ -67,7 +67,7 @@ type TeamPerformance = {
   }
 };
 
-const teamsData: TeamPerformance[] = [
+const initialTeamsData: TeamPerformance[] = [
   {
     name: "Equipo Alfa",
     type: 'H',
@@ -275,18 +275,18 @@ const fullCrises: Crisis[] = [
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games, setActiveGameId, updateGame } = useGames();
+  const { games, setActiveGameId, updateGame, updateTeamPerformance } = useGames();
   const router = useRouter();
 
   const [game, setGame] = useState<Game | null>(null);
   const [currentRoundTab, setCurrentRoundTab] = useState<string>("1");
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<TeamPerformance | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<TeamPerformanceData | null>(null);
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
   const [teacherNotes, setTeacherNotes] = useState("");
-  const [monitoringData, setMonitoringData] = useState<TeamPerformance[]>([]);
+  const [monitoringData, setMonitoringData] = useState<TeamPerformanceData[]>([]);
 
   useEffect(() => {
     const foundGame = games.find((g) => g.id === id);
@@ -298,6 +298,11 @@ export default function GameDetailsPage() {
   useEffect(() => {
     if (game) {
       setCurrentRoundTab(game.round.toString());
+      if (game.performance && game.performance[game.round]) {
+        setMonitoringData(game.performance[game.round]);
+      } else {
+        setMonitoringData([]);
+      }
     }
   }, [game]);
 
@@ -309,8 +314,13 @@ export default function GameDetailsPage() {
   
   useEffect(() => {
     if (game && parseInt(currentRoundTab) <= game.round) {
-      const shuffledData = [...teamsData].sort(() => Math.random() - 0.5);
-      setMonitoringData(shuffledData);
+      if (game.performance && game.performance[parseInt(currentRoundTab)]) {
+        setMonitoringData(game.performance[parseInt(currentRoundTab)]);
+      } else {
+        // Fallback to initial data for rounds that might not have been processed, for demo purposes
+        const shuffledData = [...initialTeamsData].sort(() => Math.random() - 0.5);
+        setMonitoringData(shuffledData);
+      }
     } else {
       setMonitoringData([]);
     }
@@ -321,6 +331,9 @@ export default function GameDetailsPage() {
     setIsProcessing(true);
     setTimeout(() => {
       if (game) {
+        const performanceResults = simulateRound(game);
+        updateTeamPerformance(game.id, game.round, performanceResults);
+
         if (game.round < game.numRounds) {
           updateGame(game.id, { round: game.round + 1 });
         } else if (game.round === game.numRounds) {
@@ -331,7 +344,7 @@ export default function GameDetailsPage() {
     }, 3000);
   };
   
-  const handleTeamRowClick = (team: TeamPerformance) => {
+  const handleTeamRowClick = (team: TeamPerformanceData) => {
     setSelectedTeam(team);
     setPebDetailOpen(true);
   };
@@ -354,7 +367,7 @@ export default function GameDetailsPage() {
   const getButtonText = () => {
       if (game.status === 'Finalizado') return "Juego Finalizado";
       if (game.round === game.numRounds) return "Finalizar Juego";
-      return `Procesar Ronda ${game.round + 1}`;
+      return `Procesar Ronda ${game.round}`;
   }
   
   const isButtonDisabled = () => {
@@ -416,7 +429,7 @@ export default function GameDetailsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: game.numRounds }, (_, i) => i + 1).map((r) => (
-                                <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
+                                <SelectItem key={r} value={r.toString()} disabled={r >= game.round}>
                                     Ronda {r}
                                 </SelectItem>
                                 ))}
@@ -447,13 +460,13 @@ export default function GameDetailsPage() {
                             <TableRow key={team.name} onClick={() => handleTeamRowClick(team)} className="cursor-pointer">
                             <TableCell className="font-medium">{team.name}</TableCell>
                             <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
-                            <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb}</TableCell>
-                            <TableCell className="text-center font-mono">{team.finances.xp}</TableCell>
-                            <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb}</TableCell>
-                            <TableCell className="text-center font-mono">{team.reputation.xp}</TableCell>
-                            <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb}</TableCell>
-                            <TableCell className="text-center font-mono">{team.morale.xp}</TableCell>
-                            <TableCell className="text-right font-bold font-mono">{team.totalXp}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb.toFixed(2)}</TableCell>
+                            <TableCell className="text-center font-mono">{team.finances.xp.toFixed(2)}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb.toFixed(2)}</TableCell>
+                            <TableCell className="text-center font-mono">{team.reputation.xp.toFixed(2)}</TableCell>
+                            <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb.toFixed(2)}</TableCell>
+                            <TableCell className="text-center font-mono">{team.morale.xp.toFixed(2)}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">{team.totalXp.toFixed(2)}</TableCell>
                             <TableCell className="text-center">
                                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
                             </TableCell>
@@ -470,7 +483,7 @@ export default function GameDetailsPage() {
             </Card>
           </TabsContent>
           <TabsContent value="reports">
-            <AIReportForm teamsData={teamsData} />
+            <AIReportForm teamsData={initialTeamsData} />
           </TabsContent>
           <TabsContent value="config">
              <RoundConfig
@@ -494,19 +507,19 @@ export default function GameDetailsPage() {
               </DialogHeader>
               <div className="space-y-6 py-4 text-sm">
                  <div>
-                    <h4 className="font-semibold text-base mb-2">Finanzas ({selectedTeam.finances.peb} PEB)</h4>
+                    <h4 className="font-semibold text-base mb-2">Finanzas ({selectedTeam.finances.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.finances.pebBreakdown.map((line, i) => <li key={`fin-${i}`}>{line}</li>)}
                     </ul>
                  </div>
                  <div>
-                    <h4 className="font-semibold text-base mb-2">Reputación ({selectedTeam.reputation.peb} PEB)</h4>
+                    <h4 className="font-semibold text-base mb-2">Reputación ({selectedTeam.reputation.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.reputation.pebBreakdown.map((line, i) => <li key={`rep-${i}`}>{line}</li>)}
                     </ul>
                  </div>
                  <div>
-                    <h4 className="font-semibold text-base mb-2">Moral ({selectedTeam.morale.peb} PEB)</h4>
+                    <h4 className="font-semibold text-base mb-2">Moral ({selectedTeam.morale.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.morale.pebBreakdown.map((line, i) => <li key={`mor-${i}`}>{line}</li>)}
                     </ul>
@@ -526,80 +539,12 @@ export default function GameDetailsPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Detalles de la Ronda: {selectedTeam.name}</DialogTitle>
-                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {currentRoundTab}.</DialogDescription>
+                 <DialogDescription>Decisiones tomadas por el equipo en la ronda {currentRoundTab}. (Datos de ejemplo)</DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <div className="space-y-6 text-sm">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Precio de Matrícula</h4>
-                    <p className="text-muted-foreground">El equipo ha fijado el precio trimestral de la matrícula en <span className="font-bold text-foreground">{selectedTeam.decisions.tuitionPrice} CC</span>.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">Inversiones Realizadas</h4>
-                    {selectedTeam.decisions.investments.length > 0 ? (
-                      <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                        {selectedTeam.decisions.investments.map((inv, index) => (
-                          <li key={index}>
-                            <span className="font-semibold text-foreground">{inv.name}:</span> {inv.cost.toLocaleString()} CC
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground">No se han realizado inversiones esta ronda.</p>
-                    )}
-                  </div>
-
-                  {selectedTeam.type === 'H' && selectedTeam.strategicPlan && parseInt(currentRoundTab) === 1 && (
-                    <div className="space-y-2">
-                        <h4 className="font-semibold">Plan Estratégico (Ronda 0)</h4>
-                        <div className="p-3 bg-muted/50 rounded-md space-y-2">
-                           <div>
-                                <p className="font-medium">Objetivos de KPIs:</p>
-                                <ul className="list-disc pl-5 text-sm text-muted-foreground mt-1">
-                                    {selectedTeam.strategicPlan.kpiTargets.map((target, i) => <li key={`kpi-${i}`}>{target}</li>)}
-                                </ul>
-                           </div>
-                           <div className="grid grid-cols-2 gap-x-4">
-                                <div>
-                                    <p className="font-medium">Ranking Objetivo:</p>
-                                    <p className="text-sm text-muted-foreground mt-1">{selectedTeam.strategicPlan.rankingGoal}</p>
-                                </div>
-                                <div>
-                                    <p className="font-medium">Política de Precios:</p>
-                                    <p className="text-sm text-muted-foreground mt-1">{selectedTeam.strategicPlan.pricingPolicy}</p>
-                                </div>
-                           </div>
-                        </div>
-                    </div>
-                  )}
-
-                  {selectedTeam.type === 'H' && <div className="space-y-2">
-                    <h4 className="font-semibold">Respuesta a Crisis: <span className="font-normal">{selectedTeam.decisions.crisisResponse.crisisName}</span></h4>
-                    <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="font-medium">Opción elegida:</p>
-                        <p className="text-sm text-muted-foreground mt-1">{selectedTeam.decisions.crisisResponse.option}</p>
-                        <p className="text-xs text-muted-foreground/80 mt-2">Consecuencias (oculto para alumnos): -15.000 CC, +20 moral</p>
-                      </div>
-                      <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="font-medium">Justificación del equipo:</p>
-                        <p className="text-sm text-muted-foreground mt-1 italic">"{selectedTeam.decisions.crisisResponse.justification}"</p>
-                      </div>
-                  </div>}
-                  <div className="space-y-2">
-                      <Label htmlFor="teacher-notes" className="font-semibold">Notas del Profesor (Privadas)</Label>
-                      <Textarea 
-                          id="teacher-notes" 
-                          placeholder="Anota aquí tus observaciones sobre la estrategia del equipo..."
-                          value={teacherNotes}
-                          onChange={(e) => setTeacherNotes(e.target.value)}
-                          className="min-h-[100px]"
-                      />
-                  </div>
-                </div>
               </div>
               <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => setDecisionDetailOpen(false)}>Cerrar</Button>
-                <Button onClick={() => setDecisionDetailOpen(false)}>Guardar Notas</Button>
               </DialogFooter>
             </>
           )}
@@ -608,5 +553,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

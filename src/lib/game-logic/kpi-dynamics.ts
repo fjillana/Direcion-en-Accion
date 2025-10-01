@@ -2,7 +2,7 @@
 import type { TeamState } from "./types";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
 
-const TEACHER_SALARY = 7500;
+const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
 const OVERLOAD_MORALE_PENALTY = 5;
 const OVERLOAD_NMA_PENALTY = 0.1;
@@ -32,11 +32,15 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
 
   // 2. Calcular Ingresos y Costes
   const income = updatedNumStudents * decisions.tuitionPrice;
+  
+  // Coste de personal = nº de profesores * salario por profesor
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
+
   const investmentCost = decisions.investments.reduce((sum, inv) => sum + inv.cost, 0);
+  
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
-      if (actionId === 'P2') return sum + TEACHER_SALARY; // Coste de contratación es un salario
-      if (actionId === 'P7') return sum + TEACHER_SALARY; // Coste de despido (indemnización)
+      // Los costes de contratar y despedir ya se reflejan en el coste de personal de la siguiente ronda
+      // y en el resultado de la ronda actual (indemnización, etc), pero no como un gasto directo aquí.
       if (actionId === 'F5') return sum + 50000; // Ampliación de aulas
       return sum;
   }, 0);
@@ -83,7 +87,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   return {
       ...currentKpis,
       cash: updatedCash,
-      personnelCost: personnelCost,
+      personnelCost: personnelCost, // Este es el coste que se usará para el PEB de Coste de Personal
       income: income,
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,

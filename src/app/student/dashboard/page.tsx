@@ -33,7 +33,7 @@ import { XpSummary } from "@/components/student/xp-summary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { useMemo } from "react";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 
 const mockCrises: Record<string, CrisisProps> = {
@@ -52,9 +52,12 @@ const mockCrises: Record<string, CrisisProps> = {
 };
 
 export default function StudentDashboard() {
-  const { studentGame, setRoundDecisions } = useStudentGame();
+  const { studentGame, setRoundDecisions, getDecisionsByRound } = useStudentGame();
 
-  const { decisions, kpis, performanceHistory, round } = studentGame || {};
+  const { decisions: currentDecisions, kpis, performanceHistory, round } = studentGame || {};
+  
+  const decisions = round === 0 ? currentDecisions : getDecisionsByRound(round || 0);
+
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
@@ -115,8 +118,8 @@ export default function StudentDashboard() {
         <div className="space-y-6">
            <Alert>
               <Info className="h-4 w-4" />
-              <Alert.Title className="font-bold">Bienvenido a la Ronda 0: Planificación Estratégica</Alert.Title>
-              <Alert.Description>
+              <AlertTitle className="font-bold">Bienvenido a la Ronda 0: Planificación Estratégica</AlertTitle>
+              <AlertDescription>
                   <p>¡Es hora de definir el futuro de tu centro! En esta ronda inicial, no hay competición de mercado. Tu única tarea es:</p>
                   <ol className="list-decimal pl-5 mt-2 space-y-1">
                       <li>Establecer tus objetivos a largo plazo en el <strong>Plan Estratégico</strong>.</li>
@@ -126,7 +129,7 @@ export default function StudentDashboard() {
                    <Button asChild className="mt-4">
                       <Link href="/student/strategic-plan">Ir al Plan Estratégico</Link>
                    </Button>
-              </Alert.Description>
+              </AlertDescription>
            </Alert>
            <XpSummary performanceHistory={performanceHistory || []} />
         </div>

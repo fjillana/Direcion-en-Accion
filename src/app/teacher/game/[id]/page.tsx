@@ -190,17 +190,6 @@ export default function GameDetailsPage() {
     router.push('/teacher/dashboard');
   };
 
-  if (!game) {
-    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-  
-  const getButtonText = () => {
-      if (game.status === 'Finalizado') return "Juego Finalizado";
-      if (game.round === 0) return `Procesar Ronda 0 (Setup)`;
-      if (game.round === game.numRounds) return "Finalizar Juego";
-      return `Procesar Ronda ${game.round}`;
-  }
-  
   const allTeamsConfirmed = useMemo(() => {
       if (!game || game.teamNames.length === 0) {
           return true; // No human teams to wait for
@@ -218,10 +207,17 @@ export default function GameDetailsPage() {
       });
   }, [game]);
 
-
+  const getButtonText = () => {
+      if (!game) return "Cargando...";
+      if (game.status === 'Finalizado') return "Juego Finalizado";
+      if (game.round === 0) return `Procesar Ronda 0 (Setup)`;
+      if (game.round === game.numRounds) return "Finalizar Juego";
+      return `Procesar Ronda ${game.round}`;
+  }
+  
   const isButtonDisabled = () => {
       if (isProcessing) return true;
-      if (game.status === 'Finalizado') return true;
+      if (!game || game.status === 'Finalizado') return true;
       if (game.round > 0 && !allTeamsConfirmed) return true; // Disable if not all teams have confirmed
       return false;
   }
@@ -233,6 +229,10 @@ export default function GameDetailsPage() {
     'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
     'F5': { name: 'Ampliación de Aulas', cost: 50000 },
   };
+  
+  if (!game) {
+    return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <>

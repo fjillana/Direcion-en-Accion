@@ -40,17 +40,27 @@ export function LoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock login logic with test users
-    if (values.email === "estudiante@test.com" && values.password === "password") {
-      router.push("/student/dashboard");
-    } else if (values.email === "profesor@test.com" && values.password === "password") {
-      router.push("/teacher/dashboard");
+    if (isLogin) {
+      // Logic for logging in
+      if (values.email === "profesor@test.com" && values.password === "password") {
+        router.push("/teacher/dashboard");
+      } else if (values.email === "estudiante@test.com" && values.password === "password") {
+        router.push("/student/dashboard");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error de autenticación",
+          description: "Correo electrónico o contraseña incorrectos.",
+        });
+      }
     } else {
+      // Logic for registering a new student account
+      // For now, we'll simulate a successful registration and redirect
       toast({
-        variant: "destructive",
-        title: "Error de autenticación",
-        description: "Correo electrónico o contraseña incorrectos.",
+        title: "¡Cuenta Creada!",
+        description: "Bienvenido/a. Redirigiendo a tu panel de estudiante...",
       });
+      router.push("/student/dashboard");
     }
   }
 
@@ -125,7 +135,7 @@ export function LoginForm() {
         Google
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}
+        {isLogin ? "¿Eres estudiante y no tienes cuenta?" : "¿Ya tienes una cuenta?"}
         <Button
           variant="link"
           className="px-1"

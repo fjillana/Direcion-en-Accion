@@ -24,30 +24,13 @@ export function AuthPage() {
               Dirección en acción
             </CardTitle>
             <CardDescription>
-              Bienvenido de nuevo. Inicia sesión para continuar.
+              Inicia sesión o crea una cuenta de estudiante para comenzar.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <LoginForm />
           </CardContent>
         </Card>
-        <div className="mt-6 text-center text-sm">
-          <p className="text-muted-foreground">O entra como invitado:</p>
-          <div className="mt-2 flex justify-center gap-4">
-            <Link
-              href="/student/dashboard"
-              className="font-medium text-primary hover:underline"
-            >
-              Estudiante
-            </Link>
-            <Link
-              href="/teacher/dashboard"
-              className="font-medium text-primary hover:underline"
-            >
-              Profesor
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

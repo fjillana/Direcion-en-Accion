@@ -47,12 +47,11 @@ import { useAuth } from "@/hooks/use-auth";
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
+  const { logout } = useAuth();
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
   
-  const isRoundZero = studentGame?.round === 0;
-
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
     { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
@@ -155,7 +154,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 </TooltipProvider>
               </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </Button>
             <UserNav />
           </div>
         </header>

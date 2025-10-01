@@ -27,23 +27,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/hooks/use-game-context";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { TeamPerformanceData } from "@/hooks/use-games";
 
-
-type TeamKPIs = {
-  cash: number;
-  personnelCost: number;
-  nma: number;
-  marketShare: number;
-  morale: number;
-  studentTeacherRatio: number;
-  currentStudents: number;
-  tuitionPrice: number;
-};
 
 type StrategicGoal = {
   target: number;
@@ -51,95 +41,29 @@ type StrategicGoal = {
   range_max?: number;
 };
 
-type Team = {
-  rank: number;
-  name: string;
-  type: 'H' | 'IA';
-  xp: number;
-  kpis: TeamKPIs;
-  strategicGoals: { [key in keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>]?: StrategicGoal };
+// Simplified team structure for the leaderboard view
+type LeaderboardTeam = {
+    rank: number;
+    name: string;
+    type: 'H' | 'IA';
+    totalXp: number;
+    kpis: {
+        nma: number;
+        marketShare: number;
+        studentTeacherRatio: number;
+        tuitionPrice: number;
+        numStudents: number;
+    };
+    // Strategic goals are optional and mostly for human teams.
+    strategicGoals?: { [key: string]: StrategicGoal };
 };
 
-const teamsData: Team[] = [
-  {
-    rank: 1,
-    name: "Equipo Delta",
-    type: 'H',
-    xp: 1800,
-    kpis: { cash: 55000, personnelCost: 68, nma: 8.8, marketShare: 15, morale: 85, studentTeacherRatio: 23.5, currentStudents: 825, tuitionPrice: 115 },
-    strategicGoals: { 
-      cash: { target: 40000, operator: "min" }, 
-      personnelCost: { target: 70, operator: "max" },
-      nma: { target: 8.5, operator: "min" },
-      marketShare: { target: 14, operator: "min" },
-      morale: { target: 80, operator: "min" },
-      studentTeacherRatio: { target: 24, operator: "max" }
-    },
-  },
-  {
-    rank: 2,
-    name: "Equipo Beta",
-    type: 'H',
-    xp: 1500,
-    kpis: { cash: 32000, personnelCost: 72, nma: 8.5, marketShare: 13.5, morale: 78, studentTeacherRatio: 24.0, currentStudents: 810, tuitionPrice: 118 },
-    strategicGoals: { 
-      cash: { target: 25000, operator: "min" },
-      personnelCost: { target: 75, operator: "max" },
-      nma: { target: 8.2, operator: "min" },
-      marketShare: { target: 12, operator: "min" },
-      morale: { target: 75, operator: "min" },
-      studentTeacherRatio: { target: 24.5, operator: "max" }
-    },
-  },
-    {
-    rank: 3,
-    name: "IA Rival 1",
-    type: 'IA',
-    xp: 1450,
-    kpis: { cash: 45000, personnelCost: 70, nma: 8.4, marketShare: 12.5, morale: 80, studentTeacherRatio: 25.0, currentStudents: 805, tuitionPrice: 120 },
-    strategicGoals: { 
-      cash: { target: 30000, operator: "min" },
-    },
-  },
-  {
-    rank: 4,
-    name: "Equipo Alfa",
-    type: 'H',
-    xp: 1200,
-    kpis: { cash: 21000, personnelCost: 76, nma: 8.2, marketShare: 12, morale: 71, studentTeacherRatio: 25.1, currentStudents: 802, tuitionPrice: 125 },
-    strategicGoals: { 
-      cash: { target: 16000, operator: "range", range_max: 32000 }, 
-      personnelCost: { target: 78, operator: "max" },
-      nma: { target: 8.0, operator: "min" },
-      marketShare: { target: 11, operator: "min" },
-      morale: { target: 70, operator: "min" },
-      studentTeacherRatio: { target: 25, operator: "max" }
-    },
-  },
-  {
-    rank: 5,
-    name: "Equipo Gamma",
-    type: 'H',
-    xp: 950,
-    kpis: { cash: 15000, personnelCost: 79, nma: 7.9, marketShare: 11, morale: 65, studentTeacherRatio: 25.8, currentStudents: 795, tuitionPrice: 130 },
-    strategicGoals: { 
-      cash: { target: 10000, operator: "min" },
-      personnelCost: { target: 80, operator: "max" },
-      nma: { target: 8.0, operator: "min" },
-      marketShare: { target: 10, operator: "min" },
-      morale: { target: 68, operator: "min" },
-      studentTeacherRatio: { target: 26, operator: "max" }
-    },
-  },
-].sort((a, b) => b.xp - a.xp).map((team, index) => ({...team, rank: index + 1}));
-
 const kpiConfig = {
-  cash: { label: "Saldo de tesorería", unit: "CC", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
-  personnelCost: { label: "Coste personal / Ingresos", unit: "%", format: (v: number) => `${v}%` },
-  nma: { label: "Nota Media Alumnado", unit: "", format: (v: number) => v.toFixed(1) },
-  marketShare: { label: "Cuota de mercado", unit: "%", format: (v: number) => `${v}%` },
-  morale: { label: "Moral del personal", unit: "%", format: (v: number) => `${v}%` },
-  studentTeacherRatio: { label: "Ratio Alumnos/Profesor", unit: "", format: (v: number) => v.toFixed(1) },
+  nma: { label: "Nota Media Alumnado", format: (v: number) => v.toFixed(1) },
+  marketShare: { label: "Cuota de mercado", format: (v: number) => `${v.toFixed(1)}%` },
+  studentTeacherRatio: { label: "Ratio Alumnos/Profesor", format: (v: number) => v.toFixed(1) },
+  tuitionPrice: { label: "Precio Matrícula", format: (v: number) => `${new Intl.NumberFormat('es-ES').format(v)} CC` },
+  numStudents: { label: "Nº Alumnos", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
 };
 
 
@@ -167,8 +91,7 @@ export default function TeacherLeaderboardPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [teams, setTeams] = useState<Team[]>(teamsData);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<LeaderboardTeam | null>(null);
 
   useEffect(() => {
     const gameId = searchParams.get('gameId');
@@ -176,6 +99,35 @@ export default function TeacherLeaderboardPage() {
       setActiveGameId(gameId);
     }
   }, [searchParams, activeGame, setActiveGameId]);
+
+  const teams = useMemo(() => {
+      if (!activeGame || !activeGame.performance) return [];
+      
+      // Use performance data from the last completed round
+      const lastRound = activeGame.round > 1 ? activeGame.round - 1 : 1;
+      const performanceData = activeGame.performance[lastRound];
+
+      if (!performanceData) return [];
+
+      return performanceData.map(p => ({
+          name: p.name,
+          type: p.type,
+          totalXp: p.totalXp,
+          kpis: {
+            // This is a mock until decisions and kpis are fully connected
+            nma: 8.5,
+            marketShare: 12,
+            studentTeacherRatio: 25,
+            tuitionPrice: 120,
+            numStudents: 810,
+          },
+      }))
+      .sort((a, b) => b.totalXp - a.totalXp)
+      .map((team, index) => ({
+          ...team,
+          rank: index + 1
+      }));
+  }, [activeGame]);
 
 
   if (!activeGame) {
@@ -208,7 +160,7 @@ export default function TeacherLeaderboardPage() {
         <CardHeader>
           <CardTitle>Leaderboard: {activeGame.name}</CardTitle>
           <CardDescription>
-            Clasificación global y KPIs principales. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
+            Clasificación global y KPIs públicos. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -218,12 +170,11 @@ export default function TeacherLeaderboardPage() {
                 <TableHead>Equipo</TableHead>
                 <TableHead className="w-[50px] text-center">Tipo</TableHead>
                 <TableHead className="w-[80px]">Ranking</TableHead>
-                <TableHead className="text-right">Tesorería</TableHead>
-                <TableHead className="text-right">Coste Personal</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
-                <TableHead className="text-right">Moral</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
+                <TableHead className="text-right">Precio Matrícula</TableHead>
+                <TableHead className="text-right">Nº Alumnos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -232,12 +183,11 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="font-bold text-lg">{team.rank}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.cash, team.strategicGoals.cash))}>{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.personnelCost, team.strategicGoals.personnelCost))}>{kpiConfig.personnelCost.format(team.kpis.personnelCost)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicGoals.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicGoals.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.morale, team.strategicGoals.morale))}>{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicGoals.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicGoals?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicGoals?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicGoals?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.kpis.tuitionPrice)}</TableCell>
+                  <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -266,9 +216,9 @@ export default function TeacherLeaderboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {selectedTeam.type === 'H' ? Object.entries(selectedTeam.strategicGoals).map(([key, goal]) => {
+                     {selectedTeam.type === 'H' && selectedTeam.strategicGoals ? Object.entries(selectedTeam.strategicGoals).map(([key, goal]) => {
                        if (!goal) return null;
-                       const kpiKey = key as keyof Omit<TeamKPIs, 'currentStudents' | 'tuitionPrice'>;
+                       const kpiKey = key as keyof Omit<typeof kpiConfig, 'tuitionPrice' | 'numStudents'>;
                        const kpiInfo = kpiConfig[kpiKey];
                        const currentValue = selectedTeam.kpis[kpiKey];
                        const progress = getProgress(currentValue, goal);
@@ -289,7 +239,7 @@ export default function TeacherLeaderboardPage() {
                      }) : (
                         <TableRow>
                             <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                                Los equipos de IA no tienen un plan estratégico definido.
+                                {selectedTeam.type === 'IA' ? 'Los equipos de IA no tienen un plan estratégico definido.' : 'No se han definido objetivos estratégicos para este equipo.'}
                             </TableCell>
                         </TableRow>
                      )}
@@ -308,3 +258,5 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
+
+    

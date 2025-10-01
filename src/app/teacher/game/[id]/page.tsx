@@ -43,116 +43,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { simulateRound } from "@/lib/game-logic/round-simulation";
 import { Separator } from "@/components/ui/separator";
 
-
-const initialTeamsData: TeamPerformanceData[] = [
-  {
-    name: "Equipo Alfa",
-    type: 'H',
-    finances: { peb: 95, xp: 19, pebBreakdown: ["Tesorería (7%): 100 PEB", "Coste Personal (76%): 90 PEB"] },
-    reputation: { peb: 88, xp: 18, pebBreakdown: ["NMA (8.2): 82 PEB", "Cuota Mercado (12%): 94 PEB"] },
-    morale: { peb: 71, xp: 14, pebBreakdown: ["Moral (71%): 71 PEB", "Ratio Alumno/Prof (25.1): 100 PEB"] },
-    totalXp: 51,
-    decisions: {
-      investments: [
-        { id: 'P1', name: "Formación docente", cost: 10000, effect: '' },
-        { id: 'R1', name: "Campaña publicitaria en redes", cost: 5000, effect: '' },
-      ],
-      tuitionPrice: 125,
-      crisisResponse: {
-        crisisName: "Huelga docente",
-        option: "Recurrir a mediadores externos",
-        justification: "Buscamos una solución negociada y menos costosa a corto plazo para no impactar la tesorería."
-      },
-      selectedCenterActions: [],
-    }
-  },
-  {
-    name: "Equipo Beta",
-    type: 'H',
-    finances: { peb: 105, xp: 21, pebBreakdown: ["Tesorería (11%): 110 PEB", "Coste Personal (72%): 100 PEB"] },
-    reputation: { peb: 110, xp: 22, pebBreakdown: ["NMA (9.2): 115 PEB", "Cuota Mercado (13.5%): 105 PEB"] },
-    morale: { peb: 98, xp: 20, pebBreakdown: ["Moral (78%): 78 PEB", "Ratio Alumno/Prof (24.0): 118 PEB"] },
-    totalXp: 63,
-    decisions: {
-      investments: [ { id: 'R2', name: "Inversión en TIC", cost: 25000, effect: '' } ],
-      tuitionPrice: 118,
-      crisisResponse: {
-        crisisName: "Huelga docente",
-        option: "Negociar un acuerdo parcial",
-        justification: "Preferimos una solución intermedia para subir la moral sin comprometer demasiado el presupuesto de la ronda."
-      },
-      selectedCenterActions: [],
-    }
-  },
-  {
-    name: "Equipo Gamma",
-    type: 'H',
-    finances: { peb: 88, xp: 18, pebBreakdown: ["Tesorería (4%): 80 PEB", "Coste Personal (79%): 96 PEB"] },
-    reputation: { peb: 92, xp: 18, pebBreakdown: ["NMA (7.8): 90 PEB", "Cuota Mercado (11%): 94 PEB"] },
-    morale: { peb: 65, xp: 13, pebBreakdown: ["Moral (65%): 65 PEB", "Ratio Alumno/Prof (25.8): 92 PEB"] },
-    totalXp: 49,
-    decisions: {
-      investments: [ { id: 'R3', name: "Mejora de instalaciones (patios, laboratorios)", cost: 15000, effect: '' } ],
-      tuitionPrice: 130,
-      crisisResponse: {
-        crisisName: "Huelga docente",
-        option: "Mantener la postura",
-        justification: "Creemos que ceder a las demandas sentaría un precedente negativo para futuras negociaciones."
-      },
-      selectedCenterActions: [],
-    }
-  },
-  {
-    name: "Equipo Delta",
-    type: 'H',
-    finances: { peb: 110, xp: 22, pebBreakdown: ["Tesorería (15%): 120 PEB", "Coste Personal (68%): 100 PEB"] },
-    reputation: { peb: 115, xp: 23, pebBreakdown: ["NMA (9.8): 120 PEB", "Cuota Mercado (15%): 110 PEB"] },
-    morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (85%): 85 PEB", "Ratio Alumno/Prof (23.5): 115 PEB"] },
-    totalXp: 65,
-    decisions: {
-      investments: [
-        { id: 'F1', name: "Implantación de ERP", cost: 20000, effect: '' },
-        { id: 'P4', name: "Incremento salarial global (5-10 %)", cost: 12000, effect: '' },
-      ],
-      tuitionPrice: 115,
-      crisisResponse: {
-        crisisName: "Huelga docente",
-        option: "Aceptar todas las demandas",
-        justification: "La moral es clave para la calidad educativa. Preferimos hacer la inversión para resolver la crisis de raíz y evitar futuras huelgas."
-      },
-      selectedCenterActions: [],
-    }
-  },
-    {
-    name: "IA Rival 1",
-    type: 'IA',
-    finances: { peb: 100, xp: 20, pebBreakdown: ["Tesorería (10%): 100 PEB", "Coste Personal (75%): 100 PEB"] },
-    reputation: { peb: 100, xp: 20, pebBreakdown: ["NMA (8.5): 100 PEB", "Cuota Mercado (12.5%): 100 PEB"] },
-    morale: { peb: 100, xp: 20, pebBreakdown: ["Moral (80%): 80 PEB", "Ratio Alumno/Prof (25.0): 120 PEB"] },
-    totalXp: 60,
-    decisions: {
-      investments: [ { id: 'R1', name: "Campaña publicitaria en redes", cost: 10000, effect: '' } ],
-      tuitionPrice: 120,
-      crisisResponse: { crisisName: "Huelga docente", option: "Negociar un acuerdo parcial", justification: "Respuesta automática de la IA." },
-      selectedCenterActions: [],
-    }
-  },
-  {
-    name: "IA Rival 2",
-    type: 'IA',
-    finances: { peb: 115, xp: 23, pebBreakdown: ["Tesorería (20%): 130 PEB", "Coste Personal (65%): 100 PEB"] },
-    reputation: { peb: 95, xp: 19, pebBreakdown: ["NMA (8.0): 90 PEB", "Cuota Mercado (11.5%): 100 PEB"] },
-    morale: { peb: 90, xp: 18, pebBreakdown: ["Moral (70%): 70 PEB", "Ratio Alumno/Prof (24.5): 110 PEB"] },
-    totalXp: 60,
-    decisions: {
-      investments: [ { id: 'F1', name: "Implantación de ERP", cost: 30000, effect: '' } ],
-      tuitionPrice: 128,
-      crisisResponse: { crisisName: "Huelga docente", option: "Mantener la postura", justification: "Respuesta automática de la IA." },
-      selectedCenterActions: [],
-    }
-  },
-];
-
 const fullInvestments: Investment[] = [
     { id: 'F1', name: 'Implantación de ERP', costRange: '15.000-30.000', description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes administrativos un 2 %.', effect: '+5 a +10 XP Finanzas' },
     { id: 'F2', name: 'Contratación de asesoría financiera', costRange: '8.000-12.000', description: 'Apoyo experto para elaborar presupuestos y evaluar inversiones. Se contrata por ronda.', effect: '+3 a +8 XP Finanzas' },
@@ -175,7 +65,7 @@ const fullInvestments: Investment[] = [
     { id: 'R10', name: 'Premios y competiciones', costRange: '5.000-15.000', description: 'Organizar concursos académicos o deportivos atrae medios y genera prestigio.', effect: '+3 XP Reputación' },
     { id: 'P1', name: 'Formación docente', costRange: '5.000-15.000', description: 'Cursos de actualización, metodologías innovadoras. Cuanto mayor es la inversión, mayor el impacto.', effect: '+5 XP Personal, +10-20 puntos de moral' },
     { id: 'P2', name: 'Contratación docente', costRange: '7.500 por ronda', description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes.', effect: '+10 XP Personal, +15 puntos de moral' },
-    { id: 'P3', name: 'Poaching de profesor de la competencia', costRange: '7.500 + 10.000 prima', description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral &lt;70.', effect: '+15 XP Personal, +20 puntos de moral, −5 XP Reputación para el competidor' },
+    { id: 'P3', name: 'Poaching de profesor de la competencia', costRange: '7.500 + 10.000 prima', description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral <70.', effect: '+15 XP Personal, +20 puntos de moral, −5 XP Reputación para el competidor' },
     { id: 'P4', name: 'Incremento salarial global (5-10 %)', costRange: '12.000-24.000 por ronda', description: 'Mejora la satisfacción, pero incrementa el coste de personal y puede comprometer la tesorería.', effect: '+15 XP Personal, +20 puntos de moral' },
     { id: 'P5', name: 'Beneficios no monetarios / vacaciones', costRange: '2.000-8.000', description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral.', effect: '+8 XP Personal, +10 puntos de moral' },
     { id: 'P6', name: 'Coaching/mediación', costRange: '2.000-5.000', description: 'Sesiones para resolver conflictos y mejorar la comunicación interna.', effect: '+4 XP Personal, +5 puntos de moral' },
@@ -415,7 +305,7 @@ export default function GameDetailsPage() {
                             <TableCell className="font-medium">{team.name}</TableCell>
                             <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.finances.peb))}>{team.finances.peb.toFixed(2)}</TableCell>
-                            <TableCell className="text-center font-mono">{team.finances.xp.toFixed(2)}</TableCell>
+                            <TableCell className="text-center font-mono">{team.finanzas.xp.toFixed(2)}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.reputation.peb))}>{team.reputation.peb.toFixed(2)}</TableCell>
                             <TableCell className="text-center font-mono">{team.reputation.xp.toFixed(2)}</TableCell>
                             <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb.toFixed(2)}</TableCell>
@@ -577,3 +467,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

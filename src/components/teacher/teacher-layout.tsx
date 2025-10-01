@@ -101,10 +101,6 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Partida activa: <span className="text-foreground">{activeGame.name}</span></span>
              </div>
            )}
-          <Button variant="outline" size="sm" onClick={logout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Cerrar sesión
-          </Button>
           <UserNav />
         </div>
       </header>

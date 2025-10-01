@@ -92,24 +92,25 @@ const GamesContext = createContext<GamesContextType | undefined>(undefined);
 const GAMES_STORAGE_KEY = 'games';
 const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
 
-// Helper function to safely get item from localStorage
-const getInitialState = <T,>(key: string, defaultValue: T): T => {
-  if (typeof window === 'undefined') {
-    return defaultValue;
-  }
-  try {
-    const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.error(`Error reading from localStorage key “${key}”:`, error);
-    return defaultValue;
-  }
-};
-
-
 export function GamesProvider({ children }: { children: ReactNode }) {
-  const [games, setGames] = useState<Game[]>(() => getInitialState<Game[]>(GAMES_STORAGE_KEY, []));
-  const [activeGameId, setActiveGameIdState] = useState<string | null>(() => getInitialState<string | null>(ACTIVE_GAME_ID_STORAGE_KEY, null));
+  const [games, setGames] = useState<Game[]>([]);
+  const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
+      if (storedGames) {
+        setGames(JSON.parse(storedGames));
+      }
+      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+      if (storedActiveId) {
+        setActiveGameIdState(JSON.parse(storedActiveId));
+      }
+    } catch (error) {
+      console.error("Failed to read from localStorage:", error);
+    }
+  }, []);
+
 
   const updateLocalStorage = <T,>(key: string, value: T) => {
     if (typeof window !== 'undefined') {

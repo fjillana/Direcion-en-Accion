@@ -91,6 +91,99 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { games, updateGame, getGameById } = useGames();
   const router = useRouter();
+
+  useEffect(() => {
+    setIsLoading(true);
+    let storedState: StudentGameState;
+    try {
+      const item = window.localStorage.getItem(getStorageKey());
+      storedState = item ? JSON.parse(item) : { ...initialStudentState };
+    } catch (error) {
+      console.error(error);
+      storedState = { ...initialStudentState };
+    }
+    
+    // Ensure critical nested objects exist
+    if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
+        storedState.decisions = { ...initialStudentState.decisions };
+    }
+    if(!storedState.strategicPlan || !storedState.strategicPlan.targets?.cash){
+        storedState.strategicPlan = initialStudentState.strategicPlan;
+        storedState.planConfirmed = false;
+    }
+    
+    setStudentGame(storedState);
+    setIsLoading(false);
+  }, []);
+  
+  // This effect syncs the student's game state with the global game state from useGames
+  useEffect(() => {
+    if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;
+
+    const gameData = getGameById(studentGame.gameId);
+    if (!gameData) return;
+
+    let updatedState = { ...studentGame };
+    
+    const round = gameData.round;
+    const hasRoundChanged = updatedState.round !== round;
+    
+    if(hasRoundChanged){
+        // New round has started, reset confirmation status
+        updatedState.decisions = { ...initialStudentState.decisions, tuitionPrice: updatedState.decisions?.tuitionPrice || 120 };
+    }
+
+    const performanceHistory: TeamPerformanceData[] = [];
+    let currentKpis: StudentGameState['kpis'] | undefined = undefined;
+
+    if(gameData.performance){
+        // History includes all rounds up to the one before the current one
+        for(let r=0; r < round; r++){ 
+            const roundPerformance = gameData.performance[r];
+            const teamPerformance = roundPerformance?.find(p => p.name === studentGame.teamName);
+            if(teamPerformance) {
+                performanceHistory.push(teamPerformance);
+            }
+        }
+
+        const lastRoundPerformance = performanceHistory[performanceHistory.length - 1];
+        if(lastRoundPerformance){
+           currentKpis = lastRoundPerformance.kpis;
+        }
+    }
+
+    if (!currentKpis) { // This happens in Round 0 or if there's no history
+       const humanTeamsCount = gameData.teamNames.length || 1;
+       const numIaTeams = humanTeamsCount;
+       currentKpis = {
+          cash: gameData.initialFunds,
+          personnelCost: 240000,
+          income: 320000,
+          nma: 7.5,
+          marketShare: 100 / (humanTeamsCount + numIaTeams),
+          morale: 80,
+          studentTeacherRatio: 25.0,
+          numStudents: 800, 
+          numTeachers: 32,
+       }
+    }
+    
+    updatedState = {
+      ...updatedState,
+      round,
+      roundSettings: gameData.roundSettings?.[round],
+      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGame.teamName || m.from === studentGame.teamName),
+      performanceHistory,
+      kpis: currentKpis,
+    };
+    
+    // Only update state if there are actual changes to avoid loops
+    if(JSON.stringify(updatedState) !== JSON.stringify(studentGame)){
+      setStudentGame(updatedState);
+      localStorage.setItem(getStorageKey(), JSON.stringify(updatedState));
+    }
+  }, [games, getGameById, studentGame, isLoading]);
+
   
   // This function simulates how another user (teacher) would update this student's state
   const updateStudentGame = useCallback((userId: string, updatedState: Partial<StudentGameState>) => {
@@ -107,8 +200,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const getStudentGameByGameId = useCallback((gameId: string): StudentGameState | null => {
       if (typeof window === 'undefined') return null;
       // This is a simplification. In a real app, you'd query a backend.
-      // Here, we can only find the current user's state.
-      // A real implementation would loop through all localStorage keys with the prefix.
       const allKeys = Object.keys(localStorage);
       const studentKeys = allKeys.filter(k => k.startsWith(STUDENT_GAME_STORAGE_KEY_PREFIX));
       
@@ -154,85 +245,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         return newState;
     });
    };
-
-  useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(getStorageKey());
-      let storedState: StudentGameState = item ? JSON.parse(item) : { ...initialStudentState };
-
-      if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
-          storedState.decisions = { ...initialStudentState.decisions };
-      }
-      if(!storedState.strategicPlan || !storedState.strategicPlan.targets.cash){
-          storedState.strategicPlan = initialStudentState.strategicPlan;
-          storedState.planConfirmed = false;
-      }
-      
-      if (storedState.gameId && storedState.teamName) {
-          const gameData = getGameById(storedState.gameId);
-          if (gameData) {
-              const round = gameData.round;
-              
-              if(storedState.round !== round){
-                  // New round has started, reset confirmation
-                   storedState.decisions = { ...initialStudentState.decisions, tuitionPrice: storedState.decisions?.tuitionPrice || 120 };
-              }
-
-              const performanceHistory: TeamPerformanceData[] = [];
-              let currentKpis: StudentGameState['kpis'] | undefined = undefined;
-
-              if(gameData.performance){
-                  for(let r=0; r < round; r++){ // Also include round 0 performance
-                      const roundPerformance = gameData.performance[r];
-                      const teamPerformance = roundPerformance?.find(p => p.name === storedState.teamName);
-                      if(teamPerformance) {
-                          performanceHistory.push(teamPerformance);
-                      }
-                  }
-
-                  const lastRoundPerformance = performanceHistory[performanceHistory.length - 1];
-                  if(lastRoundPerformance){
-                     currentKpis = lastRoundPerformance.kpis;
-                  }
-              }
-
-              if (!currentKpis) {
-                 const humanTeamsCount = gameData.teamNames.length || 1;
-                 const numIaTeams = humanTeamsCount;
-                 currentKpis = {
-                    cash: gameData.initialFunds,
-                    personnelCost: 240000,
-                    income: 320000,
-                    nma: 7.5,
-                    marketShare: 100 / (humanTeamsCount + numIaTeams),
-                    morale: 80,
-                    studentTeacherRatio: 25.0,
-                    numStudents: 800, 
-                    numTeachers: 32,
-                 }
-              }
-
-              storedState = {
-                ...storedState,
-                round,
-                roundSettings: gameData.roundSettings?.[round],
-                messages: gameData.messages?.filter(m => m.to === 'all' || m.to === storedState.teamName || m.from === storedState.teamName),
-                performanceHistory,
-                kpis: currentKpis,
-              };
-          }
-      }
-      setStudentGame(storedState);
-      if(item !== JSON.stringify(storedState)) {
-        localStorage.setItem(getStorageKey(), JSON.stringify(storedState));
-      }
-    } catch (error) {
-      console.error(error);
-      setStudentGame(initialStudentState);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [games, getGameById]);
 
 
   const requestToJoinGame = (gameId: string, gameName: string, teamName: string) => {

@@ -47,7 +47,6 @@ import { useAuth } from "@/hooks/use-auth";
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
-  const { logout } = useAuth();
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
@@ -159,10 +158,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar sesión
-            </Button>
             <UserNav />
           </div>
         </header>

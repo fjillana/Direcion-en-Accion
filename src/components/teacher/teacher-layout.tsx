@@ -5,16 +5,14 @@ import { UserNav } from "@/components/shared/user-nav";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Briefcase, Settings, LogOut } from "lucide-react";
+import { Menu, Briefcase } from "lucide-react";
 import { useGame } from "@/hooks/use-game-context";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 
 export function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeGame, clearActiveGame } = useGame();
-  const { logout } = useAuth();
 
   const navItems = [
     { href: "/teacher/dashboard", label: "Dashboard" },
@@ -101,10 +99,6 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Partida activa: <span className="text-foreground">{activeGame.name}</span></span>
              </div>
            )}
-          <Button variant="outline" size="sm" onClick={logout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Cerrar sesión
-          </Button>
           <UserNav />
         </div>
       </header>

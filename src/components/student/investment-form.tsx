@@ -1,6 +1,5 @@
 
 "use client";
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,10 +8,9 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Investment } from "@/components/teacher/catalog-editor";
 
@@ -26,7 +24,6 @@ interface InvestmentFormProps {
 }
 
 export function InvestmentForm({ disabled = false, availableInvestments, selectedInvestments, onInvestmentChange, totalOtherCosts, teamCash }: InvestmentFormProps) {
-  const [confirmed, setConfirmed] = useState(false);
 
   const investmentCost = selectedInvestments.reduce((acc, id) => {
     const investment = availableInvestments.find(inv => inv.id === id);
@@ -40,22 +37,11 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
   const canAfford = remainingCash >= 0;
 
   const handleCheckboxChange = (investmentId: string, checked: boolean) => {
-    if (confirmed || disabled) return;
+    if (disabled) return;
     onInvestmentChange(
       checked ? [...selectedInvestments, investmentId] : selectedInvestments.filter(id => id !== investmentId)
     );
   };
-
-  const handleConfirm = () => {
-    if (!canAfford) return;
-    setConfirmed(true);
-  };
-  
-  const handleRevert = () => {
-    setConfirmed(false);
-  };
-
-  const isEffectivelyDisabled = disabled || confirmed;
 
   return (
     <>
@@ -67,16 +53,7 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {confirmed && !disabled && (
-            <Alert variant="default" className="mb-6 bg-emerald-50 border-emerald-200">
-              <CheckCircle2 className="h-4 w-4 !text-emerald-600" />
-              <AlertTitle className="text-emerald-800">Decisiones Confirmadas</AlertTitle>
-              <AlertDescription className="text-emerald-700">
-                Tus decisiones han sido guardadas. Aún puedes revertir esto antes de que el profesor procese la ronda.
-              </AlertDescription>
-            </Alert>
-          )}
-          {!canAfford && (
+          {!canAfford && !disabled && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Fondos Insuficientes</AlertTitle>
@@ -86,13 +63,13 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
             </Alert>
           )}
 
-          <fieldset disabled={isEffectivelyDisabled} className="group">
+          <fieldset disabled={disabled} className="group">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 group-disabled:opacity-50">
               <div className="lg:col-span-2 space-y-4">
                 {availableInvestments.length > 0 ? availableInvestments.map((inv) => (
                   <div
                     key={inv.id}
-                    className={cn("flex items-start space-x-3 rounded-md border p-4", confirmed && 'bg-muted/50')}
+                    className={cn("flex items-start space-x-3 rounded-md border p-4", disabled && 'bg-muted/50')}
                   >
                     <Checkbox
                       id={inv.id}
@@ -136,13 +113,6 @@ export function InvestmentForm({ disabled = false, availableInvestments, selecte
                               <span className={cn("font-mono", !canAfford && "text-destructive")}>{remainingCash.toLocaleString('es-ES')} CC</span>
                           </div>
                       </CardContent>
-                      <CardFooter className="flex-col gap-2">
-                          {confirmed ? (
-                              <Button onClick={handleRevert} className="w-full" variant="outline">Revertir Decisiones</Button>
-                          ) : (
-                              <Button onClick={handleConfirm} className="w-full" disabled={!canAfford}>Confirmar Decisiones</Button>
-                          )}
-                      </CardFooter>
                   </Card>
               </div>
             </div>

@@ -1,6 +1,4 @@
 
-
-
 import type { Game, TeamPerformanceData, TeamDecision, GameMessage } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
@@ -13,12 +11,19 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
     if (typeof window !== 'undefined') {
         const storedDecisions = localStorage.getItem(key);
         if (storedDecisions) {
-            const parsed = JSON.parse(storedDecisions);
-            // Ensure selectedInvestments is an array of objects
-            if (parsed.selectedInvestments && Array.isArray(parsed.selectedInvestments) && parsed.selectedInvestments.length > 0 && typeof parsed.selectedInvestments[0] === 'string') {
-              return { ...parsed, selectedInvestments: [] }; // Reset if it's old format
+            try {
+                const parsed = JSON.parse(storedDecisions);
+                // Ensure decisions are well-formed
+                return {
+                    investments: parsed.investments || [],
+                    tuitionPrice: parsed.tuitionPrice || 120,
+                    crisisResponse: parsed.crisisResponse || null,
+                    selectedCenterActions: parsed.selectedCenterActions || [],
+                    roundConfirmed: parsed.roundConfirmed || false,
+                };
+            } catch (e) {
+                console.error("Could not parse student decisions:", e);
             }
-            return parsed;
         }
     }
     // Fallback if no decisions are found
@@ -95,7 +100,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
           name: teamState.name,
           type: teamState.type,
           ...performance,
-          decisions: teamState.decisions,
+          decisions: teamState.decisions, // Make sure to pass the full decisions object
           kpis: kpisAfterInitialInvestment,
           archetype: teamState.archetype,
         };
@@ -133,7 +138,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
       name: teamState.name,
       type: teamState.type,
       ...performance,
-      decisions: teamState.decisions,
+      decisions: teamState.decisions, // Make sure to pass the full decisions object
       kpis: teamState.kpis,
       archetype: teamState.archetype,
     };

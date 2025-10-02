@@ -81,7 +81,7 @@ const fullCrises: Crisis[] = [
     },
     {
       id: 'C5', name: 'Crisis sanitaria', description: 'Brote de gripe o similar que obliga a suspender las clases presenciales una semana.',
-      options: [ { label: 'Suspender todas las actividades y esperar a que pase', effect: 'Impacto: −3 XP Reputación; −5 XP Finanzas por pérdida de clases extraescolares' }, { label: 'Adoptar clases en línea mediante inversión en TIC (R2)', effect: 'Impacto: −10.000 CC, +5 XP Reputación; +3 XP Personal' }, { label: 'Contratar personal sanitario temporal', effect: 'Impacto: −5.000 CC, +3 XP Personal; mejora la moral' }, { label: 'Ignorar las recomendaciones sanitarias', effect: 'Impacto: −10 XP Reputación; −15 puntos de moral; riesgo de huelga' }, { label: 'Solicitar apoyo de la administración', effect: 'Impacto: −2 XP Finanzas por trámites; 50 % de probabilidad de recibir 5.000 CC para comprar equipos; +2 XP Reputación si se recibe' }, ]
+      options: [ { label: 'Suspender todas las actividades y esperar a que pase', effect: 'Impacto: −3 XP Reputación; −5 XP Finanzas por pérdida de clases extraescolares' }, { label: 'Adoptar clases en línea mediante inversión en TIC (R2)', effect: 'Impacto: −10.000 CC, +5 XP Reputación, +3 XP Personal' }, { label: 'Contratar personal sanitario temporal', effect: 'Impacto: −5.000 CC, +3 XP Personal; mejora la moral' }, { label: 'Ignorar las recomendaciones sanitarias', effect: 'Impacto: −10 XP Reputación; −15 puntos de moral; riesgo de huelga' }, { label: 'Solicitar apoyo de la administración', effect: 'Impacto: −2 XP Finanzas por trámites; 50 % de probabilidad de recibir 5.000 CC para comprar equipos; +2 XP Reputación si se recibe' }, ]
     },
     {
       id: 'C6', name: 'Retraso en los ingresos por patrocinio', description: 'Una empresa patrocinadora retrasa el pago de 10.000 CC correspondiente a un patrocinio.',
@@ -483,5 +483,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

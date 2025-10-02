@@ -1,4 +1,3 @@
-
 "use client";
 
 import { InvestmentForm } from "@/components/student/investment-form";
@@ -12,7 +11,12 @@ export default function DecisionsPage() {
 
   const availableInvestments = studentGame?.roundSettings?.investments || [];
   const selectedInvestments = studentGame?.decisions?.selectedInvestments || [];
-  const selectedCenterActions = studentGame?.decisions?.selectedCenterActions || [];
+  
+  // Aseguramos que selectedCenterActions es siempre un array para evitar errores de ejecución.
+  const selectedCenterActions = Array.isArray(studentGame?.decisions?.selectedCenterActions) 
+    ? studentGame.decisions.selectedCenterActions 
+    : [];
+
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
   const teamCash = studentGame?.kpis?.cash || 0;
 
@@ -22,7 +26,7 @@ export default function DecisionsPage() {
     'F5': 50000, // Ampliación de Aulas
   };
 
-  const centerActionCosts = selectedCenterActions.reduce((acc, id) => {
+  const centerActionTotalCost = selectedCenterActions.reduce((acc, id) => {
     return acc + (centerActionsCosts[id as keyof typeof centerActionsCosts] || 0);
   }, 0);
 
@@ -53,12 +57,10 @@ export default function DecisionsPage() {
           availableInvestments={availableInvestments}
           selectedInvestments={selectedInvestments}
           onInvestmentChange={(investments) => setRoundDecisions({ selectedInvestments: investments })}
-          totalOtherCosts={centerActionCosts}
+          totalOtherCosts={centerActionTotalCost}
           teamCash={teamCash}
         />
       </div>
     </StudentGate>
   );
 }
-
-    

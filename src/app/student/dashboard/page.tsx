@@ -36,17 +36,17 @@ import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 
-const mockCrises: Record<string, CrisisProps> = {
+const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
     'C1': {
       id: "C1",
       title: "¡Evento de Crisis! - Huelga docente",
       description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
       options: [
-        { id: 'op1', label: 'Aceptar todas las demandas (-25.000 CC)' },
-        { id: 'op2', label: 'Negociar un acuerdo parcial (-15.000 CC)' },
+        { id: 'op1', label: 'Aceptar todas las demandas' },
+        { id: 'op2', label: 'Negociar un acuerdo parcial' },
         { id: 'op3', label: 'Mantener la postura' },
-        { id: 'op4', label: 'Recurrir a mediadores externos (-8.000 CC)' },
-        { id: 'op5', label: 'Despedir a los líderes del sindicato (-10.000 CC)' },
+        { id: 'op4', label: 'Recurrir a mediadores externos' },
+        { id: 'op5', label: 'Despedir a los líderes del sindicato' },
       ]
     }
 };
@@ -55,15 +55,16 @@ export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
 
   const { decisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
-
+  
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
-    if(!decisions || !studentGame) return;
+    // Ensure decisions object exists before confirming
+    if (!decisions || !studentGame) return;
+
     const confirmedDecisions = { ...decisions, roundConfirmed: true };
     setRoundDecisions(confirmedDecisions);
     
-    // Save decisions for this round
     if(studentGame.gameId && studentGame.teamName && studentGame.round !== undefined){
         const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
         localStorage.setItem(key, JSON.stringify(confirmedDecisions));
@@ -204,7 +205,7 @@ export default function StudentDashboard() {
               <Dialog>
                 <DialogTrigger asChild>
                   <div>
-                    <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
+                    <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income && kpis.income > 0 ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
                   </div>
                 </DialogTrigger>
                 <DialogContent>

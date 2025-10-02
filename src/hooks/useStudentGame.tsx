@@ -253,7 +253,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       if (!prev) return null;
       // Ensure prev.decisions is not null/undefined
       const existingDecisions = prev.decisions || initialStudentState.decisions!;
-      const newDecisions = { ...existingDecisions, ...decisions };
+      const newDecisions = { 
+        ...existingDecisions, 
+        ...decisions,
+        // Ensure sub-properties are arrays if they are part of the update
+        selectedCenterActions: Array.isArray(decisions.selectedCenterActions) ? decisions.selectedCenterActions : existingDecisions.selectedCenterActions,
+        selectedInvestments: Array.isArray(decisions.selectedInvestments) ? decisions.selectedInvestments : existingDecisions.selectedInvestments,
+      };
       const newState = { ...prev, decisions: newDecisions };
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));
       return newState;

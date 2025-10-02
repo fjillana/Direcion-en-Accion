@@ -136,8 +136,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!hydratedState.decisions) {
         hydratedState.decisions = { ...initialStudentState.decisions };
     }
-    hydratedState.decisions.selectedInvestments = hydratedState.decisions.selectedInvestments || [];
-    hydratedState.decisions.selectedCenterActions = hydratedState.decisions.selectedCenterActions || [];
+    hydratedState.decisions.selectedInvestments = Array.isArray(hydratedState.decisions.selectedInvestments) ? hydratedState.decisions.selectedInvestments : [];
+    hydratedState.decisions.selectedCenterActions = Array.isArray(hydratedState.decisions.selectedCenterActions) ? hydratedState.decisions.selectedCenterActions : [];
     
     setStudentGame(hydratedState);
     setIsLoading(false);
@@ -270,8 +270,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         ...decisions,
       };
       // Ensure array properties are always arrays
-      newDecisions.selectedCenterActions = newDecisions.selectedCenterActions || [];
-      newDecisions.selectedInvestments = newDecisions.selectedInvestments || [];
+      newDecisions.selectedCenterActions = Array.isArray(newDecisions.selectedCenterActions) ? newDecisions.selectedCenterActions : [];
+      newDecisions.selectedInvestments = Array.isArray(newDecisions.selectedInvestments) ? newDecisions.selectedInvestments : [];
       
       const newState = { ...prev, decisions: newDecisions };
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));

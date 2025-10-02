@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -80,7 +81,7 @@ interface GamesContextType {
   games: Game[];
   addGame: (game: Game) => void;
   removeGame: (gameId: string) => void;
-  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance' | 'roundSettings' | 'messages'>>) => void;
+  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance' | 'roundSettings' | 'messages' | 'decisions'>>) => void;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
   updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => void;
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
@@ -314,3 +315,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

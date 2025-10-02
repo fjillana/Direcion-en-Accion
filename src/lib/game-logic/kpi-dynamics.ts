@@ -9,7 +9,7 @@ const OVERLOAD_MORALE_PENALTY = 5;
 const OVERLOAD_NMA_PENALTY = 0.1;
 const LOW_RATIO_THRESHOLD = 24.0;
 const LOW_RATIO_NMA_BONUS = 0.2;
-const PUBLIC_INCOME = 25000;
+const PUBLIC_INCOME = 25000; // Subvención pública por ronda
 const CAPACITY = 810;
 
 

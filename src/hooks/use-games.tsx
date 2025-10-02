@@ -207,11 +207,35 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const updateRoundSettings = useCallback((gameId: string, round: number, settings: RoundSettings) => {
     setGames(prevGames => {
+      const gameToUpdate = prevGames.find(g => g.id === gameId);
+      if (!gameToUpdate) return prevGames;
+
+      const oldSettings = gameToUpdate.roundSettings?.[round];
+      let newMessages: GameMessage[] = [];
+
+      // Check for newly assigned crises
+      settings.teamCrises.forEach(newTeamCrisis => {
+        const oldTeamCrisis = oldSettings?.teamCrises.find(tc => tc.teamName === newTeamCrisis.teamName);
+        if (newTeamCrisis.crisisIds.length > 0 && (!oldTeamCrisis || oldTeamCrisis.crisisIds.length === 0)) {
+           newMessages.push({
+             id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
+             from: 'system',
+             to: newTeamCrisis.teamName,
+             title: 'ATENCIÓN: ¡CRISIS!',
+             content: 'Se ha presentado un evento de crisis inesperado. Revisa tu dashboard para tomar una decisión crucial.',
+             type: 'crisis',
+             timestamp: Date.now(),
+             readBy: [],
+           });
+        }
+      });
+      
       const newGames = prevGames.map(game => {
         if (game.id === gameId) {
-          const newSettings = { ...(game.roundSettings || {}) };
-          newSettings[round] = settings;
-          return { ...game, roundSettings: newSettings };
+          const newSettingsState = { ...(game.roundSettings || {}) };
+          newSettingsState[round] = settings;
+          const updatedMessages = [...(game.messages || []), ...newMessages];
+          return { ...game, roundSettings: newSettingsState, messages: updatedMessages };
         }
         return game;
       });

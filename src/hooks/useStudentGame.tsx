@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -211,7 +212,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       ...newState,
       round: serverRound,
       roundSettings: gameData.roundSettings?.[serverRound],
-      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGame.teamName || m.from === studentGame.teamName),
+      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGame.teamName || m.from === 'teacher' || m.from === studentGame.teamName),
       performanceHistory: performanceHistory.sort((a,b) => a.round - b.round),
       kpis: currentKpis,
     };

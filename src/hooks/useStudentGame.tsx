@@ -144,7 +144,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     if(hasRoundChanged){
         // New round has started, clear decisions for this new round
-        newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
+        newState.decisions = { ...(initialStudentState.decisions!), tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
         const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
         localStorage.removeItem(newRoundDecisionsKey);
     }
@@ -256,10 +256,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       const newDecisions = { 
         ...existingDecisions, 
         ...decisions,
-        // Ensure sub-properties are arrays if they are part of the update
-        selectedCenterActions: Array.isArray(decisions.selectedCenterActions) ? decisions.selectedCenterActions : existingDecisions.selectedCenterActions,
-        selectedInvestments: Array.isArray(decisions.selectedInvestments) ? decisions.selectedInvestments : existingDecisions.selectedInvestments,
       };
+      // Ensure array properties are always arrays
+      newDecisions.selectedCenterActions = newDecisions.selectedCenterActions || [];
+      newDecisions.selectedInvestments = newDecisions.selectedInvestments || [];
+      
       const newState = { ...prev, decisions: newDecisions };
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));
       return newState;

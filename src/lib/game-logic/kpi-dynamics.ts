@@ -1,10 +1,13 @@
 
+
 import type { TeamState } from "./types";
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
 const OVERLOAD_MORALE_PENALTY = 5;
 const OVERLOAD_NMA_PENALTY = 0.1;
+const LOW_RATIO_THRESHOLD = 24.0;
+const LOW_RATIO_NMA_BONUS = 0.2;
 const PUBLIC_INCOME = 25000;
 const CAPACITY = 810;
 
@@ -85,7 +88,15 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedMorale += 10;
   }
 
-  // Impacto de sobrecarga
+  // Impacto de ratio bajo (BONUS)
+  if (updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
+    const bonusLevels = Math.floor(LOW_RATIO_THRESHOLD - updatedStudentTeacherRatio);
+    if (bonusLevels > 0) {
+      updatedNma += bonusLevels * LOW_RATIO_NMA_BONUS;
+    }
+  }
+
+  // Impacto de sobrecarga (PENALTY)
   if (updatedStudentTeacherRatio > OVERLOAD_RATIO) {
     updatedMorale -= OVERLOAD_MORALE_PENALTY;
     updatedNma -= OVERLOAD_NMA_PENALTY;

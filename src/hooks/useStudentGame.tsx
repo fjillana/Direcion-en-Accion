@@ -155,12 +155,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     if (hasRoundChanged) {
         // New round, so reset confirmation, but keep existing decisions as a base.
-        const currentDecisions = newState.decisions || initialStudentState.decisions;
+        const previousDecisions = newState.decisions || initialStudentState.decisions;
         newState.decisions = { 
-            ...currentDecisions, // Keep tuition price and center actions
-            selectedInvestments: [], // Reset only investments
-            crisisResponse: null, // Reset crisis
-            roundConfirmed: false
+            ...initialStudentState.decisions, // Reset to initial state for the new round
+            tuitionPrice: previousDecisions.tuitionPrice, // Persist tuition price across rounds
         };
     }
     

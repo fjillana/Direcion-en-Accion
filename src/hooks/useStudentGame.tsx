@@ -121,15 +121,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const currentUserId = useMemo(() => user?.id || CURRENT_USER_ID, [user]);
 
-  useEffect(() => {
+  const loadState = useCallback(() => {
     setIsLoading(true);
     let storedState;
     try {
-      const item = window.localStorage.getItem(getStorageKey(currentUserId));
-      storedState = item ? JSON.parse(item) : { ...initialStudentState, userId: currentUserId };
+        const item = window.localStorage.getItem(getStorageKey(currentUserId));
+        storedState = item ? JSON.parse(item) : { ...initialStudentState, userId: currentUserId };
     } catch (error) {
-      console.error(error);
-      storedState = { ...initialStudentState, userId: currentUserId };
+        console.error(error);
+        storedState = { ...initialStudentState, userId: currentUserId };
     }
     
     const hydratedState = deepMerge({ ...initialStudentState, userId: currentUserId }, storedState);
@@ -143,6 +143,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setStudentGame(hydratedState);
     setIsLoading(false);
   }, [currentUserId]);
+
+  useEffect(() => {
+    loadState();
+    
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === getStorageKey(currentUserId) || event.key === 'games') {
+            loadState();
+        }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+
+  }, [loadState]);
   
   useEffect(() => {
     if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;

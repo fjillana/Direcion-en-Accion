@@ -53,7 +53,7 @@ const buildKpiAnalysis = (kpis: TeamPerformanceData['kpis'], decisions: TeamPerf
         },
         nma: {
             value: kpis.nma.toFixed(1),
-            analysis: `La nota media ha sido influenciada por inversiones como TIC ${decisions.investments.some(i => i.id ==='R2') ? '(realizada)' : '(no realizada)'} y formación docente ${decisions.investments.some(i => i.id ==='P1') ? '(realizada)' : '(no realizada)'}.`
+            analysis: `La nota media ha sido influenciada por inversiones como TIC ${(decisions?.investments ?? []).some(i => i.id ==='R2') ? '(realizada)' : '(no realizada)'} y formación docente ${(decisions?.investments ?? []).some(i => i.id ==='P1') ? '(realizada)' : '(no realizada)'}.`
         },
         marketShare: {
             value: `${kpis.marketShare.toFixed(1)}%`,

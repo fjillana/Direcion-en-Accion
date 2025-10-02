@@ -6,6 +6,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback,
 import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, InvestmentDecision, TeamDecision } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
+import { useAuth } from "./use-auth";
 
 // This would be the current logged-in user ID
 const CURRENT_USER_ID = "user-student-01"; 
@@ -58,7 +59,7 @@ const StudentGameContext = createContext<StudentGameContextType | undefined>(und
 
 const STUDENT_GAME_STORAGE_KEY_PREFIX = 'studentGameState_';
 
-const getStorageKey = () => `${STUDENT_GAME_STORAGE_KEY_PREFIX}${CURRENT_USER_ID}`;
+const getStorageKey = (userId: string) => `${STUDENT_GAME_STORAGE_KEY_PREFIX}${userId}`;
 
 const initialStudentState: StudentGameState = {
   userId: CURRENT_USER_ID,
@@ -115,23 +116,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { games, updateGame } = useGames();
+  const { user } = useAuth();
   const router = useRouter();
+
+  const currentUserId = useMemo(() => user?.id || CURRENT_USER_ID, [user]);
 
   useEffect(() => {
     setIsLoading(true);
     let storedState;
     try {
-      const item = window.localStorage.getItem(getStorageKey());
-      storedState = item ? JSON.parse(item) : { ...initialStudentState };
+      const item = window.localStorage.getItem(getStorageKey(currentUserId));
+      storedState = item ? JSON.parse(item) : { ...initialStudentState, userId: currentUserId };
     } catch (error) {
       console.error(error);
-      storedState = { ...initialStudentState };
+      storedState = { ...initialStudentState, userId: currentUserId };
     }
     
-    // Deep merge to ensure all properties from the initial state are present, especially nested ones.
-    const hydratedState = deepMerge(initialStudentState, storedState);
+    const hydratedState = deepMerge({ ...initialStudentState, userId: currentUserId }, storedState);
     
-    // Explicitly ensure decision arrays are arrays. This is a critical safeguard.
     if (!hydratedState.decisions) {
         hydratedState.decisions = { ...initialStudentState.decisions };
     }
@@ -140,7 +142,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     setStudentGame(hydratedState);
     setIsLoading(false);
-  }, []);
+  }, [currentUserId]);
   
   useEffect(() => {
     if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;
@@ -155,11 +157,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     let newState = { ...studentGame };
 
     if (hasRoundChanged) {
-        // New round, so reset confirmation, but keep existing decisions as a base.
         const previousDecisions = newState.decisions || initialStudentState.decisions;
         newState.decisions = { 
-            ...initialStudentState.decisions, // Reset to initial state for the new round
-            tuitionPrice: previousDecisions.tuitionPrice, // Persist tuition price across rounds
+            ...initialStudentState.decisions,
+            tuitionPrice: previousDecisions.tuitionPrice,
         };
     }
     
@@ -220,22 +221,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if(JSON.stringify(newState) !== JSON.stringify(studentGame)){
       setStudentGame(newState);
        if (typeof window !== 'undefined') {
-        localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+        localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
        }
     }
-  }, [games, studentGame, isLoading]);
+  }, [games, studentGame, isLoading, currentUserId]);
 
   
   const updateStudentGame = useCallback((userId: string, updatedState: Partial<StudentGameState>) => {
-    const key = `${STUDENT_GAME_STORAGE_KEY_PREFIX}${userId}`;
+    const key = getStorageKey(userId);
     const currentData = JSON.parse(localStorage.getItem(key) || '{}');
     const newState = { ...currentData, ...updatedState };
     localStorage.setItem(key, JSON.stringify(newState));
 
-    if (userId === CURRENT_USER_ID) {
+    if (userId === currentUserId) {
       setStudentGame(newState);
     }
-  }, []);
+  }, [currentUserId]);
 
   const getStudentGameByGameId = useCallback((gameId: string): StudentGameState | null => {
       if (typeof window === 'undefined') return null;
@@ -266,12 +267,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         ...existingDecisions, 
         ...decisions,
       };
-      // Ensure array properties are always arrays
       newDecisions.selectedCenterActions = Array.isArray(newDecisions.selectedCenterActions) ? newDecisions.selectedCenterActions : [];
       newDecisions.selectedInvestments = Array.isArray(newDecisions.selectedInvestments) ? newDecisions.selectedInvestments : [];
       
       const newState = { ...prev, decisions: newDecisions };
-      localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+      localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
       return newState;
     });
   };
@@ -281,7 +281,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (!prev) return null;
         const newPlan = { ...(prev.strategicPlan || initialStudentState.strategicPlan!), ...plan };
         const newState = { ...prev, strategicPlan: newPlan, planConfirmed: newPlan.confirmed };
-        localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+        localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
         return newState;
     });
    };
@@ -290,14 +290,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const requestToJoinGame = (gameId: string, gameName: string, teamName: string) => {
     const newState: StudentGameState = {
       ...initialStudentState,
-      userId: CURRENT_USER_ID,
+      userId: currentUserId,
       status: 'pending',
       gameId,
       gameName,
       teamName,
     };
     setStudentGame(newState);
-    localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+    localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
   };
   
   const checkGameStatus = useCallback(() => {
@@ -306,10 +306,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if(game && game.teamNames.includes(studentGame.teamName)) {
             const newState = { ...studentGame, status: 'joined' as StudentGameStatus, round: game.round };
             setStudentGame(newState);
-            localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+            localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
         }
     }
-  }, [studentGame, games]);
+  }, [studentGame, games, currentUserId]);
 
   const abandonGame = () => {
     if (!studentGame) return;
@@ -322,9 +322,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const newState = { ...initialStudentState };
+    const newState = { ...initialStudentState, userId: currentUserId };
     setStudentGame(newState);
-    localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+    localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
     router.push('/student/join-game');
   };
 

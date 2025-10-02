@@ -257,27 +257,6 @@ export function AIReportForm() {
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
                             </AccordionContent>
                         </AccordionItem>
-
-                        <AccordionItem value="item-financial-details" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
-                            <AccordionContent className="px-4 space-y-4">
-                                <div className="p-3 bg-muted/50 rounded-lg border">
-                                    <h4 className="font-semibold">Cálculos Clave</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
-                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
-                                    <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
-                                </div>
-                                <div className="p-3 bg-muted/50 rounded-lg border">
-                                    <h4 className="font-semibold">Inversiones Realizadas</h4>
-                                    <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                        {(reportData.decisions.investments || []).map((inv: any, index: number) => (
-                                            <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
-                                        ))}
-                                        {(reportData.decisions.investments || []).length === 0 && <li>No se realizaron inversiones esta ronda.</li>}
-                                    </ul>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
                         
                          <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>

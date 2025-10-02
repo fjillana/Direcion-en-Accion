@@ -87,7 +87,6 @@ export function StudentReport() {
   
   const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
   
-  // Recalculate cash on the fly to ensure correctness, ignoring the potentially bugged value from the report
   const correctlyCalculatedCash = initialCashForRound + reportData.kpis.income - totalCosts;
 
   return (

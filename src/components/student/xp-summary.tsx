@@ -68,7 +68,7 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
             <div>
                 <h4 className="font-semibold mb-1">1. Desglose de Puntuación Base (PEB)</h4>
                 <ul className="list-disc space-y-1 rounded-md border bg-muted/50 p-4 pl-8 text-muted-foreground">
-                    {pebBreakdown.map((line, index) => <li key={`peb-line-${index}`}><span className="text-foreground">{line}</span></li>)}
+                    {pebBreakdown.map((line, index) => <li key={index}><span className="text-foreground">{line}</span></li>)}
                 </ul>
             </div>
              <div>

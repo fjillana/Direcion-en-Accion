@@ -121,39 +121,42 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       storedState = { ...initialStudentState };
     }
     
-    // Deep merge to ensure all nested properties from initialStudentState are present
     const hydratedState = deepMerge(initialStudentState, storedState);
     
     setStudentGame(hydratedState);
     setIsLoading(false);
   }, []);
   
-  // This effect syncs the student's game state with the global game state from useGames
   useEffect(() => {
     if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;
 
     const gameData = games.find(g => g.id === studentGame.gameId);
     if (!gameData) return;
 
-    // A mutable copy to build the new state
-    let newState = { ...studentGame };
-    
     const serverRound = gameData.round;
     const clientRound = studentGame.round;
     const hasRoundChanged = clientRound !== serverRound;
-    
-    if(hasRoundChanged){
-        // New round has started, clear decisions for this new round
-        newState.decisions = { ...(initialStudentState.decisions!), tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
+
+    let newState = { ...studentGame };
+
+    if (hasRoundChanged) {
+        // New round, so reset confirmation, but keep existing decisions as a base.
+        const currentDecisions = newState.decisions || initialStudentState.decisions;
+        newState.decisions = { 
+            ...(currentDecisions!),
+            selectedInvestments: [],
+            selectedCenterActions: [],
+            crisisResponse: null,
+            roundConfirmed: false
+        };
         const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
         localStorage.removeItem(newRoundDecisionsKey);
     }
-
+    
     const performanceHistory: TeamPerformanceData[] = [];
     let currentKpis: StudentGameState['kpis'] | undefined = undefined;
 
-    if(gameData.performance){
-        // History includes all rounds up to the one before the current one
+    if (gameData.performance) {
         Object.keys(gameData.performance).forEach(roundKey => {
             const roundNum = parseInt(roundKey, 10);
             if(roundNum < serverRound) {
@@ -164,21 +167,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
                 }
             }
         });
-        
-        // Use the last available performance data for current KPIs
+
         if (serverRound > 0) {
             const lastCompletedRoundPerformance = gameData.performance?.[serverRound - 1];
-            const teamLastPerformance = lastCompletedRoundPerformance?.find(p => p.name === studentGame.teamName);
-            if(teamLastPerformance) currentKpis = teamLastPerformance.kpis;
+            currentKpis = lastCompletedRoundPerformance?.find(p => p.name === studentGame.teamName)?.kpis;
         }
     }
     
-    if (serverRound === 0 && !currentKpis) { // This happens in Round 0 before processing
+    if (serverRound === 0 && !currentKpis) { 
         const performanceForRoundZero = gameData.performance?.[0];
         const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
         if (teamPerformanceRoundZero) {
             currentKpis = teamPerformanceRoundZero.kpis;
-        } else { // Fallback for the very start of the game
+        } else {
              const humanTeamsCount = gameData.teamNames.length || 1;
              const numIaTeams = humanTeamsCount;
              currentKpis = {
@@ -206,7 +207,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis,
     };
     
-    // Only update state if there are actual changes to avoid loops
     if(JSON.stringify(newState) !== JSON.stringify(studentGame)){
       setStudentGame(newState);
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));
@@ -214,7 +214,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   }, [games, studentGame, isLoading]);
 
   
-  // This function simulates how another user (teacher) would update this student's state
   const updateStudentGame = useCallback((userId: string, updatedState: Partial<StudentGameState>) => {
     const key = `${STUDENT_GAME_STORAGE_KEY_PREFIX}${userId}`;
     const currentData = JSON.parse(localStorage.getItem(key) || '{}');
@@ -228,7 +227,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const getStudentGameByGameId = useCallback((gameId: string): StudentGameState | null => {
       if (typeof window === 'undefined') return null;
-      // This is a simplification. In a real app, you'd query a backend.
       const allKeys = Object.keys(localStorage);
       const studentKeys = allKeys.filter(k => k.startsWith(STUDENT_GAME_STORAGE_KEY_PREFIX));
       
@@ -251,7 +249,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const setRoundDecisions = (decisions: Partial<RoundDecisions>) => {
     setStudentGame(prev => {
       if (!prev) return null;
-      // Ensure prev.decisions is not null/undefined
       const existingDecisions = prev.decisions || initialStudentState.decisions!;
       const newDecisions = { 
         ...existingDecisions, 

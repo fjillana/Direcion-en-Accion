@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Wand2, Edit, Check, Loader2, Save } from "lucide-react";
+import { Wand2, Edit, Check, Loader2, Save, Send } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -380,7 +380,9 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                 <Button onClick={() => saveReport(false)} variant="secondary">
                                     <Save className="mr-2 h-4 w-4" /> Guardar Borrador
                                 </Button>
-                                <Button onClick={() => saveReport(true)}>Publicar Reporte</Button>
+                                <Button onClick={() => saveReport(true)}>
+                                    <Send className="mr-2 h-4 w-4" /> Publicar Reporte
+                                </Button>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>

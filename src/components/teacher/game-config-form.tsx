@@ -120,7 +120,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
                     type="number"
                     {...field}
                     onChange={(e) =>
-                      field.onChange(parseInt(e.target.value, 10))
+                      field.onChange(Number(e.target.value))
                     }
                   />
                 </FormControl>
@@ -139,7 +139,7 @@ export function GameConfigForm({ onCreateGame }: GameConfigFormProps) {
                     type="number"
                     {...field}
                     onChange={(e) =>
-                      field.onChange(parseInt(e.target.value, 10))
+                      field.onChange(Number(e.target.value))
                     }
                   />
                 </FormControl>

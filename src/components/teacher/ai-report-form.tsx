@@ -39,14 +39,19 @@ import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiv
 
 type TeamName = string;
 
-interface AIReportFormProps {
-  teamsData: TeamPerformanceData[];
-}
 
-export function AIReportForm({ teamsData }: AIReportFormProps) {
+export function AIReportForm() {
   const { activeGame } = useGame();
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
+  
+  const currentRoundNumber = activeGame?.round ? activeGame.round -1 : 0;
+  
+  const teamsData = useMemo(() => {
+    if (!activeGame || !activeGame.performance) return [];
+    return activeGame.performance[currentRoundNumber] || [];
+  }, [activeGame, currentRoundNumber]);
+
 
   const humanTeams = useMemo(() => teamsData.filter(t => t.type === 'H'), [teamsData]);
 
@@ -68,9 +73,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     // This effect runs when the selected team or the game data changes.
     // It loads an existing report from the game state if available.
     if (activeGame && selectedTeam) {
-        const gameData = getGameById(activeGame.id);
         const round = activeGame.round ? activeGame.round - 1 : 0;
-        const existingReport = gameData?.reports?.[round]?.[selectedTeam];
+        const existingReport = activeGame.reports?.[round]?.[selectedTeam];
         
         if (existingReport) {
             setReportData(existingReport);
@@ -90,7 +94,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       setHasReport(false);
       setReportData(null);
     }
-  }, [selectedTeam, activeGame, getGameById, teamsData]);
+  }, [selectedTeam, activeGame]);
 
   useEffect(() => {
     if (!selectedTeam && humanTeams.length > 0) {

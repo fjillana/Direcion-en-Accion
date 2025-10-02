@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Wand2, Edit, Check, Loader2 } from "lucide-react";
+import { Wand2, Edit, Check, Loader2, Save } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -199,8 +199,8 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
     setSelectedTeam(value as TeamName);
     setIsEditing(false);
   };
-
-  const handlePublishReport = () => {
+  
+  const saveReport = (publish: boolean) => {
     if (!activeGame || !selectedTeam || !reportData) return;
     
     const fullReportData = {
@@ -208,15 +208,20 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
       qualitativeAnalysis,
       debriefingQuestions,
       pedagogicalSuggestions,
+      published: publish, // Track if it's a draft or published
     };
     
     updateReport(activeGame.id, activeGame.round - 1, selectedTeam, fullReportData);
 
     toast({
-      title: "Reporte Publicado",
-      description: `El informe para ${selectedTeam} ha sido enviado a la sección del estudiante.`,
+      title: publish ? "Reporte Publicado" : "Borrador Guardado",
+      description: `El informe para ${selectedTeam} ha sido ${publish ? 'publicado' : 'guardado como borrador'}.`,
     });
-  };
+
+    if (isEditing) {
+        setIsEditing(false);
+    }
+  }
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
@@ -364,15 +369,18 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                                 </div>
                                 <div className="flex justify-end gap-2">
                                 {isEditing ? (
-                                    <Button onClick={() => setIsEditing(false)}>
-                                    <Check className="mr-2 h-4 w-4" /> Guardar Cambios
+                                    <Button onClick={() => saveReport(false)}>
+                                    <Check className="mr-2 h-4 w-4" /> Finalizar Edición
                                     </Button>
                                 ) : (
                                     <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Editar
+                                    <Edit className="mr-2 h-4 w-4" /> Editar Texto
                                     </Button>
                                 )}
-                                <Button onClick={handlePublishReport}>Publicar Reporte al Equipo</Button>
+                                <Button onClick={() => saveReport(false)} variant="secondary">
+                                    <Save className="mr-2 h-4 w-4" /> Guardar Borrador
+                                </Button>
+                                <Button onClick={() => saveReport(true)}>Publicar Reporte</Button>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>

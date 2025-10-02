@@ -94,18 +94,20 @@ const deepMerge = (target: any, source: any) => {
     const output = { ...target };
     if (target && typeof target === 'object' && source && typeof source === 'object') {
         Object.keys(source).forEach(key => {
-            if (source[key] && typeof source[key] === 'object' && key in target && target[key] !== null) {
-                // Ensure arrays are not merged but replaced if the source has it
-                if (Array.isArray(source[key])) {
-                    output[key] = source[key];
-                } else {
-                    output[key] = deepMerge(target[key], source[key]);
-                }
+            if (source[key] && typeof source[key] === 'object' && key in target && target[key] !== null && !Array.isArray(source[key])) {
+                output[key] = deepMerge(target[key], source[key]);
             } else {
                 output[key] = source[key];
             }
         });
     }
+    // Ensure nested structures in initial state are preserved if missing from source
+    Object.keys(target).forEach(key => {
+        if (!source.hasOwnProperty(key)) {
+            output[key] = target[key];
+        }
+    });
+
     return output;
 };
 
@@ -127,10 +129,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       storedState = { ...initialStudentState };
     }
     
+    // Deep merge to ensure all properties from the initial state are present, especially nested ones.
     const hydratedState = deepMerge(initialStudentState, storedState);
     
-    // Ensure decisions and its array properties are valid
-    hydratedState.decisions = hydratedState.decisions || initialStudentState.decisions;
+    // Explicitly ensure decision arrays are arrays. This is a critical safeguard.
+    if (!hydratedState.decisions) {
+        hydratedState.decisions = { ...initialStudentState.decisions };
+    }
     hydratedState.decisions.selectedInvestments = hydratedState.decisions.selectedInvestments || [];
     hydratedState.decisions.selectedCenterActions = hydratedState.decisions.selectedCenterActions || [];
     

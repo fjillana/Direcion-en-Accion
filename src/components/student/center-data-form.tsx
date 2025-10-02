@@ -35,7 +35,7 @@ const capacityActions = [
 export function CenterDataForm({ disabled = false, selectedActions: initialSelectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
   
   // Defensive programming: Ensure selectedActions is always an array.
-  const selectedActions = initialSelectedActions || [];
+  const selectedActions = Array.isArray(initialSelectedActions) ? initialSelectedActions : [];
 
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
     onActionChange(

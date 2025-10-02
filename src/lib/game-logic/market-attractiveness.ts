@@ -34,7 +34,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
     
     // c. Componente de Marketing (20%): Se calcula en base a la inversión en la campaña "R1".
-    const marketingInvestment = team.decisions.investments.find(inv => inv.id === 'R1');
+    const marketingInvestment = (team.decisions?.investments ?? []).find(inv => inv.id === 'R1');
     const marketingPoints = marketingInvestment ? marketingInvestment.cost / 1000 : 0;
 
     // Fórmula completa del IAM

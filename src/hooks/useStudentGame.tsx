@@ -129,17 +129,18 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const gameData = games.find(g => g.id === studentGame.gameId);
     if (!gameData) return;
 
-    let updatedState = { ...studentGame };
+    let newState: StudentGameState = { ...studentGame };
     
-    const round = gameData.round;
-    const hasRoundChanged = updatedState.round !== round && updatedState.round !== undefined;
+    const serverRound = gameData.round;
+    const clientRound = newState.round;
+    const hasRoundChanged = clientRound !== serverRound;
     
     if(hasRoundChanged){
         // New round has started, clear decisions from localstorage for this new round
-        const key = `decisions_${updatedState.gameId}_${updatedState.teamName}_${round}`;
+        const key = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
         localStorage.removeItem(key);
         // Reset confirmation status in component state for the new round
-        updatedState.decisions = { ...initialStudentState.decisions!, tuitionPrice: updatedState.decisions?.tuitionPrice || 120 };
+        newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: newState.decisions?.tuitionPrice || 120 };
     }
 
     const performanceHistory: TeamPerformanceData[] = [];
@@ -147,7 +148,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     if(gameData.performance){
         // History includes all rounds up to the one before the current one
-        for(let r=0; r < round; r++){ 
+        for(let r=0; r < serverRound; r++){ 
             const roundPerformance = gameData.performance[r];
             const teamPerformance = roundPerformance?.find(p => p.name === studentGame.teamName);
             if(teamPerformance) {
@@ -155,24 +156,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        // Add round 0 performance to history if we are in round 1
-        if (round === 1 && gameData.performance[0]) {
-            const teamPerformance = gameData.performance[0].find(p => p.name === studentGame.teamName);
+        if (serverRound > 0 && gameData.performance[0]) {
+             const teamPerformance = gameData.performance[0].find(p => p.name === studentGame.teamName);
              if (teamPerformance && !performanceHistory.some(p => p.round === 0)) {
                 performanceHistory.unshift(teamPerformance);
             }
         }
         
         // Use the last available performance data for current KPIs
-        const lastRoundWithPerformance = performanceHistory.length > 0 ? Math.max(...performanceHistory.map(p => p.round)) : -1;
-        const lastRoundPerformance = performanceHistory.find(p => p.round === lastRoundWithPerformance);
-
-        if(lastRoundPerformance){
-           currentKpis = lastRoundPerformance.kpis;
+        if (performanceHistory.length > 0) {
+            const lastRoundWithPerformance = Math.max(...performanceHistory.map(p => p.round));
+            const lastRoundPerformance = performanceHistory.find(p => p.round === lastRoundWithPerformance);
+            if(lastRoundPerformance) currentKpis = lastRoundPerformance.kpis;
         }
     }
     
-    if (round === 0 && !currentKpis) { // This happens in Round 0 before processing
+    if (serverRound === 0 && !currentKpis) { // This happens in Round 0 before processing
         const performanceForRoundZero = gameData.performance?.[0];
         const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
         if (teamPerformanceRoundZero) {
@@ -196,19 +195,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         }
     }
     
-    updatedState = {
-      ...updatedState,
-      round,
-      roundSettings: gameData.roundSettings?.[round],
+    newState = {
+      ...newState,
+      round: serverRound,
+      roundSettings: gameData.roundSettings?.[serverRound],
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGame.teamName || m.from === studentGame.teamName),
-      performanceHistory,
+      performanceHistory: performanceHistory.sort((a,b) => a.round - b.round),
       kpis: currentKpis,
     };
     
     // Only update state if there are actual changes to avoid loops
-    if(JSON.stringify(updatedState) !== JSON.stringify(studentGame)){
-      setStudentGame(updatedState);
-      localStorage.setItem(getStorageKey(), JSON.stringify(updatedState));
+    if(JSON.stringify(newState) !== JSON.stringify(studentGame)){
+      setStudentGame(newState);
+      localStorage.setItem(getStorageKey(), JSON.stringify(newState));
     }
   }, [games, studentGame, isLoading]);
 
@@ -356,5 +355,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

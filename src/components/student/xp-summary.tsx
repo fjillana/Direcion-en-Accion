@@ -4,7 +4,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Shield, Heart, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import type { TeamPerformanceData } from "@/hooks/use-games";
@@ -116,14 +115,13 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
     );
   }
 
-  const latestRound = Math.max(...performanceHistory.map(d => d.round));
-  const [selectedRound, setSelectedRound] = useState<number>(latestRound);
+  const latestRoundData = useMemo(() => {
+    return performanceHistory[performanceHistory.length - 1];
+  }, [performanceHistory]);
+  
+  const selectedRound = latestRoundData.round;
 
-  const currentData = useMemo(() => {
-    return performanceHistory.find(d => d.round === selectedRound) || performanceHistory[performanceHistory.length - 1];
-  }, [performanceHistory, selectedRound]);
-
-  const xpRonda = currentData.totalXp;
+  const xpRonda = latestRoundData.totalXp;
 
   const averageXp = useMemo(() => {
     const totalXp = performanceHistory.reduce((acc, roundData) => acc + roundData.totalXp, 0);
@@ -137,29 +135,17 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
             <div className="flex-1">
                 <CardTitle>Resumen de Puntuación</CardTitle>
                 <CardDescription>
-                    XP de la Ronda {selectedRound}: <span className="font-bold text-primary">{xpRonda.toFixed(1)} XP</span>
+                    Última ronda completada: <span className="font-bold text-primary">{selectedRound}</span>. XP de la ronda: <span className="font-bold text-primary">{xpRonda.toFixed(1)} XP</span>
                 </CardDescription>
-            </div>
-            <div className="mt-4 sm:mt-0">
-                <Select value={String(selectedRound)} onValueChange={(val) => setSelectedRound(Number(val))}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Seleccionar Ronda" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {performanceHistory.map(d => (
-                            <SelectItem key={d.round} value={String(d.round)}>Ronda {d.round}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <XpCard title="Finanzas" xp={currentData.finances.xp} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} peb={currentData.finances.peb} pebBreakdown={currentData.finances.pebBreakdown} round={selectedRound} />
-            <XpCard title="Reputación" xp={currentData.reputation.xp} icon={<Shield className="h-5 w-5 text-blue-600" />} peb={currentData.reputation.peb} pebBreakdown={currentData.reputation.pebBreakdown} round={selectedRound} />
-            <XpCard title="Moral" xp={currentData.morale.xp} icon={<Heart className="h-5 w-5 text-red-600" />} peb={currentData.morale.peb} pebBreakdown={currentData.morale.pebBreakdown} round={selectedRound} />
+            <XpCard title="Finanzas" xp={latestRoundData.finances.xp} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} peb={latestRoundData.finances.peb} pebBreakdown={latestRoundData.finances.pebBreakdown} round={selectedRound} />
+            <XpCard title="Reputación" xp={latestRoundData.reputation.xp} icon={<Shield className="h-5 w-5 text-blue-600" />} peb={latestRoundData.reputation.peb} pebBreakdown={latestRoundData.reputation.pebBreakdown} round={selectedRound} />
+            <XpCard title="Moral" xp={latestRoundData.morale.xp} icon={<Heart className="h-5 w-5 text-red-600" />} peb={latestRoundData.morale.peb} pebBreakdown={latestRoundData.morale.pebBreakdown} round={selectedRound} />
           </div>
         </div>
         <div className="flex items-center justify-center rounded-lg bg-muted/50 p-4">

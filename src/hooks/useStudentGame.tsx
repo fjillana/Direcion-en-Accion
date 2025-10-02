@@ -112,7 +112,7 @@ const deepMerge = (target: any, source: any) => {
 export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { games, updateGame } = useGames();
+  const { games, updateGame, confirmStudentDecisions } = useGames();
   const router = useRouter();
 
   useEffect(() => {
@@ -333,7 +333,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan]);
 
   return (
-    <StudentGameContext.Provider value={value}>
+    <StudentGameContext.Provider value={{...value, confirmStudentDecisions} as any}>
       {children}
     </StudentGameContext.Provider>
   );

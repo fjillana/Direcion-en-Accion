@@ -23,6 +23,10 @@ const GenerateRoundReportOutputSchema = z.object({
   reporteCualitativo: z.string().describe('Un análisis cualitativo y detallado del rendimiento del equipo, explicando las consecuencias de sus decisiones.'),
   preguntasMayeuticas: z.array(z.string()).describe('Un array con 2-3 preguntas mayéuticas para fomentar la reflexión del estudiante.'),
   sugerenciasPedagogicas: z.string().describe('Sugerencias pedagógicas para que el profesor pueda guiar al equipo.'),
+  kpiAnalysis: z.record(z.object({
+      value: z.string(),
+      analysis: z.string()
+  })).describe("Un objeto con el análisis cuantitativo de cada KPI, explicando el porqué de su valor basado en decisiones y otros KPIs.")
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;
 
@@ -46,6 +50,7 @@ const prompt = ai.definePrompt({
   2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
   3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda (ej: ¿sacrificar rentabilidad por cuota de mercado?, ¿cómo una crisis impactó su plan?).
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
+  5.  **Análisis Cuantitativo de KPIs**: Para el campo 'kpiAnalysis', genera un análisis para cada uno de los 6 KPIs principales. El análisis debe ser CUANTITATIVO, explicando el porqué del valor. Por ejemplo, para la moral, si subió, explica qué decisiones (contratar personal: +15 puntos, formación: +10 puntos) contribuyeron a ese cambio numérico. Para el ratio, explica el cálculo.
 
   **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,
 });

@@ -66,13 +66,26 @@ export function StudentReport() {
   }
   
   const totalInvestmentCost = (reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
-  const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
-      if (actionId === 'F5') return acc + 50000;
-      if (actionId === 'P7') return acc + 7500;
-      return acc;
-  }, 0);
-  const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
   
+  const centerActionsCostMap: Record<string, number> = {
+    'F5': 50000, // Ampliación de Aulas
+    'P7': 7500, // Despedir Docente
+  };
+  const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
+      return acc + (centerActionsCostMap[actionId] || 0);
+  }, 0);
+  
+  const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
+  // This is the CRITICAL fix: Recalculate cash on the fly to correct past errors.
+  // The logic is: Cash from previous round + Income of this round - Total Expenses of this round.
+  // To get previous round's cash, we need to find it in the performance history.
+  const prevRound = reportData.round > 0 ? reportData.round - 1 : 0;
+  const gameData = getGameById(studentGame.gameId!);
+  const prevRoundPerformance = gameData?.performance?.[prevRound]?.find(p => p.name === studentGame.teamName);
+  const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
+  
+  const correctlyCalculatedCash = initialCashForRound + reportData.kpis.income - totalCosts;
+
   return (
      <Card>
         <CardHeader>
@@ -93,7 +106,7 @@ export function StudentReport() {
                     <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(totalCosts)}</span></Badge>
-                        <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                        <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(correctlyCalculatedCash)}</span></Badge>
                     </AccordionContent>
                 </AccordionItem>
 
@@ -112,9 +125,9 @@ export function StudentReport() {
                                 {(reportData.decisions.investments || []).map((inv: any, index: number) => (
                                     <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
                                 ))}
-                                {(reportData.decisions.selectedCenterActions || []).includes('P2') && <li>Contratar Docente: {formatCurrency(0)} (el coste es salarial)</li>}
-                                {(reportData.decisions.selectedCenterActions || []).includes('P7') && <li>Despedir Docente: {formatCurrency(7500)}</li>}
-                                {(reportData.decisions.selectedCenterActions || []).includes('F5') && <li>Ampliación de Aulas: {formatCurrency(50000)}</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('P2') && <li>Contratar Docente: {formatCurrency(0)} (el coste es salarial recurrente)</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('P7') && <li>Despedir Docente (Indemnización): {formatCurrency(centerActionsCostMap['P7'])}</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('F5') && <li>Ampliación de Aulas: {formatCurrency(centerActionsCostMap['F5'])}</li>}
                                 {totalInvestmentCost === 0 && totalCenterActionsCost === 0 && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
                         </div>
@@ -124,7 +137,7 @@ export function StudentReport() {
                  <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
                     <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(correctlyCalculatedCash)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal / Ingresos:</span> <span className="font-bold">{reportData.kpis.income ? ((reportData.kpis.personnelCost / reportData.kpis.income) * 100).toFixed(1) : '0.0'}%</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Nota Media Alumnado:</span> <span className="font-bold">{reportData.kpis.nma.toFixed(1)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Cuota de Mercado:</span> <span className="font-bold">{reportData.kpis.marketShare.toFixed(1)}%</span></Badge>
@@ -134,12 +147,12 @@ export function StudentReport() {
                 </AccordionItem>
                 
                 <AccordionItem value="item-kpi-analysis" className="border rounded-lg">
-                    <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs</h3></AccordionTrigger>
+                    <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs (IA)</h3></AccordionTrigger>
                     <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                         {reportData.kpiAnalysis && Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
                             <div key={key} className="p-3 bg-muted/50 rounded-lg border">
                                 <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                <p className="text-sm text-muted-foreground mt-1"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
+                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
                             </div>
                         ))}
                     </AccordionContent>

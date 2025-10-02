@@ -37,39 +37,11 @@ import { generateRoundReport } from "@/ai/flows/generate-round-report";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiveness";
 
-
 type TeamName = string;
 
 interface AIReportFormProps {
   teamsData: TeamPerformanceData[];
 }
-
-const buildKpiAnalysis = (kpis: TeamPerformanceData['kpis'], decisions: TeamPerformanceData['decisions']) => {
-    return {
-        personnelCost: {
-            value: kpis.income > 0 ? `${((kpis.personnelCost / kpis.income) * 100).toFixed(1)}%` : '0.0%',
-            calculation: `(${kpis.personnelCost.toLocaleString('es-ES')} CC / ${kpis.income.toLocaleString('es-ES')} CC)`,
-            analysis: "El ratio de coste de personal sobre ingresos es un indicador clave de la salud financiera."
-        },
-        nma: {
-            value: kpis.nma.toFixed(1),
-            analysis: `La nota media ha sido influenciada por inversiones como TIC ${(decisions?.investments ?? []).some(i => i.id ==='R2') ? '(realizada)' : '(no realizada)'} y formación docente ${(decisions?.investments ?? []).some(i => i.id ==='P1') ? '(realizada)' : '(no realizada)'}.`
-        },
-        marketShare: {
-            value: `${kpis.marketShare.toFixed(1)}%`,
-            analysis: "La cuota de mercado depende de la atractividad del centro frente a los competidores."
-        },
-        morale: {
-            value: `${kpis.morale.toFixed(0)}%`,
-            analysis: `La moral del personal se ve afectada por la carga de trabajo (ratio alumnos/profesor) y las inversiones en personal.`
-        },
-        studentTeacherRatio: {
-            value: kpis.studentTeacherRatio.toFixed(1),
-            calculation: `(${kpis.numStudents} alumnos / ${kpis.numTeachers} profesores)`,
-            analysis: "Un ratio alto puede impactar negativamente la NMA y la moral."
-        }
-    };
-};
 
 export function AIReportForm({ teamsData }: AIReportFormProps) {
   const { activeGame } = useGame();
@@ -164,7 +136,7 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
           round: activeGame.round - 1,
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
-          kpiAnalysis: buildKpiAnalysis(teamPerformance.kpis, teamPerformance.decisions),
+          kpiAnalysis: result.kpiAnalysis, // Use analysis from AI
           marketAnalysis: {
             iam: teamMarketResult.iam,
             newStudentsCaptured: teamMarketResult.newStudents,
@@ -316,12 +288,12 @@ export function AIReportForm({ teamsData }: AIReportFormProps) {
                         </AccordionItem>
                         
                         <AccordionItem value="item-kpi-analysis" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs</h3></AccordionTrigger>
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de KPIs (IA)</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                                 {reportData.kpiAnalysis && Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
                                     <div key={key} className="p-3 bg-muted/50 rounded-lg border">
                                         <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                        <p className="text-sm text-muted-foreground mt-1"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
                                     </div>
                                 ))}
                             </AccordionContent>

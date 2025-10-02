@@ -192,21 +192,22 @@ export default function GameDetailsPage() {
   };
 
   const allTeamsConfirmed = useMemo(() => {
-      if (!game || game.teamNames.length === 0) {
-          return true; // No human teams to wait for
+    if (typeof window === 'undefined' || !game || game.teamNames.length === 0) {
+      return false; 
+    }
+    
+    return game.teamNames.every(teamName => {
+      const key = `decisions_${game.id}_${teamName}_${game.round}`;
+      const decisionsJson = localStorage.getItem(key);
+      if (!decisionsJson) return false;
+      try {
+        const decisions = JSON.parse(decisionsJson);
+        return decisions.roundConfirmed === true;
+      } catch (e) {
+        return false;
       }
-      return game.teamNames.every(teamName => {
-          const key = `decisions_${game.id}_${teamName}_${game.round}`;
-          const decisions = localStorage.getItem(key);
-          if (!decisions) return false;
-          try {
-              const parsedDecisions = JSON.parse(decisions);
-              return parsedDecisions.roundConfirmed === true;
-          } catch (e) {
-              return false;
-          }
-      });
-  }, [game]);
+    });
+  }, [game, games]); // Depend on 'games' to re-evaluate when localStorage might have changed.
 
   const getButtonText = () => {
       if (!game) return "Cargando...";

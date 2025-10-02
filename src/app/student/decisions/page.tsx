@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { InvestmentForm } from "@/components/student/investment-form";
@@ -60,3 +61,5 @@ export default function DecisionsPage() {
     </StudentGate>
   );
 }
+
+    

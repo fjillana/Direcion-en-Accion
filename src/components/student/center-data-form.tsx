@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -34,7 +35,7 @@ const capacityActions = [
 export function CenterDataForm({ disabled = false, selectedActions: initialSelectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
   
   // Defensive programming: Ensure selectedActions is always an array.
-  const selectedActions = Array.isArray(initialSelectedActions) ? initialSelectedActions : [];
+  const selectedActions = initialSelectedActions || [];
 
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
     onActionChange(
@@ -120,3 +121,5 @@ export function CenterDataForm({ disabled = false, selectedActions: initialSelec
     </Card>
   );
 }
+
+    

@@ -94,7 +94,12 @@ const deepMerge = (target: any, source: any) => {
     if (target && typeof target === 'object' && source && typeof source === 'object') {
         Object.keys(source).forEach(key => {
             if (source[key] && typeof source[key] === 'object' && key in target && target[key] !== null) {
-                output[key] = deepMerge(target[key], source[key]);
+                // Ensure arrays are not merged but replaced if the source has it
+                if (Array.isArray(source[key])) {
+                    output[key] = source[key];
+                } else {
+                    output[key] = deepMerge(target[key], source[key]);
+                }
             } else {
                 output[key] = source[key];
             }
@@ -148,10 +153,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             crisisResponse: null, // Reset crisis
             roundConfirmed: false
         };
-        const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(newRoundDecisionsKey);
-        }
     }
     
     const performanceHistory: TeamPerformanceData[] = [];
@@ -345,3 +346,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

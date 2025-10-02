@@ -43,11 +43,12 @@ export default function InboxPage() {
   
   useEffect(() => {
     if (gameId && userId && messages.length > 0) {
-      messages.forEach(msg => {
-        if (!msg.readBy.includes(userId)) {
+      const unreadMessages = messages.filter(msg => !msg.readBy.includes(userId));
+      if (unreadMessages.length > 0) {
+        unreadMessages.forEach(msg => {
           markMessageAsRead(gameId, msg.id, userId);
-        }
-      });
+        });
+      }
     }
   }, [messages, gameId, userId, markMessageAsRead]);
 
@@ -67,7 +68,6 @@ export default function InboxPage() {
       to: 'teacher',
       content: newMessage,
       type: 'message',
-      readBy: [userId],
     });
     setNewMessage('');
   };

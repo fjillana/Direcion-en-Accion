@@ -10,17 +10,24 @@ import { useGame } from "@/hooks/use-game-context";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useMemo } from "react";
 
 export function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeGame, clearActiveGame } = useGame();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const unreadMessagesCount = useMemo(() => {
+    if (!activeGame || !activeGame.messages || !user) return 0;
+    // Count messages from teams to the teacher that are not read
+    return activeGame.messages.filter(msg => msg.to === 'teacher' && !msg.readBy.includes('teacher-user-id')).length;
+  }, [activeGame, user]);
 
   const navItems = [
     { href: "/teacher/dashboard", label: "Dashboard" },
     { href: "/teacher/catalog", label: "Catálogos" },
     { href: "/teacher/leaderboard", label: "Leaderboard" },
-    { href: "/teacher/inbox", label: "Inbox" },
+    { href: "/teacher/inbox", label: "Inbox", badgeCount: unreadMessagesCount },
     { href: "/teacher/settings", label: "Ajustes" },
   ];
   
@@ -54,13 +61,18 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={getHref(item.href)}
-              className={cn(`transition-colors hover:text-foreground`,
+              className={cn(`transition-colors hover:text-foreground relative`,
                 pathname === item.href || (item.href === "/teacher/dashboard" && pathname.startsWith("/teacher/game"))
                   ? 'text-foreground' 
                   : 'text-muted-foreground'
               )}
             >
               {item.label}
+              {item.badgeCount && item.badgeCount > 0 && (
+                  <span className="absolute -right-3 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                    {item.badgeCount}
+                  </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -85,11 +97,16 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={getHref(item.href)}
-                  className={cn("hover:text-foreground",
+                  className={cn("hover:text-foreground relative",
                     pathname.startsWith(item.href) ? 'text-foreground' : 'text-muted-foreground'
                   )}
                 >
                   {item.label}
+                   {item.badgeCount && item.badgeCount > 0 && (
+                      <span className="absolute left-20 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                        {item.badgeCount}
+                      </span>
+                  )}
                 </Link>
               ))}
             </nav>

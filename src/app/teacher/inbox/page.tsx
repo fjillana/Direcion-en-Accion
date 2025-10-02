@@ -11,24 +11,48 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGame } from '@/hooks/use-game-context';
 import { useGames, type GameMessage } from '@/hooks/use-games';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function InboxPage() {
   const { activeGame } = useGame();
   const { addMessage, markMessageAsRead } = useGames();
+  const { user } = useAuth();
 
   const teams = useMemo(() => activeGame?.teamNames.map(name => ({ id: name, name, avatar: `https://picsum.photos/seed/${name}/40/40` })) || [], [activeGame]);
   
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teams.length > 0 ? teams[0].id : null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  
+  const unreadMessagesByTeam = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!activeGame || !activeGame.messages || !user) return counts;
+    
+    activeGame.teamNames.forEach(teamId => {
+      counts[teamId] = activeGame.messages.filter(msg => msg.from === teamId && !msg.readBy.includes('teacher-user-id')).length;
+    });
+
+    return counts;
+  }, [activeGame, user]);
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
       setSelectedTeamId(teams[0].id);
     }
-    if(teams.length === 0) {
+    if(teams.length === 0 && selectedTeamId) {
         setSelectedTeamId(null);
     }
   }, [teams, selectedTeamId]);
+
+  useEffect(() => {
+    if(selectedTeamId && activeGame?.id) {
+        const teamMessages = activeGame.messages?.filter(msg => msg.from === selectedTeamId && !msg.readBy.includes('teacher-user-id')) || [];
+        if(teamMessages.length > 0) {
+            teamMessages.forEach(msg => {
+                markMessageAsRead(activeGame.id, msg.id, 'teacher-user-id');
+            });
+        }
+    }
+  }, [selectedTeamId, activeGame, markMessageAsRead]);
 
   const messages = useMemo(() => {
     if (!activeGame || !activeGame.messages || !selectedTeamId) return [];
@@ -45,7 +69,6 @@ export default function InboxPage() {
       from: 'teacher',
       to: selectedTeamId,
       content: newMessage,
-      readBy: []
     });
     setNewMessage('');
   };
@@ -79,7 +102,7 @@ export default function InboxPage() {
                   key={team.id}
                   onClick={() => setSelectedTeamId(team.id)}
                   className={cn(
-                    'flex w-full items-center gap-3 p-3 text-left hover:bg-muted/50 transition-colors',
+                    'flex w-full items-center gap-3 p-3 text-left hover:bg-muted/50 transition-colors relative',
                     selectedTeamId === team.id && 'bg-muted'
                   )}
                 >
@@ -90,6 +113,11 @@ export default function InboxPage() {
                   <div className="flex-1 truncate">
                     <p className="font-semibold">{team.name}</p>
                   </div>
+                  {unreadMessagesByTeam[team.id] > 0 && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                        {unreadMessagesByTeam[team.id]}
+                      </div>
+                  )}
                 </button>
               ))}
               {teams.length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No hay equipos en esta partida.</p>}

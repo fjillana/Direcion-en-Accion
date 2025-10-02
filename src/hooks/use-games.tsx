@@ -82,7 +82,7 @@ interface GamesContextType {
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
   updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => void;
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
-  addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp'>) => void;
+  addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => void;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
@@ -199,7 +199,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const addMessage = useCallback((gameId: string, message: Omit<GameMessage, 'id' | 'timestamp'>) => {
+  const addMessage = useCallback((gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
     setGames(prevGames => {
       const newGames = prevGames.map(game => {
         if (game.id === gameId) {

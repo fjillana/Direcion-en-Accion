@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -49,15 +49,22 @@ export function RoundConfig({
   const { activeGame } = useGame();
   const { updateRoundSettings } = useGames();
 
-  const [roundInvestments, setRoundInvestments] = useState<Investment[]>(
-    activeGame?.roundSettings?.[activeGame.round]?.investments || []
-  );
-  
-  const [teamCrises, setTeamCrises] = useState<{ teamName: string; crisisIds: string[] }[]>(() => {
-    const savedCrises = activeGame?.roundSettings?.[activeGame.round]?.teamCrises;
-    if (savedCrises) return savedCrises;
-    return allTeams.map((teamName) => ({ teamName, crisisIds: [] }))
-  });
+  const [roundInvestments, setRoundInvestments] = useState<Investment[]>([]);
+  const [teamCrises, setTeamCrises] = useState<{ teamName: string; crisisIds: string[] }[]>([]);
+
+  useEffect(() => {
+    if (activeGame) {
+      const settings = activeGame.roundSettings?.[activeGame.round];
+      setRoundInvestments(settings?.investments || []);
+      const savedCrises = settings?.teamCrises || [];
+      const currentTeamCrises = allTeams.map(teamName => {
+        const found = savedCrises.find(sc => sc.teamName === teamName);
+        return found ? found : { teamName, crisisIds: [] };
+      });
+      setTeamCrises(currentTeamCrises);
+    }
+  }, [activeGame, allTeams]);
+
 
   const [isInvestmentsDialogOpen, setInvestmentsDialogOpen] = useState(false);
   const [isCrisesDialogOpen, setCrisesDialogOpen] = useState(false);

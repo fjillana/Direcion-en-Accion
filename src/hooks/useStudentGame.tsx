@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, InvestmentDecision } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, InvestmentDecision, TeamDecision } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
@@ -19,6 +19,8 @@ export interface RoundDecisions {
       crisisId: string;
       optionId: string;
       justification: string;
+      crisisName: string;
+      option: string;
   } | null;
   roundConfirmed: boolean;
 }
@@ -133,7 +135,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const hasRoundChanged = updatedState.round !== round;
     
     if(hasRoundChanged){
-        // New round has started, reset confirmation status
+        // New round has started, clear decisions from localstorage for this new round
+        const key = `decisions_${updatedState.gameId}_${updatedState.teamName}_${round}`;
+        localStorage.removeItem(key);
+        // Reset confirmation status in component state for the new round
         updatedState.decisions = { ...initialStudentState.decisions!, tuitionPrice: updatedState.decisions?.tuitionPrice || 120 };
     }
 
@@ -156,19 +161,27 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    if (!currentKpis) { // This happens in Round 0 or if there's no history
-       const humanTeamsCount = gameData.teamNames.length || 1;
-       const numIaTeams = humanTeamsCount;
-       currentKpis = {
-          cash: gameData.initialFunds,
-          personnelCost: 240000,
-          income: 320000,
-          nma: 7.5,
-          marketShare: 100 / (humanTeamsCount + numIaTeams),
-          morale: 80,
-          studentTeacherRatio: 25.0,
-          numStudents: 800, 
-          numTeachers: 32,
+    if (!currentKpis) { // This happens in Round 0 or if there's no history yet
+       const performanceForRoundZero = gameData.performance?.[0];
+       const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
+       if (teamPerformanceRoundZero) {
+           currentKpis = teamPerformanceRoundZero.kpis;
+       } else {
+            const humanTeamsCount = gameData.teamNames.length || 1;
+            const numIaTeams = humanTeamsCount;
+            currentKpis = {
+                cash: gameData.initialFunds,
+                personnelCost: 240000,
+                income: 320000,
+                privateIncome: 0,
+                publicIncome: 0,
+                nma: 7.5,
+                marketShare: 100 / (humanTeamsCount + numIaTeams),
+                morale: 80,
+                studentTeacherRatio: 25.0,
+                numStudents: 800, 
+                numTeachers: 32,
+            }
        }
     }
     
@@ -237,7 +250,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined' || !studentGame?.gameId) return null;
     const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${round}`;
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : null;
+    // If no decisions are found for the current round, initialize them
+    if (!item) {
+        return initialStudentState.decisions!;
+    }
+    return JSON.parse(item);
   }, [studentGame]);
 
    const setStrategicPlan = (plan: Partial<StrategicPlan>) => {

@@ -27,17 +27,20 @@ export interface CrisisProps {
 }
 
 interface FullCrisisFormProps extends CrisisProps {
-    onResponseChange: (response: { crisisId: string; optionId: string; justification: string }) => void;
-    currentResponse: { crisisId: string; optionId: string; justification: string } | null;
+    onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; }) => void;
+    currentResponse: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; } | null;
 }
 
 export function CrisisForm({ id, title, description, options, disabled = false, onResponseChange, currentResponse }: FullCrisisFormProps) {
   
   const handleOptionChange = (optionId: string) => {
+    const selectedOption = options.find(o => o.id === optionId);
     onResponseChange({
       crisisId: id,
       optionId: optionId,
       justification: currentResponse?.justification || "",
+      crisisName: title,
+      option: selectedOption?.label || ""
     });
   };
 
@@ -46,6 +49,8 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
       crisisId: id,
       optionId: currentResponse?.optionId || "",
       justification: e.target.value,
+      crisisName: title,
+      option: currentResponse?.option || ""
     });
   };
 

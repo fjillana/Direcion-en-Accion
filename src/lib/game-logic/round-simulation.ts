@@ -1,6 +1,7 @@
 
 
-import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games";
+
+import type { Game, TeamPerformanceData, TeamDecision, GameMessage } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
 import { updateKpisForNextRound } from "./kpi-dynamics";
@@ -26,13 +27,14 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
         tuitionPrice: 120,
         crisisResponse: null,
         selectedCenterActions: [],
+        roundConfirmed: false
     };
 }
 
 const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
 
 
-export function simulateRound(game: Game): TeamPerformanceData[] {
+export function simulateRound(game: Game): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   const humanTeamsCount = game.teamNames.length;
   const numIaTeams = humanTeamsCount > 0 ? humanTeamsCount : 4; // Manual: 4 IA rivals
 
@@ -98,7 +100,7 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
           archetype: teamState.archetype,
         };
       });
-      return performanceResults;
+      return { performanceData: performanceResults, newMessages: [] };
   }
 
   // --- For Round 1 onwards ---
@@ -136,6 +138,29 @@ export function simulateRound(game: Game): TeamPerformanceData[] {
       archetype: teamState.archetype,
     };
   });
+  
+  const newMessages: GameMessage[] = game.teamNames.map(teamName => ([
+    {
+        id: `msg-${Date.now()}-report-${teamName}`,
+        from: 'system',
+        to: teamName,
+        content: `El reporte de la ronda ${game.round} ya está disponible.`,
+        title: "Reporte Disponible",
+        type: "report",
+        timestamp: Date.now(),
+        readBy: []
+    },
+    {
+        id: `msg-${Date.now()}-newround-${teamName}`,
+        from: 'system',
+        to: teamName,
+        content: `Ha comenzado la ronda ${game.round + 1}. Ya puedes tomar tus decisiones.`,
+        title: "Nueva Ronda Disponible",
+        type: "message",
+        timestamp: Date.now(),
+        readBy: []
+    }
+  ])).flat();
 
-  return performanceResults;
+  return { performanceData: performanceResults, newMessages };
 }

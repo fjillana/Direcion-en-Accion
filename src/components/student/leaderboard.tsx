@@ -53,11 +53,10 @@ export function Leaderboard() {
     const game = getGameById(studentGame.gameId);
     if (!game || !game.performance) return [];
 
-    const lastRound = game.round > 1 ? game.round - 1 : null;
-    if (lastRound === null) return [];
-
-    const performanceData = game.performance[lastRound];
-    if (!performanceData) return [];
+    const lastRoundToShow = game.round === 1 ? 0 : game.round - 1;
+    if (lastRoundToShow < 0 || !game.performance[lastRoundToShow]) return [];
+    
+    const performanceData = game.performance[lastRoundToShow];
 
     return performanceData
       .map(p => ({

@@ -14,6 +14,7 @@ export interface InvestmentDecision {
 }
 
 export interface CrisisDecision {
+  crisisId: string;
   crisisName: string;
   option: string;
   justification: string;
@@ -24,6 +25,7 @@ export interface TeamDecision {
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
   selectedCenterActions: string[];
+  roundConfirmed: boolean;
 }
 
 export interface TeamPerformanceData {
@@ -78,7 +80,7 @@ interface GamesContextType {
   removeGame: (gameId: string) => void;
   updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance' | 'roundSettings' | 'messages'>>) => void;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
-  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[]) => void;
+  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => void;
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp'>) => void;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => void;
@@ -166,13 +168,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
   
-  const updateTeamPerformance = useCallback((gameId: string, round: number, performanceData: TeamPerformanceData[]) => {
+  const updateTeamPerformance = useCallback((gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
     setGames(prevGames => {
         const newGames = prevGames.map(game => {
             if (game.id === gameId) {
                 const newPerformance = { ...(game.performance || {}) };
                 newPerformance[round] = performanceData;
-                return { ...game, performance: newPerformance };
+                const updatedMessages = [...(game.messages || []), ...newMessages];
+                return { ...game, performance: newPerformance, messages: updatedMessages };
             }
             return game;
         });

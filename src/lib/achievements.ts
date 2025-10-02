@@ -31,7 +31,9 @@ const achievementsList: Omit<Achievement, 'unlocked'>[] = [
   },
 ];
 
-export function getAchievementsStatus(history: TeamPerformanceData[]): Achievement[] {
+export function getAchievementsStatus(history: TeamPerformanceData[] | undefined): Achievement[] {
+  if(!history) return achievementsList.map(ach => ({ ...ach, unlocked: false }));
+  
   return achievementsList.map(ach => ({
     ...ach,
     unlocked: ach.check(history)

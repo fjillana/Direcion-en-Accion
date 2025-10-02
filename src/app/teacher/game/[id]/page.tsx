@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import {
@@ -158,11 +159,11 @@ export default function GameDetailsPage() {
     setTimeout(() => {
       if (game) {
         // 1. Simulate the round to get performance results
-        const performanceResults = simulateRound(game);
+        const { performanceData, newMessages } = simulateRound(game);
         const nextRound = game.round + 1;
 
         // 2. Update the game state with the new performance data
-        updateTeamPerformance(game.id, game.round, performanceResults);
+        updateTeamPerformance(game.id, game.round, performanceData, newMessages);
 
         // 3. Move to the next round or end the game
         if (nextRound > game.numRounds) {

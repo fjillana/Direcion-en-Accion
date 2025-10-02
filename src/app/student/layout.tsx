@@ -47,11 +47,16 @@ import { useAuth } from "@/hooks/use-auth";
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
   
+  const unreadMessagesCount = useMemo(() => {
+    if (!studentGame?.messages || !user) return 0;
+    return studentGame.messages.filter(msg => !msg.readBy.includes(user.id)).length;
+  }, [studentGame?.messages, user]);
+
   const menuItems = [
     { href: "/student/dashboard", label: "Dashboard", icon: Home },
     { href: "/student/decisions", label: "Inversiones", icon: ClipboardList },
@@ -59,7 +64,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/leaderboard", label: "Leaderboard", icon: Users },
     { href: "/student/achievements", label: "Logros", icon: Award },
     { href: "/student/report", label: "Reporte", icon: FileText },
-    { href: "/student/inbox", label: "Inbox", icon: Inbox },
+    { href: "/student/inbox", label: "Inbox", icon: Inbox, badgeCount: unreadMessagesCount },
   ];
 
 
@@ -83,9 +88,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
-                  <Link href={item.href}>
+                  <Link href={item.href} className="relative">
                     <item.icon />
                     <span>{item.label}</span>
+                    {item.badgeCount && item.badgeCount > 0 && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                        {item.badgeCount}
+                      </span>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -19,10 +19,10 @@ export function StudentReport() {
   useEffect(() => {
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
-      const round = studentGame.round ? studentGame.round -1 : 0; // Report is for the completed round
+      const reportRound = game ? game.round - 1 : studentGame.round ? studentGame.round - 1 : 0;
       
-      if (game && game.reports && game.reports[round] && game.reports[round][studentGame.teamName]) {
-        const report = game.reports[round][studentGame.teamName];
+      if (game && game.reports && game.reports[reportRound] && game.reports[reportRound][studentGame.teamName]) {
+        const report = game.reports[reportRound][studentGame.teamName];
         if(report.published){
             setReportData(report);
         } else {
@@ -49,6 +49,7 @@ export function StudentReport() {
   }
 
   if (!reportData) {
+    const reportRound = studentGame?.round ? studentGame.round - 1 : 'anterior';
     return (
       <Card>
         <CardHeader>
@@ -57,7 +58,7 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            El reporte para la ronda {studentGame?.round ? studentGame.round -1 : 'anterior'} aún no ha sido publicado.
+            El reporte para la ronda {reportRound} aún no ha sido publicado.
             <br />
             Por favor, espera a que el profesor lo envíe.
           </p>
@@ -137,7 +138,7 @@ export function StudentReport() {
                                   }
                                   return null;
                                 })}
-                                {(reportData.decisions.selectedInvestments?.length || 0) === 0 && (reportData.decisions.selectedCenterActions?.length || 0) === 0 && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                {((reportData.decisions.selectedInvestments || []).length === 0) && ((reportData.decisions.selectedCenterActions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
                         </div>
                     </AccordionContent>

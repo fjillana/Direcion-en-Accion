@@ -1,6 +1,5 @@
 
 
-
 import type { TeamState } from "./types";
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
@@ -9,7 +8,7 @@ const OVERLOAD_MORALE_PENALTY = 5;
 const OVERLOAD_NMA_PENALTY = 0.1;
 const LOW_RATIO_THRESHOLD = 24.0;
 const LOW_RATIO_NMA_BONUS = 0.2;
-const PUBLIC_INCOME = 25000; // Subvención pública por ronda
+const PUBLIC_INCOME = 224000; // Subvención pública por ronda (896.000 / 4)
 const CAPACITY = 810;
 
 
@@ -61,7 +60,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   // Para la Ronda 0, el "resultado" es solo el gasto inicial. No hay ingresos.
   // En rondas normales, el resultado es Ingresos - Coste de personal
   const roundResult = isInitialSetup 
-    ? -totalExpenses
+    ? -totalExpenses 
     : income - personnelCost;
   
   // La tesorería final se ve afectada por el resultado y el resto de gastos.

@@ -102,48 +102,51 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [games, setGames] = useState<Game[]>([]);
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadState = () => {
-        try {
-            const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
-            if (storedGames) {
-                setGames(JSON.parse(storedGames));
-            }
-            const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-            if (storedActiveId) {
-                setActiveGameIdState(JSON.parse(storedActiveId));
-            }
-        } catch (error) {
-            console.error("Failed to read from localStorage:", error);
-        }
-    };
-    
-    loadState();
-
-    // Listen for changes in other tabs
-    const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === GAMES_STORAGE_KEY || event.key === ACTIVE_GAME_ID_STORAGE_KEY) {
-            loadState();
-        }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
+  const updateLocalStorage = useCallback(<T,>(key: string, value: T) => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+        // Dispatch a storage event to notify other tabs
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: key,
+            newValue: JSON.stringify(value),
+          })
+        );
+      } catch (error) {
+        console.error(`Error writing to localStorage key “${key}”:`, error);
+      }
+    }
   }, []);
 
-
-  const updateLocalStorage = <T,>(key: string, value: T) => {
-    if (typeof window !== 'undefined') {
-        try {
-            window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            console.error(`Error writing to localStorage key “${key}”:`, error);
-        }
+  const loadState = useCallback(() => {
+    try {
+      const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
+      if (storedGames) {
+        setGames(JSON.parse(storedGames));
+      }
+      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+      if (storedActiveId) {
+        setActiveGameIdState(JSON.parse(storedActiveId));
+      }
+    } catch (error) {
+      console.error("Failed to read from localStorage:", error);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadState();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === GAMES_STORAGE_KEY || event.key === ACTIVE_GAME_ID_STORAGE_KEY) {
+        loadState();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadState]);
+
 
   const addGame = useCallback((game: Game) => {
     setGames((prevGames) => {
@@ -151,7 +154,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateLocalStorage(GAMES_STORAGE_KEY, newGames);
         return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const removeGame = useCallback((gameId: string) => {
     setGames((prevGames) => {
@@ -159,7 +162,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateLocalStorage(GAMES_STORAGE_KEY, newGames);
         return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const updateGame = useCallback((gameId: string, updatedGame: Partial<Game>) => {
     setGames(prevGames => {
@@ -169,7 +172,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       updateLocalStorage(GAMES_STORAGE_KEY, newGames);
       return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const updateReport = useCallback((gameId: string, round: number, teamName: string, reportData: any) => {
     setGames(prevGames => {
@@ -206,7 +209,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateLocalStorage(GAMES_STORAGE_KEY, newGames);
         return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
   
   const updateTeamPerformance = useCallback((gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
     setGames(prevGames => {
@@ -222,7 +225,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateLocalStorage(GAMES_STORAGE_KEY, newGames);
         return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const updateRoundSettings = useCallback((gameId: string, round: number, settings: RoundSettings) => {
     setGames(prevGames => {
@@ -232,7 +235,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       const oldSettings = gameToUpdate.roundSettings?.[round];
       let newMessages: GameMessage[] = [];
 
-      // Check for newly assigned crises
       settings.teamCrises.forEach(newTeamCrisis => {
         const oldTeamCrisis = oldSettings?.teamCrises.find(tc => tc.teamName === newTeamCrisis.teamName);
         if (newTeamCrisis.crisisIds.length > 0 && (!oldTeamCrisis || oldTeamCrisis.crisisIds.length === 0 || JSON.stringify(oldTeamCrisis.crisisIds) !== JSON.stringify(newTeamCrisis.crisisIds))) {
@@ -261,7 +263,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       updateLocalStorage(GAMES_STORAGE_KEY, newGames);
       return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const addMessage = useCallback((gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
     setGames(prevGames => {
@@ -281,7 +283,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       updateLocalStorage(GAMES_STORAGE_KEY, newGames);
       return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
   const markMessageAsRead = useCallback((gameId: string, messageId: string, userId: string) => {
      setGames(prevGames => {
@@ -300,7 +302,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       updateLocalStorage(GAMES_STORAGE_KEY, newGames);
       return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
   
   const confirmStudentDecisions = useCallback((gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     setGames(prevGames => {
@@ -318,7 +320,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       updateLocalStorage(GAMES_STORAGE_KEY, newGames);
       return newGames;
     });
-  }, []);
+  }, [updateLocalStorage]);
 
 
   const getGameById = useCallback((gameId: string) => {
@@ -328,7 +330,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const setActiveGameId = useCallback((gameId: string | null) => {
     updateLocalStorage(ACTIVE_GAME_ID_STORAGE_KEY, gameId);
     setActiveGameIdState(gameId);
-  }, []);
+  }, [updateLocalStorage]);
 
   return (
     <GamesContext.Provider value={{ 

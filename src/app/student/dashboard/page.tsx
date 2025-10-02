@@ -61,7 +61,6 @@ export default function StudentDashboard() {
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
-    // SECURITY GUARD: Ensure all required data exists before proceeding.
     if (!decisions || !studentGame || !studentGame.gameId || !studentGame.teamName || studentGame.round === undefined) {
       console.error("Attempted to confirm round with incomplete game state.", studentGame);
       return;

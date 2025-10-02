@@ -19,15 +19,14 @@ export function StudentReport() {
   useEffect(() => {
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
-      // The report corresponds to the round that was just completed.
-      const reportRound = game ? game.round - 1 : 0;
+      const reportRound = game ? game.round - 1 : -1;
       
-      if (game && game.reports && game.reports[reportRound] && game.reports[reportRound][studentGame.teamName]) {
+      if (game && reportRound >= 0 && game.reports?.[reportRound]?.[studentGame.teamName]) {
         const report = game.reports[reportRound][studentGame.teamName];
-        if(report.published){
-            setReportData(report);
+        if (report.published) {
+          setReportData(report);
         } else {
-            setReportData(null);
+          setReportData(null);
         }
       } else {
         setReportData(null);

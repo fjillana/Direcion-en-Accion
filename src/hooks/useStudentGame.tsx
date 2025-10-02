@@ -146,18 +146,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadState();
-    
     const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === getStorageKey(currentUserId) || event.key === 'games') {
-            loadState();
-        }
+      if (event.key === getStorageKey(currentUserId) || event.key === 'games') {
+        loadState();
+      }
     };
-    
     window.addEventListener('storage', handleStorageChange);
     return () => {
-        window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
-
   }, [loadState]);
   
   useEffect(() => {

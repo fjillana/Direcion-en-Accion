@@ -19,7 +19,8 @@ export function StudentReport() {
   useEffect(() => {
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
-      const reportRound = game ? game.round - 1 : studentGame.round ? studentGame.round - 1 : 0;
+      // The report corresponds to the round that was just completed.
+      const reportRound = game ? game.round - 1 : 0;
       
       if (game && game.reports && game.reports[reportRound] && game.reports[reportRound][studentGame.teamName]) {
         const report = game.reports[reportRound][studentGame.teamName];

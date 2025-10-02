@@ -173,19 +173,38 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const updateReport = useCallback((gameId: string, round: number, teamName: string, reportData: any) => {
     setGames(prevGames => {
-      const newGames = prevGames.map(game => {
-        if (game.id === gameId) {
-          const newReports = { ...game.reports };
-          if (!newReports[round]) {
-            newReports[round] = {};
-          }
-          newReports[round][teamName] = reportData;
-          return { ...game, reports: newReports };
-        }
-        return game;
-      });
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
+        const gameToUpdate = prevGames.find(g => g.id === gameId);
+        if (!gameToUpdate) return prevGames;
+
+        const reportAlreadySent = gameToUpdate.reports?.[round]?.[teamName]?.published;
+
+        const newGames = prevGames.map(game => {
+            if (game.id === gameId) {
+                const newReports = { ...game.reports };
+                if (!newReports[round]) {
+                    newReports[round] = {};
+                }
+                newReports[round][teamName] = reportData;
+                
+                let newMessages = [...(game.messages || [])];
+                if (reportData.published && !reportAlreadySent) {
+                    newMessages.push({
+                        id: `msg-report-${Date.now()}-${teamName}`,
+                        from: 'system',
+                        to: teamName,
+                        title: 'Reporte Disponible',
+                        content: `El reporte de la ronda ${round} ya está disponible.`,
+                        type: 'report',
+                        timestamp: Date.now(),
+                        readBy: [],
+                    });
+                }
+                return { ...game, reports: newReports, messages: newMessages };
+            }
+            return game;
+        });
+        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+        return newGames;
     });
   }, []);
   
@@ -216,7 +235,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       // Check for newly assigned crises
       settings.teamCrises.forEach(newTeamCrisis => {
         const oldTeamCrisis = oldSettings?.teamCrises.find(tc => tc.teamName === newTeamCrisis.teamName);
-        if (newTeamCrisis.crisisIds.length > 0 && (!oldTeamCrisis || oldTeamCrisis.crisisIds.length === 0)) {
+        if (newTeamCrisis.crisisIds.length > 0 && (!oldTeamCrisis || oldTeamCrisis.crisisIds.length === 0 || JSON.stringify(oldTeamCrisis.crisisIds) !== JSON.stringify(newTeamCrisis.crisisIds))) {
            newMessages.push({
              id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
              from: 'system',

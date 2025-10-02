@@ -33,7 +33,7 @@ export interface StudentGameState {
   gameName: string | null;
   teamName: string | null;
   round?: number;
-  decisions?: RoundDecisions;
+  decisions: RoundDecisions;
   roundSettings?: RoundSettings;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
@@ -143,10 +143,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         // New round, so reset confirmation, but keep existing decisions as a base.
         const currentDecisions = newState.decisions || initialStudentState.decisions;
         newState.decisions = { 
-            ...(currentDecisions!),
-            selectedInvestments: [],
-            selectedCenterActions: [],
-            crisisResponse: null,
+            ...currentDecisions, // Keep tuition price and center actions
+            selectedInvestments: [], // Reset only investments
+            crisisResponse: null, // Reset crisis
             roundConfirmed: false
         };
         const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
@@ -342,3 +341,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

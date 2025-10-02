@@ -31,8 +31,11 @@ const capacityActions = [
     { id: 'F5', name: 'Ampliación de Aulas', cost: 50000, effect: '+10 XP Finanzas' },
 ];
 
-export function CenterDataForm({ disabled = false, selectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
+export function CenterDataForm({ disabled = false, selectedActions: initialSelectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
   
+  // Defensive programming: Ensure selectedActions is always an array.
+  const selectedActions = Array.isArray(initialSelectedActions) ? initialSelectedActions : [];
+
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
     onActionChange(
       checked ? [...selectedActions, actionId] : selectedActions.filter(id => id !== actionId)

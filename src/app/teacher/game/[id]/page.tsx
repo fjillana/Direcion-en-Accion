@@ -230,6 +230,46 @@ export default function GameDetailsPage() {
     'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
     'F5': { name: 'Ampliación de Aulas', cost: 50000 },
   };
+
+  // NEW: Function to get the student's original decisions from localStorage
+  const getOriginalStudentDecisions = (teamName: string, round: number): TeamDecision | null => {
+    if (!game) return null;
+    // This is a simplified way to get a student's ID, in a real app this would be more robust
+    const studentId = 'user-student-01'; // Assuming a single student for this fix
+    const studentStateKey = `studentGameState_${studentId}`;
+    const studentStateStr = localStorage.getItem(studentStateKey);
+
+    if (studentStateStr) {
+      try {
+        const studentState = JSON.parse(studentStateStr);
+        if (studentState.gameId === game.id && studentState.teamName === teamName) {
+           const decisionKey = `decisions_${game.id}_${teamName}_${round}`;
+           const decisionsStr = localStorage.getItem(decisionKey);
+           if (decisionsStr) {
+             return JSON.parse(decisionsStr);
+           }
+        }
+      } catch (e) {
+        console.error("Error parsing student state for original decisions:", e);
+      }
+    }
+    return null;
+  }
+
+  // NEW: Get the full decisions object for the dialog
+  const fullDecisionsForDialog = useMemo(() => {
+    if (!selectedTeam || !game) return null;
+
+    if (selectedTeam.type === 'H') {
+        const originalDecisions = getOriginalStudentDecisions(selectedTeam.name, parseInt(currentRoundTab));
+        if (originalDecisions) {
+            // If we found the original, full decisions, use them.
+            return originalDecisions;
+        }
+    }
+    // Fallback to the (potentially incomplete) decisions stored in performance history
+    return selectedTeam.decisions;
+  }, [selectedTeam, game, currentRoundTab]);
   
   if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -393,7 +433,7 @@ export default function GameDetailsPage() {
       
       <Dialog open={isDecisionDetailOpen} onOpenChange={setDecisionDetailOpen}>
         <DialogContent className="sm:max-w-2xl">
-          {selectedTeam && selectedTeam.decisions && (
+          {selectedTeam && fullDecisionsForDialog && (
             <>
               <DialogHeader>
                 <DialogTitle>Decisiones de Ronda: {selectedTeam.name}</DialogTitle>
@@ -413,17 +453,17 @@ export default function GameDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {((selectedTeam.decisions.investments || []).length === 0 && (selectedTeam.decisions.selectedCenterActions || []).length === 0) ? (
+                                {((fullDecisionsForDialog.investments || []).length === 0 && (fullDecisionsForDialog.selectedCenterActions || []).length === 0) ? (
                                     <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No se realizaron inversiones ni acciones.</TableCell></TableRow>
                                 ) : (
                                     <>
-                                        {(selectedTeam.decisions.investments || []).map(inv => (
+                                        {(fullDecisionsForDialog.investments || []).map(inv => (
                                             <TableRow key={inv.id}>
                                                 <TableCell>{inv.name}</TableCell>
                                                 <TableCell className="text-right font-mono">{formatCurrency(inv.cost)} CC</TableCell>
                                             </TableRow>
                                         ))}
-                                        {(selectedTeam.decisions.selectedCenterActions || []).map(actionId => {
+                                        {(fullDecisionsForDialog.selectedCenterActions || []).map(actionId => {
                                             const actionInfo = centerActionsMap[actionId];
                                             return (
                                                 <TableRow key={actionId}>
@@ -442,7 +482,7 @@ export default function GameDetailsPage() {
                 {/* Pricing */}
                 <div className="space-y-2">
                     <h4 className="font-semibold text-base">Precio de Matrícula</h4>
-                    <p className="font-mono text-lg p-3 bg-muted rounded-md w-fit">{formatCurrency(selectedTeam.decisions.tuitionPrice)} CC</p>
+                    <p className="font-mono text-lg p-3 bg-muted rounded-md w-fit">{formatCurrency(fullDecisionsForDialog.tuitionPrice)} CC</p>
                 </div>
 
                 <Separator />
@@ -450,20 +490,20 @@ export default function GameDetailsPage() {
                 {/* Crisis Response */}
                 <div className="space-y-3">
                     <h4 className="font-semibold text-base">Respuesta a Crisis</h4>
-                     {selectedTeam.decisions.crisisResponse ? (
+                     {fullDecisionsForDialog.crisisResponse ? (
                          <div className="space-y-4">
                             <div>
                                 <Label className="text-muted-foreground">Crisis</Label>
-                                <p className="font-medium">{selectedTeam.decisions.crisisResponse.crisisName}</p>
+                                <p className="font-medium">{fullDecisionsForDialog.crisisResponse.crisisName}</p>
                             </div>
                             <div>
                                 <Label className="text-muted-foreground">Opción Elegida</Label>
-                                <p className="font-medium">{selectedTeam.decisions.crisisResponse.option}</p>
+                                <p className="font-medium">{fullDecisionsForDialog.crisisResponse.option}</p>
                             </div>
                              <div>
                                 <Label className="text-muted-foreground">Justificación del Equipo</Label>
                                 <blockquote className="mt-1 border-l-2 pl-6 italic text-sm">
-                                    "{selectedTeam.decisions.crisisResponse.justification}"
+                                    "{fullDecisionsForDialog.crisisResponse.justification}"
                                 </blockquote>
                             </div>
                          </div>
@@ -483,3 +523,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

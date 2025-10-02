@@ -6,7 +6,9 @@ const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
 const OVERLOAD_MORALE_PENALTY = 15; // Manual: -15 puntos de moral
 const OVERLOAD_NMA_PENALTY = 0.3; // Manual: -0.3 en NMA
-const PUBLIC_INCOME = 224000; // Manual: 896.000 / 4 trimestres
+const LOW_RATIO_THRESHOLD = 24.0;
+const LOW_RATIO_NMA_BONUS = 0.2;
+const PUBLIC_INCOME = 224000;
 const CAPACITY = 810;
 
 
@@ -78,6 +80,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if ((decisions.investments || []).some(inv => inv.id === 'P1')) { // Formación docente
       updatedNma += 0.1;
       updatedMorale += 10;
+  }
+
+  // Bonificación por ratio bajo
+  if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
+    const bonusLevels = Math.floor(LOW_RATIO_THRESHOLD - updatedStudentTeacherRatio);
+    updatedNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
   }
   
   // Impacto de acciones de personal

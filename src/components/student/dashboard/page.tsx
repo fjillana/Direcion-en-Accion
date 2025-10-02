@@ -36,17 +36,17 @@ import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 
-const mockCrises: Record<string, CrisisProps> = {
+const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
     'C1': {
       id: "C1",
       title: "¡Evento de Crisis! - Huelga docente",
       description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
       options: [
-        { id: 'op1', label: 'Aceptar todas las demandas', effect: '-25.000 CC, +30 moral' },
-        { id: 'op2', label: 'Negociar un acuerdo parcial', effect: '-15.000 CC, +20 moral' },
-        { id: 'op3', label: 'Mantener la postura', effect: 'Huelga 2 rondas, -20 XP en todo' },
-        { id: 'op4', label: 'Recurrir a mediadores externos', effect: '-8.000 CC, +15 moral' },
-        { id: 'op5', label: 'Despedir a los líderes del sindicato', effect: '-10.000 CC, -30 moral' },
+        { id: 'op1', label: 'Aceptar todas las demandas' },
+        { id: 'op2', label: 'Negociar un acuerdo parcial' },
+        { id: 'op3', label: 'Mantener la postura' },
+        { id: 'op4', label: 'Recurrir a mediadores externos' },
+        { id: 'op5', label: 'Despedir a los líderes del sindicato' },
       ]
     }
 };

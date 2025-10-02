@@ -16,7 +16,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 type CrisisOption = {
   id: string;
   label: string;
-  effect: string;
 };
 
 export interface CrisisProps {
@@ -71,7 +70,6 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
                 <RadioGroupItem value={option.id} id={option.id} className="mt-1"/>
                 <Label htmlFor={option.id} className="font-normal cursor-pointer flex-1">
                   <span className="font-semibold block">{option.label}</span>
-                  <span className="text-xs text-muted-foreground">Efecto: {option.effect}</span>
                 </Label>
               </div>
             ))}

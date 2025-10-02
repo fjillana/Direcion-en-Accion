@@ -48,8 +48,8 @@ export function InvestmentForm({
     let newSelected = [...selectedInvestments];
     if (checked) {
       const costRange = parseCostRange(investment.costRange);
-      // Default to min cost when first selected
-      const cost = costRange[0]; 
+      // Default to max cost when first selected
+      const cost = costRange.length > 1 ? costRange[1] : costRange[0]; 
       newSelected.push({ id: investment.id, name: investment.name, cost, effect: investment.effect });
     } else {
       newSelected = newSelected.filter(i => i.id !== investment.id);
@@ -99,6 +99,8 @@ export function InvestmentForm({
                   const selectedValue = selectedInvestments.find(si => si.id === inv.id)?.cost;
                   const costRange = parseCostRange(inv.costRange);
                   const isRange = costRange.length > 1;
+                  const minCost = isRange ? costRange[0] : costRange[0];
+                  const maxCost = isRange ? costRange[1] : costRange[0];
 
                   return (
                     <div key={inv.id} className={cn("rounded-md border p-4", disabled && 'bg-muted/50')}>
@@ -117,18 +119,20 @@ export function InvestmentForm({
                                 </p>
                             </div>
                             <div className="font-mono text-right text-sm">
-                                {isRange ? `${(selectedValue || costRange[0]).toLocaleString('es-ES')} CC` : `${costRange[0].toLocaleString('es-ES')} CC`}
+                                {isRange 
+                                  ? `${(selectedValue || maxCost).toLocaleString('es-ES')} CC` 
+                                  : `${minCost.toLocaleString('es-ES')} CC`}
                             </div>
                         </div>
                         {isRange && isSelected && (
                             <div className="mt-4 pl-8 pr-2 space-y-2">
-                                <Label className="text-xs text-muted-foreground">Ajustar Inversión</Label>
+                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Mín: {minCost.toLocaleString('es-ES')} CC)</Label>
                                 <Slider
-                                    value={[selectedValue || costRange[0]]}
+                                    value={[selectedValue || maxCost]}
                                     onValueChange={(value) => handleSliderChange(inv.id, value)}
-                                    min={costRange[0]}
-                                    max={costRange[1]}
-                                    step={(costRange[1] - costRange[0]) / 10} // 10 steps
+                                    min={minCost}
+                                    max={maxCost}
+                                    step={(maxCost - minCost) / 10} // 10 steps
                                 />
                             </div>
                         )}

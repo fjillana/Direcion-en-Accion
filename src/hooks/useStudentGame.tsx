@@ -52,6 +52,7 @@ interface StudentGameContextType {
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
+  confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => void;
 }
 
 const StudentGameContext = createContext<StudentGameContextType | undefined>(undefined);
@@ -127,6 +128,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     const hydratedState = deepMerge(initialStudentState, storedState);
+    
+    // Ensure decisions and its array properties are valid
+    hydratedState.decisions = hydratedState.decisions || initialStudentState.decisions;
+    hydratedState.decisions.selectedInvestments = hydratedState.decisions.selectedInvestments || [];
+    hydratedState.decisions.selectedCenterActions = hydratedState.decisions.selectedCenterActions || [];
     
     setStudentGame(hydratedState);
     setIsLoading(false);
@@ -330,10 +336,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan]);
+    confirmStudentDecisions,
+  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan, confirmStudentDecisions]);
 
   return (
-    <StudentGameContext.Provider value={{...value, confirmStudentDecisions} as any}>
+    <StudentGameContext.Provider value={value}>
       {children}
     </StudentGameContext.Provider>
   );
@@ -346,5 +353,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

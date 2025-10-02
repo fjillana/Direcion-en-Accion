@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useGames } from "@/hooks/use-games";
+import { useGames, type TeamPerformanceData } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 
 type Team = {
@@ -43,7 +43,11 @@ const kpiConfig = {
   numStudents: { label: "Nº Alumnos", format: (v: number) => new Intl.NumberFormat('es-ES').format(v) },
 };
 
-export function Leaderboard() {
+interface LeaderboardProps {
+    performanceHistory: TeamPerformanceData[];
+}
+
+export function Leaderboard({ performanceHistory }: LeaderboardProps) {
   const { studentGame } = useStudentGame();
   const { getGameById } = useGames();
 
@@ -53,12 +57,13 @@ export function Leaderboard() {
     const game = getGameById(studentGame.gameId);
     if (!game || !game.performance) return [];
 
-    const lastRoundToShow = game.round === 1 ? 0 : game.round - 1;
-    if (lastRoundToShow < 0 || !game.performance[lastRoundToShow]) return [];
-    
-    const performanceData = game.performance[lastRoundToShow];
+    const currentRound = game.round;
+    // Show current round data if available, otherwise fallback to the last completed round.
+    const roundData = game.performance[currentRound] || game.performance[currentRound - 1] || game.performance[0];
 
-    return performanceData
+    if (!roundData) return [];
+    
+    return roundData
       .map(p => ({
         name: p.name,
         type: p.type,
@@ -73,7 +78,7 @@ export function Leaderboard() {
       }))
       .sort((a, b) => b.xp - a.xp)
       .map((team, index) => ({ ...team, rank: index + 1 }));
-  }, [studentGame, getGameById]);
+  }, [studentGame, getGameById, performanceHistory]);
 
   return (
     <div className="space-y-6">

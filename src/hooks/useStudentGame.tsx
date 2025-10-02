@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
 // This would be the current logged-in user ID
-const CURRENT_USER_ID = "student-beta"; 
+const CURRENT_USER_ID = "user-student-01"; 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
@@ -132,7 +132,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     let updatedState = { ...studentGame };
     
     const round = gameData.round;
-    const hasRoundChanged = updatedState.round !== round;
+    const hasRoundChanged = updatedState.round !== round && updatedState.round !== undefined;
     
     if(hasRoundChanged){
         // New round has started, clear decisions from localstorage for this new round
@@ -154,35 +154,43 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
                 performanceHistory.push(teamPerformance);
             }
         }
+        
+        // Add round 0 performance to history if we are in round 1
+        if (round === 1 && gameData.performance[0]) {
+            const teamPerformance = gameData.performance[0].find(p => p.name === studentGame.teamName);
+             if (teamPerformance && !performanceHistory.some(p => p.kpis.cash === teamPerformance.kpis.cash)) {
+                performanceHistory.unshift(teamPerformance);
+            }
+        }
 
-        const lastRoundPerformance = performanceHistory[performanceHistory.length - 1];
+        const lastRoundPerformance = performanceHistory.length > 0 ? performanceHistory[performanceHistory.length - 1] : null;
         if(lastRoundPerformance){
            currentKpis = lastRoundPerformance.kpis;
         }
     }
-
-    if (!currentKpis) { // This happens in Round 0 or if there's no history yet
-       const performanceForRoundZero = gameData.performance?.[0];
-       const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
-       if (teamPerformanceRoundZero) {
-           currentKpis = teamPerformanceRoundZero.kpis;
-       } else {
-            const humanTeamsCount = gameData.teamNames.length || 1;
-            const numIaTeams = humanTeamsCount;
-            currentKpis = {
-                cash: gameData.initialFunds,
-                personnelCost: 240000,
-                income: 320000,
-                privateIncome: 0,
-                publicIncome: 0,
-                nma: 7.5,
-                marketShare: 100 / (humanTeamsCount + numIaTeams),
-                morale: 80,
-                studentTeacherRatio: 25.0,
-                numStudents: 800, 
-                numTeachers: 32,
-            }
-       }
+    
+    if (round === 0 && !currentKpis) { // This happens in Round 0
+        const performanceForRoundZero = gameData.performance?.[0];
+        const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
+        if (teamPerformanceRoundZero) {
+            currentKpis = teamPerformanceRoundZero.kpis;
+        } else {
+             const humanTeamsCount = gameData.teamNames.length || 1;
+             const numIaTeams = humanTeamsCount;
+             currentKpis = {
+                 cash: gameData.initialFunds,
+                 personnelCost: 240000,
+                 income: 320000,
+                 privateIncome: 0,
+                 publicIncome: 0,
+                 nma: 7.5,
+                 marketShare: 100 / (humanTeamsCount + numIaTeams),
+                 morale: 80,
+                 studentTeacherRatio: 25.0,
+                 numStudents: 800, 
+                 numTeachers: 32,
+             }
+        }
     }
     
     updatedState = {
@@ -247,14 +255,23 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
 
   const getDecisionsByRound = useCallback((round: number): RoundDecisions | null => {
-    if (typeof window === 'undefined' || !studentGame?.gameId) return null;
+    if (typeof window === 'undefined' || !studentGame?.gameId || !studentGame.teamName) return null;
     const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${round}`;
     const item = localStorage.getItem(key);
     // If no decisions are found for the current round, initialize them
     if (!item) {
         return initialStudentState.decisions!;
     }
-    return JSON.parse(item);
+    try {
+        const parsed = JSON.parse(item);
+        // Basic validation to ensure it's a valid decision object
+        if (typeof parsed.roundConfirmed === 'boolean') {
+            return parsed;
+        }
+        return initialStudentState.decisions!;
+    } catch {
+        return initialStudentState.decisions!;
+    }
   }, [studentGame]);
 
    const setStrategicPlan = (plan: Partial<StrategicPlan>) => {
@@ -282,9 +299,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
   
   const checkGameStatus = useCallback(() => {
-    if (studentGame?.status === 'pending' && studentGame.gameId) {
+    if (studentGame?.status === 'pending' && studentGame.gameId && studentGame.teamName) {
         const game = games.find(g => g.id === studentGame.gameId);
-        if(game && game.teamNames.includes(studentGame.teamName!)) {
+        if(game && game.teamNames.includes(studentGame.teamName)) {
             const newState = { ...studentGame, status: 'joined' as StudentGameStatus, round: game.round };
             setStudentGame(newState);
             localStorage.setItem(getStorageKey(), JSON.stringify(newState));

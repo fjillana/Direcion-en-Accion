@@ -1,7 +1,14 @@
+
+"use client";
+
 import { Leaderboard } from "@/components/student/leaderboard";
 import { StudentGate } from "@/components/student/student-gate";
+import { useStudentGame } from "@/hooks/useStudentGame";
 
 export default function LeaderboardPage() {
+  const { studentGame } = useStudentGame();
+  const performanceHistory = studentGame?.performanceHistory || [];
+
   return (
     <StudentGate>
       <div className="space-y-6">
@@ -11,7 +18,7 @@ export default function LeaderboardPage() {
             Compara el rendimiento de tu equipo con los demás.
           </p>
         </div>
-        <Leaderboard />
+        <Leaderboard performanceHistory={performanceHistory} />
       </div>
     </StudentGate>
   );

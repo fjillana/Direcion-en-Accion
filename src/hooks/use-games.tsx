@@ -18,6 +18,7 @@ export interface CrisisDecision {
   crisisName: string;
   option: string;
   justification: string;
+  optionId: string;
 }
 
 export interface TeamDecision {
@@ -72,6 +73,7 @@ export interface Game {
   performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances
   roundSettings?: Record<number, RoundSettings>;
   messages?: GameMessage[];
+  decisions?: Record<number, Record<string, TeamDecision>>; // round -> teamName -> decisions
 }
 
 interface GamesContextType {
@@ -84,6 +86,7 @@ interface GamesContextType {
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => void;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => void;
+  confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => void;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -254,6 +257,24 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return newGames;
     });
   }, []);
+  
+  const confirmStudentDecisions = useCallback((gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
+    setGames(prevGames => {
+      const newGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          const newDecisions = { ...(game.decisions || {}) };
+          if (!newDecisions[round]) {
+            newDecisions[round] = {};
+          }
+          newDecisions[round][teamName] = { ...decisions, roundConfirmed: true };
+          return { ...game, decisions: newDecisions };
+        }
+        return game;
+      });
+      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
+      return newGames;
+    });
+  }, []);
 
 
   const getGameById = useCallback((gameId: string) => {
@@ -278,7 +299,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateTeamPerformance,
         updateRoundSettings,
         addMessage,
-        markMessageAsRead
+        markMessageAsRead,
+        confirmStudentDecisions
     }}>
       {children}
     </GamesContext.Provider>

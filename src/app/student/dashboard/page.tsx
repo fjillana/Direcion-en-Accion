@@ -35,6 +35,7 @@ import { useStudentGame } from "@/hooks/useStudentGame";
 import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
+import { useGames } from "@/hooks/use-games";
 
 const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
     'C1': {
@@ -53,6 +54,7 @@ const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
 
 export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
+  const { confirmStudentDecisions } = useGames();
 
   const { decisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
   
@@ -60,15 +62,11 @@ export default function StudentDashboard() {
 
   const handleConfirmRound = () => {
     // Ensure decisions object exists before confirming
-    if (!decisions || !studentGame) return;
+    if (!decisions || !studentGame || !studentGame.gameId || !studentGame.teamName || studentGame.round === undefined) return;
 
     const confirmedDecisions = { ...decisions, roundConfirmed: true };
     setRoundDecisions(confirmedDecisions);
-    
-    if(studentGame.gameId && studentGame.teamName && studentGame.round !== undefined){
-        const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
-        localStorage.setItem(key, JSON.stringify(confirmedDecisions));
-    }
+    confirmStudentDecisions(studentGame.gameId, studentGame.teamName, studentGame.round, confirmedDecisions);
   }
 
   const kpiHistoryData = useMemo(() => {

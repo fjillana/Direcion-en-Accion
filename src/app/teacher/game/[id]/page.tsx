@@ -192,22 +192,21 @@ export default function GameDetailsPage() {
   };
 
   const allTeamsConfirmed = useMemo(() => {
-    if (typeof window === 'undefined' || !game || game.teamNames.length === 0) {
-      return false; 
+    if (!game || game.teamNames.length === 0) {
+      return false;
     }
     
+    if (game.round === 0) return true;
+
+    const roundDecisions = game.decisions?.[game.round];
+    if (!roundDecisions) return false;
+
     return game.teamNames.every(teamName => {
-      const key = `decisions_${game.id}_${teamName}_${game.round}`;
-      const decisionsJson = localStorage.getItem(key);
-      if (!decisionsJson) return false;
-      try {
-        const decisions = JSON.parse(decisionsJson);
-        return decisions.roundConfirmed === true;
-      } catch (e) {
-        return false;
-      }
+        const teamDecision = roundDecisions[teamName];
+        return teamDecision?.roundConfirmed === true;
     });
-  }, [game, games]); // Depend on 'games' to re-evaluate when localStorage might have changed.
+}, [game]);
+
 
   const getButtonText = () => {
       if (!game) return "Cargando...";
@@ -231,45 +230,10 @@ export default function GameDetailsPage() {
     'P7': { name: 'Despedir Docente', cost: 7500 }, // Indemnización
     'F5': { name: 'Ampliación de Aulas', cost: 50000 },
   };
-
-  // NEW: Function to get the student's original decisions from localStorage
-  const getOriginalStudentDecisions = (teamName: string, round: number): TeamDecision | null => {
-    if (!game) return null;
-    // This is a simplified way to get a student's ID, in a real app this would be more robust
-    const studentId = 'user-student-01'; // Assuming a single student for this fix
-    const studentStateKey = `studentGameState_${studentId}`;
-    const studentStateStr = localStorage.getItem(studentStateKey);
-
-    if (studentStateStr) {
-      try {
-        const studentState = JSON.parse(studentStateStr);
-        if (studentState.gameId === game.id && studentState.teamName === teamName) {
-           const decisionKey = `decisions_${game.id}_${teamName}_${round}`;
-           const decisionsStr = localStorage.getItem(decisionKey);
-           if (decisionsStr) {
-             return JSON.parse(decisionsStr);
-           }
-        }
-      } catch (e) {
-        console.error("Error parsing student state for original decisions:", e);
-      }
-    }
-    return null;
-  }
-
-  // NEW: Get the full decisions object for the dialog
+  
   const fullDecisionsForDialog = useMemo(() => {
     if (!selectedTeam || !game) return null;
-
-    if (selectedTeam.type === 'H') {
-        const originalDecisions = getOriginalStudentDecisions(selectedTeam.name, parseInt(currentRoundTab));
-        if (originalDecisions) {
-            // If we found the original, full decisions, use them.
-            return originalDecisions;
-        }
-    }
-    // Fallback to the (potentially incomplete) decisions stored in performance history
-    return selectedTeam.decisions;
+    return game.decisions?.[parseInt(currentRoundTab)]?.[selectedTeam.name] || selectedTeam.decisions;
   }, [selectedTeam, game, currentRoundTab]);
   
   if (!game) {

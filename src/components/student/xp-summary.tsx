@@ -42,7 +42,7 @@ interface XpCardProps {
 
 function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
     const calculatedXp = (peb * (80 / 3) / 100);
-    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / 2 = ${peb.toFixed(2)}`;
+    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / 3 = ${peb.toFixed(2)}`;
 
   return (
     <Dialog>
@@ -68,7 +68,7 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
             <div>
                 <h4 className="font-semibold mb-1">1. Desglose de Puntuación Base (PEB)</h4>
                 <ul className="list-disc space-y-1 rounded-md border bg-muted/50 p-4 pl-8 text-muted-foreground">
-                    {pebBreakdown.map((line, index) => <li key={index}><span className="text-foreground">{line}</span></li>)}
+                    {pebBreakdown.map((line, index) => <li key={`peb-line-${index}`}><span className="text-foreground">{line}</span></li>)}
                 </ul>
             </div>
              <div>

@@ -36,7 +36,7 @@ const GenerateRoundReportOutputSchema = z.object({
     cuotaDeMercado: KpiAnalysisObject,
     moral: KpiAnalysisObject,
     ratioAlumnosProfesor: KpiAnalysisObject,
-  }).describe("Un objeto con el análisis cuantitativo de cada KPI, explicando el porqué de su valor basado en decisiones y otros KPIs.")
+  }).describe("Un objeto con el análisis cuantitativo de cada KPI, explicando el porqué del valor basado en decisiones y otros KPIs.")
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;
 
@@ -70,6 +70,14 @@ const generateRoundReportFlow = ai.defineFlow(
     name: 'generateRoundReportFlow',
     inputSchema: GenerateRoundReportInputSchema,
     outputSchema: GenerateRoundReportOutputSchema,
+    retries: {
+      max: 3,
+      backoff: {
+        initial: '1s',
+        max: '10s',
+        multiplier: 2,
+      },
+    },
   },
   async input => {
     const {output} = await prompt(input);

@@ -37,11 +37,16 @@ const parseCostRange = (costRange: string): [number, number] | [number] => {
 export function InvestmentForm({ 
   disabled = false, 
   availableInvestments, 
-  selectedInvestments, 
+  selectedInvestments: initialSelectedInvestments, 
   onInvestmentChange, 
   totalOtherCosts, 
   teamCash 
 }: InvestmentFormProps) {
+
+  // Aseguramos que selectedInvestments es siempre un array para evitar errores.
+  const selectedInvestments = Array.isArray(initialSelectedInvestments) 
+    ? initialSelectedInvestments 
+    : [];
 
   const handleCheckboxChange = (investment: Investment, checked: boolean) => {
     if (disabled) return;

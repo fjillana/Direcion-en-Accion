@@ -99,18 +99,35 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
-      if (storedGames) {
-        setGames(JSON.parse(storedGames));
-      }
-      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-      if (storedActiveId) {
-        setActiveGameIdState(JSON.parse(storedActiveId));
-      }
-    } catch (error) {
-      console.error("Failed to read from localStorage:", error);
-    }
+    const loadState = () => {
+        try {
+            const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
+            if (storedGames) {
+                setGames(JSON.parse(storedGames));
+            }
+            const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+            if (storedActiveId) {
+                setActiveGameIdState(JSON.parse(storedActiveId));
+            }
+        } catch (error) {
+            console.error("Failed to read from localStorage:", error);
+        }
+    };
+    
+    loadState();
+
+    // Listen for changes in other tabs
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === GAMES_STORAGE_KEY || event.key === ACTIVE_GAME_ID_STORAGE_KEY) {
+            loadState();
+        }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
 

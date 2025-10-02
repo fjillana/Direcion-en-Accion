@@ -52,7 +52,6 @@ interface StudentGameContextType {
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
-  confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => void;
 }
 
 const StudentGameContext = createContext<StudentGameContextType | undefined>(undefined);
@@ -115,7 +114,7 @@ const deepMerge = (target: any, source: any) => {
 export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { games, updateGame, confirmStudentDecisions } = useGames();
+  const { games, updateGame } = useGames();
   const router = useRouter();
 
   useEffect(() => {
@@ -341,8 +340,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-    confirmStudentDecisions,
-  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan, confirmStudentDecisions]);
+  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>

@@ -149,7 +149,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             roundConfirmed: false
         };
         const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
-        localStorage.removeItem(newRoundDecisionsKey);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(newRoundDecisionsKey);
+        }
     }
     
     const performanceHistory: TeamPerformanceData[] = [];
@@ -208,7 +210,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     if(JSON.stringify(newState) !== JSON.stringify(studentGame)){
       setStudentGame(newState);
-      localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+       if (typeof window !== 'undefined') {
+        localStorage.setItem(getStorageKey(), JSON.stringify(newState));
+       }
     }
   }, [games, studentGame, isLoading]);
 
@@ -325,7 +329,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId]);
+  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>
@@ -341,5 +345,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

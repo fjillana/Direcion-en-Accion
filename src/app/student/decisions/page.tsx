@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { InvestmentForm } from "@/components/student/investment-form";

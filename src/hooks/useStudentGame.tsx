@@ -158,18 +158,21 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         // Add round 0 performance to history if we are in round 1
         if (round === 1 && gameData.performance[0]) {
             const teamPerformance = gameData.performance[0].find(p => p.name === studentGame.teamName);
-             if (teamPerformance && !performanceHistory.some(p => p.kpis.cash === teamPerformance.kpis.cash)) {
+             if (teamPerformance && !performanceHistory.some(p => p.round === 0)) {
                 performanceHistory.unshift(teamPerformance);
             }
         }
+        
+        // Use the last available performance data for current KPIs
+        const lastRoundWithPerformance = performanceHistory.length > 0 ? Math.max(...performanceHistory.map(p => p.round)) : -1;
+        const lastRoundPerformance = performanceHistory.find(p => p.round === lastRoundWithPerformance);
 
-        const lastRoundPerformance = performanceHistory.length > 0 ? performanceHistory[performanceHistory.length - 1] : null;
         if(lastRoundPerformance){
            currentKpis = lastRoundPerformance.kpis;
         }
     }
     
-    if (round === 0 && !currentKpis) { // This happens in Round 0
+    if (round === 0 && !currentKpis) { // This happens in Round 0 before processing
         const performanceForRoundZero = gameData.performance?.[0];
         const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
         if (teamPerformanceRoundZero) {
@@ -353,3 +356,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

@@ -65,6 +65,14 @@ export function StudentReport() {
     );
   }
   
+  const totalInvestmentCost = (reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
+  const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
+      if (actionId === 'F5') return acc + 50000;
+      if (actionId === 'P7') return acc + 7500;
+      return acc;
+  }, 0);
+  const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
+  
   return (
      <Card>
         <CardHeader>
@@ -84,7 +92,7 @@ export function StudentReport() {
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
                     <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(reportData.kpis.personnelCost + (reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0))}</span></Badge>
+                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(totalCosts)}</span></Badge>
                         <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
                     </AccordionContent>
                 </AccordionItem>
@@ -99,12 +107,15 @@ export function StudentReport() {
                             <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg border">
-                            <h4 className="font-semibold">Inversiones Realizadas</h4>
+                            <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
                             <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
                                 {(reportData.decisions.investments || []).map((inv: any, index: number) => (
                                     <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
                                 ))}
-                                {(reportData.decisions.investments || []).length === 0 && <li>No se realizaron inversiones esta ronda.</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('P2') && <li>Contratar Docente: {formatCurrency(0)} (el coste es salarial)</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('P7') && <li>Despedir Docente: {formatCurrency(7500)}</li>}
+                                {(reportData.decisions.selectedCenterActions || []).includes('F5') && <li>Ampliación de Aulas: {formatCurrency(50000)}</li>}
+                                {totalInvestmentCost === 0 && totalCenterActionsCost === 0 && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
                         </div>
                     </AccordionContent>

@@ -57,7 +57,8 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
-  const updatedCash = currentKpis.cash + (isInitialSetup ? 0 : income) - totalExpenses;
+  // CORRECTION: Correctly calculate final cash. Previous cash + income - expenses.
+  const updatedCash = (isInitialSetup ? currentKpis.cash : currentKpis.cash + income) - totalExpenses;
 
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
@@ -75,7 +76,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedMorale += 10;
   }
 
-  // Bonificación por ratio bajo
+  // Bonificación por ratio bajo (RE-ADDED as per user request)
   if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
     const bonusLevels = Math.floor(LOW_RATIO_THRESHOLD - updatedStudentTeacherRatio);
     updatedNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
@@ -103,7 +104,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       ...currentKpis,
       cash: updatedCash,
       personnelCost: personnelCost,
-      income: income,
+      income: isInitialSetup ? 0 : income, // Income is 0 in the setup round
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,
       nma: updatedNma,

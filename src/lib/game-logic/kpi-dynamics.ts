@@ -57,14 +57,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
-  // Para la Ronda 0, el "resultado" es solo el gasto inicial. No hay ingresos.
-  // En rondas normales, el resultado es Ingresos - Coste de personal
-  const roundResult = isInitialSetup 
-    ? -totalExpenses 
-    : income - personnelCost;
-  
-  // La tesorería final se ve afectada por el resultado y el resto de gastos.
-  const updatedCash = currentKpis.cash + roundResult - (isInitialSetup ? 0 : investmentCost + centerActionsCost);
+  const updatedCash = currentKpis.cash + (isInitialSetup ? 0 : income) - totalExpenses;
 
 
   // 3. Calcular nuevos KPIs de Reputación y Moral

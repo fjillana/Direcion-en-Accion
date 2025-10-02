@@ -82,12 +82,10 @@ export function StudentReport() {
                 
                 <AccordionItem value="item-1" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
-                    <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
+                    <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal:</span> <span className="text-destructive">{formatCurrency(reportData.kpis.personnelCost)}</span></Badge>
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Inversiones:</span> <span className="text-destructive">{formatCurrency((reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0))}</span></Badge>
-                        <Badge variant="outline" className="col-span-1 md:col-span-2 flex justify-between p-3 text-sm"><span>Resultado de la Ronda:</span> <span className={(reportData.kpis.income - reportData.kpis.personnelCost) > 0 ? 'text-emerald-600' : 'text-destructive'}>{formatCurrency(reportData.kpis.income - reportData.kpis.personnelCost)}</span></Badge>
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
+                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(reportData.kpis.personnelCost + (reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0))}</span></Badge>
+                        <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(reportData.kpis.cash)}</span></Badge>
                     </AccordionContent>
                 </AccordionItem>
 

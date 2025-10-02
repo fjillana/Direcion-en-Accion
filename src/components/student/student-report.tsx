@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -65,25 +66,27 @@ export function StudentReport() {
     );
   }
   
-  const totalInvestmentCost = (reportData.decisions?.investments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
+  const totalInvestmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
   
   const centerActionsCostMap: Record<string, number> = {
     'F5': 50000, // Ampliación de Aulas
     'P7': 7500, // Despedir Docente
+    'P2': 0, // Contratar docente - coste es salarial, no de inversión puntual
   };
+  
   const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
-      return acc + (centerActionsCostMap[actionId] || 0);
+      return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
   }, 0);
   
   const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
-  // This is the CRITICAL fix: Recalculate cash on the fly to correct past errors.
-  // The logic is: Cash from previous round + Income of this round - Total Expenses of this round.
-  // To get previous round's cash, we need to find it in the performance history.
-  const prevRound = reportData.round > 0 ? reportData.round - 1 : 0;
-  const gameData = getGameById(studentGame.gameId!);
-  const prevRoundPerformance = gameData?.performance?.[prevRound]?.find(p => p.name === studentGame.teamName);
+  
+  const gameData = getGameById(studentGame!.gameId!);
+  const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
+  const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === studentGame!.teamName);
+  
   const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
   
+  // Recalculate cash on the fly to ensure correctness, ignoring the potentially bugged value from the report
   const correctlyCalculatedCash = initialCashForRound + reportData.kpis.income - totalCosts;
 
   return (
@@ -122,13 +125,19 @@ export function StudentReport() {
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
                             <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                {(reportData.decisions.investments || []).map((inv: any, index: number) => (
+                                {(reportData.decisions.selectedInvestments || []).map((inv: any, index: number) => (
                                     <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
                                 ))}
-                                {(reportData.decisions.selectedCenterActions || []).includes('P2') && <li>Contratar Docente: {formatCurrency(0)} (el coste es salarial recurrente)</li>}
-                                {(reportData.decisions.selectedCenterActions || []).includes('P7') && <li>Despedir Docente (Indemnización): {formatCurrency(centerActionsCostMap['P7'])}</li>}
-                                {(reportData.decisions.selectedCenterActions || []).includes('F5') && <li>Ampliación de Aulas: {formatCurrency(centerActionsCostMap['F5'])}</li>}
-                                {totalInvestmentCost === 0 && totalCenterActionsCost === 0 && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                {(reportData.decisions.selectedCenterActions || []).map((actionId: string, index: number) => {
+                                  const actionInfo = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
+                                  if (actionInfo !== undefined) {
+                                      const costText = actionInfo > 0 ? formatCurrency(actionInfo) : `(coste salarial)`;
+                                      const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
+                                      return <li key={`${actionId}-${index}`}>{name}: {costText}</li>
+                                  }
+                                  return null;
+                                })}
+                                {(reportData.decisions.selectedInvestments?.length || 0) === 0 && (reportData.decisions.selectedCenterActions?.length || 0) === 0 && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
                         </div>
                     </AccordionContent>

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -49,8 +50,7 @@ interface StudentGameContextType {
   checkGameStatus: () => void;
   updateStudentGame: (userId: string, updatedState: Partial<StudentGameState>) => void;
   getStudentGameByGameId: (gameId: string) => StudentGameState | null;
-  setRoundDecisions: (decisions: Partial<Omit<RoundDecisions, 'selectedInvestments'>> & { selectedInvestments?: InvestmentDecision[] }) => void;
-  getDecisionsByRound: (round: number) => RoundDecisions | null;
+  setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
 }
 
@@ -66,6 +66,7 @@ const initialStudentState: StudentGameState = {
   gameId: null,
   gameName: null,
   teamName: null,
+  round: 0,
   decisions: {
     selectedInvestments: [],
     selectedCenterActions: [],
@@ -88,6 +89,21 @@ const initialStudentState: StudentGameState = {
   }
 };
 
+const deepMerge = (target: any, source: any) => {
+    const output = { ...target };
+    if (target && typeof target === 'object' && source && typeof source === 'object') {
+        Object.keys(source).forEach(key => {
+            if (source[key] && typeof source[key] === 'object' && key in target) {
+                output[key] = deepMerge(target[key], source[key]);
+            } else {
+                output[key] = source[key];
+            }
+        });
+    }
+    return output;
+};
+
+
 export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +112,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsLoading(true);
-    let storedState: StudentGameState;
+    let storedState;
     try {
       const item = window.localStorage.getItem(getStorageKey());
       storedState = item ? JSON.parse(item) : { ...initialStudentState };
@@ -105,20 +121,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       storedState = { ...initialStudentState };
     }
     
-    // Ensure critical nested objects exist
-    if (!storedState.decisions || typeof storedState.decisions.roundConfirmed === 'undefined') {
-        storedState.decisions = { ...initialStudentState.decisions! };
-    }
-     if (storedState.decisions && Array.isArray(storedState.decisions.selectedInvestments) && storedState.decisions.selectedInvestments.length > 0 && typeof storedState.decisions.selectedInvestments[0] === 'string') {
-      storedState.decisions.selectedInvestments = [];
-    }
-
-    if(!storedState.strategicPlan || !storedState.strategicPlan.targets?.cash){
-        storedState.strategicPlan = initialStudentState.strategicPlan;
-        storedState.planConfirmed = false;
-    }
+    // Deep merge to ensure all nested properties from initialStudentState are present
+    const hydratedState = deepMerge(initialStudentState, storedState);
     
-    setStudentGame(storedState);
+    setStudentGame(hydratedState);
     setIsLoading(false);
   }, []);
   
@@ -129,18 +135,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const gameData = games.find(g => g.id === studentGame.gameId);
     if (!gameData) return;
 
-    let newState: StudentGameState = { ...studentGame };
+    // A mutable copy to build the new state
+    let newState = { ...studentGame };
     
     const serverRound = gameData.round;
-    const clientRound = newState.round;
+    const clientRound = studentGame.round;
     const hasRoundChanged = clientRound !== serverRound;
     
     if(hasRoundChanged){
-        // New round has started, clear decisions from localstorage for this new round
-        const key = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
-        localStorage.removeItem(key);
-        // Reset confirmation status in component state for the new round
-        newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: newState.decisions?.tuitionPrice || 120 };
+        const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
+        const item = localStorage.getItem(newRoundDecisionsKey);
+        
+        if (item) {
+             newState.decisions = JSON.parse(item);
+        } else {
+            // New round has started, clear decisions from localstorage for this new round
+            newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
+             localStorage.removeItem(newRoundDecisionsKey);
+        }
     }
 
     const performanceHistory: TeamPerformanceData[] = [];
@@ -148,26 +160,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     if(gameData.performance){
         // History includes all rounds up to the one before the current one
-        for(let r=0; r < serverRound; r++){ 
-            const roundPerformance = gameData.performance[r];
-            const teamPerformance = roundPerformance?.find(p => p.name === studentGame.teamName);
-            if(teamPerformance) {
-                performanceHistory.push(teamPerformance);
+        Object.keys(gameData.performance).forEach(roundKey => {
+            const roundNum = parseInt(roundKey, 10);
+            if(roundNum < serverRound) {
+                const roundPerformance = gameData.performance?.[roundNum];
+                const teamPerformance = roundPerformance?.find(p => p.name === studentGame.teamName);
+                if(teamPerformance) {
+                    performanceHistory.push(teamPerformance);
+                }
             }
-        }
-        
-        if (serverRound > 0 && gameData.performance[0]) {
-             const teamPerformance = gameData.performance[0].find(p => p.name === studentGame.teamName);
-             if (teamPerformance && !performanceHistory.some(p => p.round === 0)) {
-                performanceHistory.unshift(teamPerformance);
-            }
-        }
+        });
         
         // Use the last available performance data for current KPIs
-        if (performanceHistory.length > 0) {
-            const lastRoundWithPerformance = Math.max(...performanceHistory.map(p => p.round));
-            const lastRoundPerformance = performanceHistory.find(p => p.round === lastRoundWithPerformance);
-            if(lastRoundPerformance) currentKpis = lastRoundPerformance.kpis;
+        if (serverRound > 0) {
+            const lastCompletedRoundPerformance = gameData.performance?.[serverRound - 1];
+            const teamLastPerformance = lastCompletedRoundPerformance?.find(p => p.name === studentGame.teamName);
+            if(teamLastPerformance) currentKpis = teamLastPerformance.kpis;
         }
     }
     
@@ -249,32 +257,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const setRoundDecisions = (decisions: Partial<RoundDecisions>) => {
     setStudentGame(prev => {
       if (!prev) return null;
-      const newDecisions = { ...(prev.decisions || initialStudentState.decisions!), ...decisions };
+      // Ensure prev.decisions is not null/undefined
+      const existingDecisions = prev.decisions || initialStudentState.decisions!;
+      const newDecisions = { ...existingDecisions, ...decisions };
       const newState = { ...prev, decisions: newDecisions };
       localStorage.setItem(getStorageKey(), JSON.stringify(newState));
       return newState;
     });
   };
-
-  const getDecisionsByRound = useCallback((round: number): RoundDecisions | null => {
-    if (typeof window === 'undefined' || !studentGame?.gameId || !studentGame.teamName) return null;
-    const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${round}`;
-    const item = localStorage.getItem(key);
-    // If no decisions are found for the current round, initialize them
-    if (!item) {
-        return initialStudentState.decisions!;
-    }
-    try {
-        const parsed = JSON.parse(item);
-        // Basic validation to ensure it's a valid decision object
-        if (typeof parsed.roundConfirmed === 'boolean') {
-            return parsed;
-        }
-        return initialStudentState.decisions!;
-    } catch {
-        return initialStudentState.decisions!;
-    }
-  }, [studentGame]);
 
    const setStrategicPlan = (plan: Partial<StrategicPlan>) => {
     setStudentGame(prev => {
@@ -337,9 +327,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     updateStudentGame,
     getStudentGameByGameId,
     setRoundDecisions,
-    getDecisionsByRound,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, getDecisionsByRound, setStrategicPlan, requestToJoinGame]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan, requestToJoinGame]);
 
   return (
     <StudentGameContext.Provider value={value}>

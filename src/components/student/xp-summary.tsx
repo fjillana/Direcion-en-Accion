@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -41,7 +42,7 @@ interface XpCardProps {
 
 function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
     const calculatedXp = (peb * (80 / 3) / 100);
-    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / 3 = ${peb.toFixed(2)}`;
+    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${pebBreakdown.length} = ${peb.toFixed(2)}`;
 
   return (
     <Dialog>
@@ -116,7 +117,10 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
   }
 
   const latestRoundData = useMemo(() => {
-    return performanceHistory[performanceHistory.length - 1];
+    // Find the data for the highest round number in the history
+    return performanceHistory.reduce((latest, current) => {
+        return current.round > latest.round ? current : latest;
+    });
   }, [performanceHistory]);
   
   const selectedRound = latestRoundData.round;

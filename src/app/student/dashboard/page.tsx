@@ -52,22 +52,21 @@ const mockCrises: Record<string, CrisisProps> = {
 };
 
 export default function StudentDashboard() {
-  const { studentGame, setRoundDecisions, getDecisionsByRound } = useStudentGame();
+  const { studentGame, setRoundDecisions } = useStudentGame();
 
-  const { decisions: currentDecisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
-  
-  const decisions = round === 0 ? currentDecisions : getDecisionsByRound(round || 0);
+  const { decisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
 
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
     if(!decisions || !studentGame) return;
-    setRoundDecisions({ ...decisions, roundConfirmed: true });
+    const confirmedDecisions = { ...decisions, roundConfirmed: true };
+    setRoundDecisions(confirmedDecisions);
     
     // Save decisions for this round
     if(studentGame.gameId && studentGame.teamName && studentGame.round !== undefined){
         const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
-        localStorage.setItem(key, JSON.stringify(decisions));
+        localStorage.setItem(key, JSON.stringify(confirmedDecisions));
     }
   }
 
@@ -85,7 +84,7 @@ export default function StudentDashboard() {
 
     performanceHistory.forEach(perf => {
       history.cash.push({ round: perf.round, value: perf.kpis.cash });
-      history.personnelCost.push({ round: perf.round, value: (perf.kpis.personnelCost / perf.kpis.income) * 100 });
+      history.personnelCost.push({ round: perf.round, value: perf.kpis.income > 0 ? (perf.kpis.personnelCost / perf.kpis.income) * 100 : 0 });
       history.nma.push({ round: perf.round, value: perf.kpis.nma });
       history.marketShare.push({ round: perf.round, value: perf.kpis.marketShare });
       history.morale.push({ round: perf.round, value: perf.kpis.morale });

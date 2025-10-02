@@ -93,7 +93,7 @@ const deepMerge = (target: any, source: any) => {
     const output = { ...target };
     if (target && typeof target === 'object' && source && typeof source === 'object') {
         Object.keys(source).forEach(key => {
-            if (source[key] && typeof source[key] === 'object' && key in target) {
+            if (source[key] && typeof source[key] === 'object' && key in target && target[key] !== null) {
                 output[key] = deepMerge(target[key], source[key]);
             } else {
                 output[key] = source[key];
@@ -143,16 +143,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const hasRoundChanged = clientRound !== serverRound;
     
     if(hasRoundChanged){
+        // New round has started, clear decisions for this new round
+        newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
         const newRoundDecisionsKey = `decisions_${newState.gameId}_${newState.teamName}_${serverRound}`;
-        const item = localStorage.getItem(newRoundDecisionsKey);
-        
-        if (item) {
-             newState.decisions = JSON.parse(item);
-        } else {
-            // New round has started, clear decisions from localstorage for this new round
-            newState.decisions = { ...initialStudentState.decisions!, tuitionPrice: studentGame.decisions?.tuitionPrice || 120 };
-             localStorage.removeItem(newRoundDecisionsKey);
-        }
+        localStorage.removeItem(newRoundDecisionsKey);
     }
 
     const performanceHistory: TeamPerformanceData[] = [];
@@ -184,7 +178,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
         if (teamPerformanceRoundZero) {
             currentKpis = teamPerformanceRoundZero.kpis;
-        } else {
+        } else { // Fallback for the very start of the game
              const humanTeamsCount = gameData.teamNames.length || 1;
              const numIaTeams = humanTeamsCount;
              currentKpis = {
@@ -328,7 +322,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan, requestToJoinGame]);
+  }), [studentGame, isLoading, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId]);
 
   return (
     <StudentGameContext.Provider value={value}>

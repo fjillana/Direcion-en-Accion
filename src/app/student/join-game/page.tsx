@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGames } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,15 @@ export default function JoinGamePage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const isLoading = gamesLoading || studentGameLoading;
+
+  useEffect(() => {
+    // Automatically select the game if there is only one available
+    if (!isLoading && games.length === 1) {
+      setSelectedGameId(games[0].id);
+    }
+  }, [games, isLoading]);
+
   const handleJoinRequest = () => {
     if (!selectedGameId) {
       setError("Por favor, selecciona una partida.");
@@ -36,8 +45,6 @@ export default function JoinGamePage() {
         router.push('/student/dashboard');
     }
   };
-  
-  const isLoading = gamesLoading || studentGameLoading;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
@@ -55,22 +62,25 @@ export default function JoinGamePage() {
               {isLoading ? (
                 <div className="flex items-center justify-center h-full py-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="sr-only">Cargando partidas...</span>
                 </div>
-              ) : games.length > 0 ? games.map((game) => (
-                <button
-                  key={game.id}
-                  onClick={() => setSelectedGameId(game.id)}
-                  className={`w-full text-left p-3 rounded-md transition-colors ${selectedGameId === game.id ? 'bg-primary text-primary-foreground shadow' : 'bg-muted/50 hover:bg-muted'}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold">{game.name}</span>
-                    <Badge variant={selectedGameId === game.id ? 'secondary' : 'outline'}>
-                      {game.teamNames.length} / {game.teams} equipos
-                    </Badge>
-                  </div>
-                  <p className="text-sm mt-1">Rondas: {game.numRounds}</p>
-                </button>
-              )) : (
+              ) : games.length > 0 ? (
+                games.map((game) => (
+                  <button
+                    key={game.id}
+                    onClick={() => setSelectedGameId(game.id)}
+                    className={`w-full text-left p-3 rounded-md transition-colors ${selectedGameId === game.id ? 'bg-primary text-primary-foreground shadow' : 'bg-muted/50 hover:bg-muted'}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">{game.name}</span>
+                      <Badge variant={selectedGameId === game.id ? 'secondary' : 'outline'}>
+                        {game.teamNames.length} / {game.teams} equipos
+                      </Badge>
+                    </div>
+                    <p className="text-sm mt-1">Rondas: {game.numRounds}</p>
+                  </button>
+                ))
+              ) : (
                 <div className="flex items-center justify-center h-full py-4">
                     <p className="text-center text-sm text-muted-foreground">No hay partidas disponibles en este momento.</p>
                 </div>

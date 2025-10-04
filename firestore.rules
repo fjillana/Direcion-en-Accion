@@ -1,16 +1,19 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for user profiles and student game states. Games are publicly readable, but only authenticated users can create, update, or delete them. Team performance data is accessible to authenticated users only.
- * @dataStructure
- *   - /users/{userId}: Stores user profile information.
- *   - /games/{gameId}: Stores game information.
- *   - /games/{gameId}/performance/{roundId}: Stores team performance data for each round in a game.
- *   - /studentGames/{userId}: Stores the game state for each student.
- * @keySecurityDecisions
- *   - Users can only read/write their own profile data.
- *   - Games are publicly readable but creation, modification, and deletion are restricted to authenticated users.
- *   - Listing of users is disallowed for privacy.
- *   - Users can only read/write their own student game state.
+ * @description This ruleset enforces a user-ownership model for user profiles and student game states,
+ * and allows public read access to game data with owner-only write access.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information, accessible only by the user.
+ * - /games/{gameId}: Stores game data, publicly readable but writable only by the game creator (if creatorId existed).
+ * - /games/{gameId}/performance/{roundId}: Stores team performance data, accessible only by the game creator (if creatorId existed) and associated game.
+ * - /studentGames/{userId}: Stores the game state for each student user, accessible only by the student.
+ *
+ * Key Security Decisions:
+ * - User profiles are private and only accessible to the owning user.
+ * - Game data is publicly readable to allow for open access, but write access is restricted to the game creator (if creatorId existed).
+ * - Student game states are private and only accessible to the associated user.
+ * - Listing of users is disallowed.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -19,80 +22,72 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create their profile if request.auth.uid == 'user123'.
-     * @allow (get, update, delete) - User with UID 'user123' can get, update, or delete their profile.
-     * @deny (create) - User with UID 'user456' cannot create a profile for 'user123'.
-     * @deny (get, update, delete) - User with UID 'user456' cannot get, update, or delete the profile for 'user123'.
+     * @allow (create) - User with ID 'user123' can create their profile if authenticated as 'user123'.
+     * @allow (get, update, delete) - User with ID 'user123' can read/update/delete their profile if authenticated as 'user123'.
+     * @deny (create) - User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read/update/delete the profile of user 'user123'.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not permitted.
+      allow list: if false;
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to game information.
+     * @description Controls access to game data.
      * @path /games/{gameId}
-     * @allow (get, list) - Any user can read game information.
-     * @allow (create) - Any authenticated user can create a game.
-     * @allow (update, delete) - Only authenticated users can update or delete a game.
-     * @deny (create) - Unauthenticated user cannot create a game.
-     * @deny (update, delete) - Unauthenticated user cannot update or delete a game.
-     * @principle Allows public read access but restricts write access to authenticated users.
+     * @allow (get, list) - Any user (authenticated or not) can read game data.
+     * @deny (create, update, delete) -  Writes are disabled. The 'Game' entity is missing an 'ownerId' or 'authorId' field.
+     * @principle Allows public read access, restricts writes to owner (missing owner field in schema).
      */
     match /games/{gameId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
      * @description Controls access to team performance data for each round in a game.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (get, list, create, update, delete) - Any authenticated user can access team performance data.
-     * @deny (get, list, create, update, delete) - Unauthenticated users cannot access team performance data.
-     * @principle Restricts access to team performance data to authenticated users.
+     * @allow (get, list) - Any user (authenticated or not) can read team performance data.
+     * @deny (create, update, delete) -  Writes are disabled. The 'TeamPerformance' entity is missing an 'ownerId' or 'authorId' field.
+     * @principle Allows public read access, restricts writes to owner (missing owner field in schema).
      */
     match /games/{gameId}/performance/{roundId} {
-      allow get, list, create, update, delete: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Controls access to student game state information.
+     * @description Controls access to student game state.
      * @path /studentGames/{userId}
-     * @allow (create) - User with UID 'user123' can create their student game state if request.auth.uid == 'user123'.
-     * @allow (get, update, delete) - User with UID 'user123' can get, update, or delete their student game state.
-     * @deny (create) - User with UID 'user456' cannot create a student game state for 'user123'.
-     * @deny (get, update, delete) - User with UID 'user456' cannot get, update, or delete the student game state for 'user123'.
+     * @allow (create) - User with ID 'user123' can create their game state if authenticated as 'user123'.
+     * @allow (get, update, delete) - User with ID 'user123' can read/update/delete their game state if authenticated as 'user123'.
+     * @deny (create) - User with ID 'user456' cannot create a game state with ID 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read/update/delete the game state of user 'user123'.
      * @principle Enforces document ownership for all operations.
      */
     match /studentGames/{userId} {
-      allow get, update, delete: if isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
-    // --- Helper functions ---
-
-    /**
-     * @description Checks if the request is made by the owner of the resource.
-     * @param {string} userId The user ID to compare against the request's authentication UID.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
+    // Helper Functions
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }

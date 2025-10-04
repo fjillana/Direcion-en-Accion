@@ -1,83 +1,81 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a user-ownership model for user profiles and student game states,
- * and allows public read access to game information with owner-only write access.
+ * @fileoverview Firestore Security Rules for Prototyping.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes rapid development by granting authenticated users broad access.
+ * This enables quick iteration on the application's features without being blocked by overly restrictive permissions.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, only accessible by the user themselves.
- * - /games/{gameId}: Stores game information, publicly readable, but only modifiable by the game's creator.
- * - /games/{gameId}/performance/{roundId}: Stores team performance data for each round of a game, only accessible by the game creator.
- * - /studentGames/{userId}: Stores the game state for each student, only accessible by the student themselves.
+ * - /users/{userId}: Stores user profile information, accessible only by the user.
+ * - /games/{gameId}: Stores general game information, accessible to all authenticated users.
+ * - /games/{gameId}/performance/{roundId}: Stores performance data for each game round, accessible to all authenticated users.
+ * - /studentGames/{userId}: Stores the game state for each student, accessible only by that student.
  *
  * Key Security Decisions:
- * - Users can only read and write their own profile data and student game state.
- * - Games are publicly readable but only the creator can modify them.
- * - Listing of users is disallowed for privacy.
- *
- * Denormalization for Authorization:
- * - The 'Game' entity should contain an 'ownerId' or 'creatorId' field to identify the user who created the game. This is essential for controlling write access.
+ * - Authenticated User Requirement: All read and write operations require authentication, preventing anonymous access.
+ * - No Data Validation: These rules do not enforce data validation, allowing for flexible schema changes during prototyping.
+ * - Ownership Enforcement: User profiles and student game states are secured using strict ownership checks, ensuring users can only access their own data.
+ * - Broad Game Access: All games and their associated performance data are accessible to any authenticated user.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Allows authenticated users to manage their own user profile.
      * @path /users/{userId}
-     * @allow (create) User 'user_abc' can create their profile if request.auth.uid == userId.
-     * @allow (get, update, delete) User 'user_abc' can get, update, or delete their profile if request.auth.uid == userId.
-     * @deny (create, get, update, delete) User 'user_xyz' cannot access 'user_abc' profile.
+     * @allow (create) User with ID 'user123' creates their own profile.
+     * @deny (create) User with ID 'user123' attempts to create a profile for 'user456'.
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      // Make sure the uid of the requesting user matches the user id of the document.
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow get, update, delete: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to game information.
+     * @description Allows any authenticated user to read and write game data.
      * @path /games/{gameId}
-     * @allow (get, list) Anyone can read game information.
-     * @allow (create) User 'user_abc' can create a game if request.auth.uid == request.resource.data.ownerId.
-     * @allow (update, delete) User 'user_abc' can update or delete the game if they are the owner (resource.data.ownerId == request.auth.uid).
-     * @deny (create, update, delete) User 'user_xyz' cannot modify a game they don't own.
-     * @principle Allows public read access with owner-only writes for games.
+     * @allow (create) Authenticated user creates a new game.
+     * @deny (create) Unauthenticated user attempts to create a game.
+     * @principle Grants broad access to game data for authenticated users.
      */
     match /games/{gameId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && isExistingOwner(resource.data.ownerId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to team performance data for a specific game and round.
+     * @description Allows any authenticated user to read and write team performance data for each round of the game.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (create) User 'user_abc' can create team performance data if they own the game (get(/databases/$(database)/documents/games/$(gameId)).data.ownerId == request.auth.uid).
-     * @allow (get, list, update, delete) User 'user_abc' can get, list, update, or delete team performance data if they own the game (get(/databases/$(database)/documents/games/$(gameId)).data.ownerId == request.auth.uid).
-     * @deny (create, get, list, update, delete) User 'user_xyz' cannot access team performance data for a game they don't own.
+     * @allow (create) Authenticated user creates a new round of performance data.
+     * @deny (create) Unauthenticated user attempts to create round performance data.
+     * @principle Grants broad access to game data for authenticated users.
      */
     match /games/{gameId}/performance/{roundId} {
-       allow create: if isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.ownerId == request.auth.uid;
-       allow get, list, update, delete: if isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.ownerId == request.auth.uid;
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to student game state.
+     * @description Allows authenticated users to manage their own student game state.
      * @path /studentGames/{userId}
-     * @allow (create) User 'user_abc' can create their student game state if request.auth.uid == userId && request.resource.data.userId == userId.
-     * @allow (get, update, delete) User 'user_abc' can get, update, or delete their student game state if request.auth.uid == userId.
-     * @deny (create, get, update, delete) User 'user_xyz' cannot access 'user_abc' student game state.
-     * @principle Enforces document ownership for student game state.
+     * @allow (create) Student with ID 'student123' creates their own game state.
+     * @deny (create) Student with ID 'student123' attempts to create a game state for 'student456'.
+     * @principle Enforces document ownership for student game states.
      */
     match /studentGames/{userId} {
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow get, update, delete: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
-    // --- Helper functions ---
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -86,8 +84,8 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    function isExistingOwner(ownerId) {
-        return isSignedIn() && request.auth.uid == ownerId && resource != null;
+    function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
     }
   }
 }

@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "Game": {
+      "title": "Game",
+      "description": "Represents a single game simulation session.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "round": { "type": "number" },
+        "teams": { "type": "number" },
+        "teamNames": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["En curso", "Finalizado"] },
+        "numRounds": { "type": "number" },
+        "initialFunds": { "type": "number" },
+        "newStudentsPerRound": { "type": "number" },
+        "aiDifficulty": { "type": "number" }
+      },
+      "required": ["name", "round", "teams", "status", "numRounds", "initialFunds", "newStudentsPerRound"]
+    },
+    "TeamPerformance": {
+      "title": "Team Performance",
+      "description": "Stores the performance data for a team in a specific round.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["H", "IA"] },
+        "totalXp": { "type": "number" }
+      }
+    },
+    "StudentGame": {
+        "title": "Student Game State",
+        "description": "Stores the state for a student participating in a game.",
+        "type": "object",
+        "properties": {
+            "userId": { "type": "string" },
+            "status": { "type": "string", "enum": ["no-game", "pending", "joined"] },
+            "gameId": { "type": "string" },
+            "gameName": { "type": "string" },
+            "teamName": { "type": "string" }
+        }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/Game" },
+      "description": "Collection of all games."
+    },
+    "/games/{gameId}/performance/{roundId}": {
+      "schema": { "$ref": "#/entities/TeamPerformance" },
+      "description": "Sub-collection storing performance data for each round."
+    },
+    "/studentGames/{userId}": {
+        "schema": { "$ref": "#/entities/StudentGame" },
+        "description": "Stores the game state for each student user."
+    }
+  }
+}

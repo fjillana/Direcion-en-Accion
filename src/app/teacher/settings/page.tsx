@@ -41,12 +41,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Trash2, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFirestore } from "@/firebase";
-import { doc, updateDoc, arrayRemove } from "firebase/firestore";
 
 
 export default function SettingsPage() {
   const { activeGame } = useGame();
-  const { updateGame, acceptJoinRequests } = useGames();
+  const { updateGame, acceptJoinRequests, removeTeamFromGame } = useGames();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -61,7 +60,7 @@ export default function SettingsPage() {
   
   const acceptedTeams = useMemo(() => {
       return activeGame?.teamNames || [];
-  }, [activeGame])
+  }, [activeGame]);
 
   useEffect(() => {
     if (activeGame) {
@@ -72,8 +71,7 @@ export default function SettingsPage() {
   const teamsWithRivals = useMemo(() => {
       if (!activeGame) return [];
       const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
-      // Create one AI rival per human team
-      const rivalTeams = Array.from({length: humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
+      const rivalTeams = Array.from({length: activeGame.teams - humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
   }, [acceptedTeams, activeGame]);
 
@@ -96,29 +94,40 @@ export default function SettingsPage() {
   const handleAcceptRequests = async () => {
     if (!activeGame || selectedRequests.length === 0) return;
     
-    await acceptJoinRequests(activeGame.id, selectedRequests);
-
-    toast({
-        title: "Solicitudes Aceptadas",
-        description: `${selectedRequests.length} equipo(s) han sido añadidos a la partida.`
-    });
-
-    setSelectedRequests([]);
-    setRequestsDialogOpen(false);
+    try {
+      await acceptJoinRequests(activeGame.id, selectedRequests);
+      toast({
+          title: "Solicitudes Aceptadas",
+          description: `${selectedRequests.length} equipo(s) han sido añadidos a la partida.`
+      });
+      setSelectedRequests([]);
+      setRequestsDialogOpen(false);
+    } catch (error) {
+      console.error("Error accepting requests:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron aceptar las solicitudes."
+      });
+    }
   };
   
   const handleRemoveTeam = async (teamNameToRemove: string) => {
-    if (!activeGame || !firestore) return;
-    
-    // This part requires finding the student ID associated with the team name
-    // This is a simplification. A real app might need a more robust way to do this.
-    // For now, we assume this logic is handled elsewhere or is not needed for this UI action.
-    
-    // Update teamNames array in the game
-    const updatedAcceptedTeams = acceptedTeams.filter(name => name !== teamNameToRemove);
-    await updateGame(activeGame.id, { teamNames: updatedAcceptedTeams });
-    
-    // A full implementation would also reset the student's state in `/studentGames/{userId}`
+    if (!activeGame) return;
+    try {
+      await removeTeamFromGame(activeGame.id, teamNameToRemove);
+      toast({
+        title: "Equipo eliminado",
+        description: `${teamNameToRemove} ha sido eliminado de la partida.`
+      });
+    } catch (error) {
+       console.error("Error removing team:", error);
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar al equipo."
+      });
+    }
   };
 
   const handleRequestCheckboxChange = (request: JoinRequest, checked: boolean) => {
@@ -171,7 +180,7 @@ export default function SettingsPage() {
                     </div>
                     <Dialog open={isRequestsDialogOpen} onOpenChange={setRequestsDialogOpen}>
                       <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={acceptedTeams.length >= activeGame.teams}>
+                          <Button variant="outline" size="sm" disabled={acceptedTeams.length >= activeGame.teams || pendingTeams.length === 0}>
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Gestionar Solicitudes ({pendingTeams.length})
                           </Button>
@@ -229,7 +238,7 @@ export default function SettingsPage() {
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>¿Estás seguro de que quieres eliminar a {team.name}?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Esta acción no se puede deshacer fácilmente. El equipo será eliminado de la partida y tendrá que ser aceptado de nuevo.
+                                                Esta acción no se puede deshacer fácilmente. El equipo será eliminado de la partida y el estado del estudiante se reiniciará.
                                             </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>

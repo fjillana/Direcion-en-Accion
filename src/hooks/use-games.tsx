@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, arrayRemove, writeBatch } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -104,6 +104,7 @@ interface GamesContextType {
   activeGameId: string | null;
   refreshGames: () => Promise<void>;
   acceptJoinRequests: (gameId: string, requests: JoinRequest[]) => Promise<void>;
+  removeTeamFromGame: (gameId: string, teamName: string) => Promise<void>;
 }
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
@@ -165,10 +166,42 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           operation: 'delete',
         });
       errorEmitter.emit('permission-error', permissionError);
-      // Re-throw the original error if you want the caller to be able to catch it too
       throw serverError;
     }
   };
+  
+  const removeTeamFromGame = async (gameId: string, teamName: string) => {
+    if (!firestore) return;
+    
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+    
+    const teamNameToRemove = gameDoc.data().teamNames.find(name => name === teamName);
+    
+    // Find the user ID associated with the team name from pendingJoinRequests (this is a weak link)
+    // A better approach would be to store team-to-user mappings.
+    // For now, we find the original join request if it exists.
+    const joinRequest = (gameDoc.data().pendingJoinRequests || []).find(req => req.teamName === teamName);
+    
+    const batch = writeBatch(firestore);
+
+    // Remove team from game's teamNames
+    batch.update(gameRef, { teamNames: arrayRemove(teamNameToRemove) });
+
+    // If we can find the student's ID, reset their game state
+    // This is not guaranteed to work if the pending request was already cleared.
+    const studentIdToReset = user?.role === 'student' ? user.id : joinRequest?.userId;
+
+    if(studentIdToReset) {
+      const studentRef = doc(firestore, "studentGames", studentIdToReset);
+      batch.set(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null, userId: studentIdToReset });
+    }
+
+    await batch.commit();
+    await refreshGames();
+  };
+
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
@@ -181,31 +214,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     
     const gameRef = doc(firestore, "games", gameId);
-    const gameDoc = await getDoc(gameRef);
+    const batch = writeBatch(firestore);
 
-    if(!gameDoc.exists()) return;
-
-    const gameData = gameDoc.data() as Game;
-
+    // Update game document: add new team names and remove pending requests
     const newTeamNames = requests.map(req => req.teamName);
-    const updatedTeamNames = [...(gameData.teamNames || []), ...newTeamNames];
-    
-    const remainingRequests = (gameData.pendingJoinRequests || []).filter(
-      (pending) => !requests.some((accepted) => accepted.userId === pending.userId)
-    );
-
-    // Update game document
-    await updateDoc(gameRef, { 
-        teamNames: updatedTeamNames,
-        pendingJoinRequests: remainingRequests
+    batch.update(gameRef, { 
+        teamNames: arrayUnion(...newTeamNames),
+        pendingJoinRequests: arrayRemove(...requests)
     });
 
-    // Update student documents
+    // Update each student's game document to change their status
     for (const req of requests) {
         const studentRef = doc(firestore, "studentGames", req.userId);
-        await updateDoc(studentRef, { status: 'joined' });
+        batch.update(studentRef, { status: 'joined' });
     }
 
+    // Commit all batched writes at once
+    await batch.commit();
+
+    // Refresh the games list to reflect the changes in the UI
     await refreshGames();
   };
 
@@ -346,6 +373,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         confirmStudentDecisions,
         refreshGames,
         acceptJoinRequests,
+        removeTeamFromGame,
     }}>
       {children}
     </GamesContext.Provider>

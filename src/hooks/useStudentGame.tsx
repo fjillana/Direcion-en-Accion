@@ -9,6 +9,9 @@ import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
 import { doc, onSnapshot, setDoc, getDoc, collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
@@ -106,6 +109,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(allGamesRef, (snapshot) => {
         const states = snapshot.docs.map(doc => doc.data() as StudentGameState);
         setAllStudentGames(states);
+    },
+    (err) => {
+      const permissionError = new FirestorePermissionError({
+        path: 'studentGames',
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', permissionError);
     });
     return () => unsubscribe();
   }, [firestore]);

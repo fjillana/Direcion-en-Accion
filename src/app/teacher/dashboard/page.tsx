@@ -43,6 +43,7 @@ import { useState } from "react";
 import { useGames } from "@/hooks/use-games";
 import type { Game } from "@/hooks/use-games";
 import { useRouter } from "next/navigation";
+import { getAuth } from "firebase/auth";
 
 export default function TeacherDashboard() {
   const { games, addGame, removeGame, setActiveGameId } = useGames();
@@ -50,8 +51,7 @@ export default function TeacherDashboard() {
   const router = useRouter();
 
   const handleCreateGame = (data: GameConfig) => {
-    const newGame: Game = {
-      id: `game-${Date.now()}`,
+    const newGame: Omit<Game, 'id' | 'createdBy'> = {
       name: data.gameName,
       round: 0, // Start at round 0
       teams: data.numTeams,
@@ -69,6 +69,16 @@ export default function TeacherDashboard() {
   const handleManageGame = (gameId: string) => {
     setActiveGameId(gameId);
     router.push(`/teacher/game/${gameId}`);
+  };
+
+  const handleDeleteGame = async (gameId: string) => {
+    try {
+      await removeGame(gameId);
+    } catch (error) {
+      // The error is already being emitted to the central listener,
+      // so no need to show a toast here.
+      console.error("Failed to delete game:", error);
+    }
   };
 
   return (
@@ -140,7 +150,7 @@ export default function TeacherDashboard() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => removeGame(game.id)}>
+                          <AlertDialogAction onClick={() => handleDeleteGame(game.id)}>
                             Sí, eliminar partida
                           </AlertDialogAction>
                         </AlertDialogFooter>

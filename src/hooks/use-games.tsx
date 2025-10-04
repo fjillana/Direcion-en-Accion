@@ -1,15 +1,15 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
+import { getAuth } from "firebase/auth";
 
 export interface InvestmentDecision {
   id: string;
@@ -144,10 +144,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, [refreshGames]);
 
   const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {
-    if (!firestore || !user) {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!firestore || !currentUser) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
-    const gameWithOwner = { ...game, createdBy: user.id };
+    const gameWithOwner = { ...game, createdBy: currentUser.uid };
     await addDoc(collection(firestore, "games"), gameWithOwner);
     await refreshGames();
   };
@@ -155,15 +157,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    deleteDoc(gameDocRef).then(() => {
-      refreshGames();
-    }).catch(async (serverError) => {
+    try {
+      await deleteDoc(gameDocRef);
+      await refreshGames();
+    } catch (serverError) {
       const permissionError = new FirestorePermissionError({
           path: gameDocRef.path,
           operation: 'delete',
         });
       errorEmitter.emit('permission-error', permissionError);
-    });
+      // Re-throw the original error if you want the caller to be able to catch it too
+      throw serverError;
+    }
   };
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
@@ -355,5 +360,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

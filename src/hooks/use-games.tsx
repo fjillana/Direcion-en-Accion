@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -157,18 +156,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    
-    deleteDoc(gameDocRef)
-      .then(() => {
-        refreshGames();
-      })
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: gameDocRef.path,
-            operation: 'delete',
+    try {
+      await deleteDoc(gameDocRef);
+      await refreshGames();
+    } catch (serverError) {
+      const permissionError = new FirestorePermissionError({
+          path: gameDocRef.path,
+          operation: 'delete',
         });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+      errorEmitter.emit('permission-error', permissionError);
+      // Re-throw the original error if you want the caller to be able to catch it too
+      throw serverError;
+    }
   };
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
@@ -360,5 +359,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

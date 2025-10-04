@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -71,14 +69,13 @@ export default function SettingsPage() {
     }
   }, [activeGame]);
 
-  
   const teamsWithRivals = useMemo(() => {
       if (!activeGame) return [];
-      const humanTeams = activeGame.teamNames.map(name => ({name, type: 'H'}));
+      const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
       // Create one AI rival per human team
       const rivalTeams = Array.from({length: humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
-  }, [activeGame]);
+  }, [acceptedTeams, activeGame]);
 
   const handleDifficultyChange = (value: number[]) => {
     setAiDifficulty(value[0]);

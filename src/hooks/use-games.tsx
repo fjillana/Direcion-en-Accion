@@ -144,9 +144,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   }, [refreshGames]);
 
   const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {
-    if (!firestore || !user) return;
+    if (!firestore || !user) {
+        throw new Error("Usuario no autenticado o Firestore no está disponible.");
+    }
     const gameWithOwner = { ...game, createdBy: user.id };
-    const docRef = await addDoc(collection(firestore, "games"), gameWithOwner);
+    await addDoc(collection(firestore, "games"), gameWithOwner);
     await refreshGames();
   };
 
@@ -353,3 +355,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

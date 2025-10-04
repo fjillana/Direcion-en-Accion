@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -7,9 +6,8 @@ import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, In
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
-
-// This would be the current logged-in user ID
-const CURRENT_USER_ID = "user-student-01"; 
+import { doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
@@ -33,52 +31,41 @@ export interface StudentGameState {
   gameId: string | null;
   gameName: string | null;
   teamName: string | null;
+  planConfirmed?: boolean;
+  strategicPlan?: StrategicPlan;
+}
+
+interface FullStudentState extends StudentGameState {
   round?: number;
   decisions: RoundDecisions;
   roundSettings?: RoundSettings;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
   kpis?: TeamKPIs;
-  strategicPlan?: StrategicPlan;
-  planConfirmed: boolean;
 }
 
 interface StudentGameContextType {
-  studentGame: StudentGameState | null;
+  studentGame: FullStudentState | null;
   isLoading: boolean;
-  requestToJoinGame: (gameId: string, gameName: string, teamName: string) => void;
-  abandonGame: () => void;
-  checkGameStatus: () => void;
-  updateStudentGame: (userId: string, updatedState: Partial<StudentGameState>) => void;
-  getStudentGameByGameId: (gameId: string) => StudentGameState | null;
+  requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
+  abandonGame: () => Promise<void>;
+  checkGameStatus: () => void; // This might become redundant
+  updateStudentGame: (userId: string, updatedState: Partial<StudentGameState>) => Promise<void>;
+  getStudentGameByGameId: (gameId: string) => StudentGameState | null; // This is a bit tricky now
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
-  setStrategicPlan: (plan: Partial<StrategicPlan>) => void;
+  setStrategicPlan: (plan: Partial<StrategicPlan>) => Promise<void>;
 }
 
 const StudentGameContext = createContext<StudentGameContextType | undefined>(undefined);
 
-const STUDENT_GAME_STORAGE_KEY_PREFIX = 'studentGameState_';
-
-const getStorageKey = (userId: string) => `${STUDENT_GAME_STORAGE_KEY_PREFIX}${userId}`;
-
-const initialStudentState: StudentGameState = {
-  userId: CURRENT_USER_ID,
+const initialStudentState: Omit<StudentGameState, 'userId'> = {
   status: "no-game",
   gameId: null,
   gameName: null,
   teamName: null,
-  round: 0,
-  decisions: {
-    selectedInvestments: [],
-    selectedCenterActions: [],
-    tuitionPrice: 120,
-    crisisResponse: null,
-    roundConfirmed: false,
-  },
   planConfirmed: false,
   strategicPlan: {
-    confirmed: false,
-    rankingGoal: "",
+    confirmed: false, rankingGoal: "",
     targets: {
       cash: { target: 50000, operator: "min" },
       personnelCost: { target: 75, operator: "max" },
@@ -90,260 +77,166 @@ const initialStudentState: StudentGameState = {
   }
 };
 
-const deepMerge = (target: any, source: any) => {
-    const output = { ...target };
-    if (target && typeof target === 'object' && source && typeof source === 'object') {
-        Object.keys(source).forEach(key => {
-            if (source[key] && typeof source[key] === 'object' && key in target && target[key] !== null && !Array.isArray(source[key])) {
-                output[key] = deepMerge(target[key], source[key]);
-            } else {
-                output[key] = source[key];
-            }
-        });
-    }
-    // Ensure nested structures in initial state are preserved if missing from source
-    Object.keys(target).forEach(key => {
-        if (!source.hasOwnProperty(key)) {
-            output[key] = target[key];
-        }
-    });
-
-    return output;
+const initialRoundDecisions: RoundDecisions = {
+  selectedInvestments: [],
+  selectedCenterActions: [],
+  tuitionPrice: 120,
+  crisisResponse: null,
+  roundConfirmed: false,
 };
 
 
 export function StudentGameProvider({ children }: { children: ReactNode }) {
-  const [studentGame, setStudentGame] = useState<StudentGameState | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { games, updateGame } = useGames();
-  const { user } = useAuth();
+  const { games, confirmStudentDecisions, updateGame } = useGames();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
-  const currentUserId = useMemo(() => user?.id || CURRENT_USER_ID, [user]);
+  const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
+  const [fullStudentState, setFullStudentState] = useState<FullStudentState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadState = useCallback(() => {
+  // Effect to listen to the student's game state document in Firestore
+  useEffect(() => {
+    if (!firestore || !user?.id) {
+      setIsLoading(isAuthLoading);
+      return;
+    }
+    
     setIsLoading(true);
-    let storedState;
-    try {
-        const item = window.localStorage.getItem(getStorageKey(currentUserId));
-        storedState = item ? JSON.parse(item) : { ...initialStudentState, userId: currentUserId };
-    } catch (error) {
-        console.error(error);
-        storedState = { ...initialStudentState, userId: currentUserId };
-    }
-    
-    const hydratedState = deepMerge({ ...initialStudentState, userId: currentUserId }, storedState);
-    
-    if (!hydratedState.decisions) {
-        hydratedState.decisions = { ...initialStudentState.decisions };
-    }
-    hydratedState.decisions.selectedInvestments = Array.isArray(hydratedState.decisions.selectedInvestments) ? hydratedState.decisions.selectedInvestments : [];
-    hydratedState.decisions.selectedCenterActions = Array.isArray(hydratedState.decisions.selectedCenterActions) ? hydratedState.decisions.selectedCenterActions : [];
-    
-    setStudentGame(hydratedState);
-    setIsLoading(false);
-  }, [currentUserId]);
+    const studentGameRef = doc(firestore, "studentGames", user.id);
 
-  useEffect(() => {
-    loadState();
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === getStorageKey(currentUserId) || event.key === 'games') {
-        loadState();
+    const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setStudentGameState(docSnap.data() as StudentGameState);
+      } else {
+        // If no document exists, create one with the initial state
+        const initialData = { ...initialStudentState, userId: user.id };
+        setDoc(studentGameRef, initialData);
+        setStudentGameState(initialData);
       }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadState]);
-  
-  useEffect(() => {
-    if (isLoading || !studentGame || !studentGame.gameId || !studentGame.teamName) return;
+      setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching student game state:", error);
+        setIsLoading(false);
+    });
 
-    const gameData = games.find(g => g.id === studentGame.gameId);
-    if (!gameData) return;
+    return () => unsubscribe();
+  }, [firestore, user, isAuthLoading]);
+
+  // Effect to derive the full student state by combining studentGameState and the global game data
+  useEffect(() => {
+    if (!studentGameState || !studentGameState.gameId || studentGameState.status !== 'joined') {
+      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
+      return;
+    }
+    
+    const gameData = games.find(g => g.id === studentGameState.gameId);
+    if (!gameData) {
+      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
+      return;
+    }
 
     const serverRound = gameData.round;
-    const clientRound = studentGame.round;
+    const clientRound = fullStudentState?.round;
     const hasRoundChanged = clientRound !== serverRound;
 
-    let newState = { ...studentGame };
-
-    if (hasRoundChanged) {
-        const previousDecisions = newState.decisions || initialStudentState.decisions;
-        newState.decisions = { 
-            ...initialStudentState.decisions,
-            tuitionPrice: previousDecisions.tuitionPrice,
-        };
-    }
+    let currentDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!] || 
+                           (hasRoundChanged ? { ...initialRoundDecisions, tuitionPrice: fullStudentState?.decisions.tuitionPrice || 120 } : fullStudentState?.decisions || initialRoundDecisions);
     
     const performanceHistory: TeamPerformanceData[] = [];
-    let currentKpis: StudentGameState['kpis'] | undefined = undefined;
+    let currentKpis: TeamKPIs | undefined = undefined;
 
     if (gameData.performance) {
-        Object.keys(gameData.performance).forEach(roundKey => {
+        Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
             const roundNum = parseInt(roundKey, 10);
-            if(roundNum < serverRound) {
-                const roundPerformance = gameData.performance?.[roundNum];
-                const teamPerformance = roundPerformance?.find(p => p.name === studentGame.teamName);
-                if(teamPerformance) {
-                    performanceHistory.push(teamPerformance);
+            const teamPerformance = gameData.performance![roundNum].find(p => p.name === studentGameState.teamName);
+            if (teamPerformance) {
+                performanceHistory.push(teamPerformance);
+                if (roundNum === serverRound - 1) {
+                    currentKpis = teamPerformance.kpis;
                 }
             }
         });
+    }
 
-        if (serverRound > 0) {
-            const lastCompletedRoundPerformance = gameData.performance?.[serverRound - 1];
-            currentKpis = lastCompletedRoundPerformance?.find(p => p.name === studentGame.teamName)?.kpis;
-        }
+    if (serverRound === 0 && !currentKpis && gameData.performance?.[0]) {
+      currentKpis = gameData.performance[0].find(p => p.name === studentGameState.teamName)?.kpis;
     }
-    
-    if (serverRound === 0 && !currentKpis) { 
-        const performanceForRoundZero = gameData.performance?.[0];
-        const teamPerformanceRoundZero = performanceForRoundZero?.find(p => p.name === studentGame.teamName);
-        if (teamPerformanceRoundZero) {
-            currentKpis = teamPerformanceRoundZero.kpis;
-        } else {
-             const humanTeamsCount = gameData.teamNames.length || 1;
-             const numIaTeams = humanTeamsCount;
-             currentKpis = {
-                 cash: gameData.initialFunds,
-                 personnelCost: 240000,
-                 income: 320000,
-                 privateIncome: 0,
-                 publicIncome: 0,
-                 nma: 7.5,
-                 marketShare: 100 / (humanTeamsCount + numIaTeams),
-                 morale: 80,
-                 studentTeacherRatio: 25.0,
-                 numStudents: 800, 
-                 numTeachers: 32,
-             }
-        }
-    }
-    
-    newState = {
-      ...newState,
+
+
+    setFullStudentState({
+      ...studentGameState,
       round: serverRound,
+      decisions: currentDecisions,
       roundSettings: gameData.roundSettings?.[serverRound],
-      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGame.teamName || m.from === 'teacher' || m.from === studentGame.teamName),
-      performanceHistory: performanceHistory.sort((a,b) => a.round - b.round),
-      kpis: currentKpis,
-    };
-    
-    if(JSON.stringify(newState) !== JSON.stringify(studentGame)){
-      setStudentGame(newState);
-       if (typeof window !== 'undefined') {
-        localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
-       }
-    }
-  }, [games, studentGame, isLoading, currentUserId]);
-
-  
-  const updateStudentGame = useCallback((userId: string, updatedState: Partial<StudentGameState>) => {
-    const key = getStorageKey(userId);
-    const currentData = JSON.parse(localStorage.getItem(key) || '{}');
-    const newState = { ...currentData, ...updatedState };
-    localStorage.setItem(key, JSON.stringify(newState));
-
-    if (userId === currentUserId) {
-      setStudentGame(newState);
-    }
-  }, [currentUserId]);
-
-  const getStudentGameByGameId = useCallback((gameId: string): StudentGameState | null => {
-      if (typeof window === 'undefined') return null;
-      const allKeys = Object.keys(localStorage);
-      const studentKeys = allKeys.filter(k => k.startsWith(STUDENT_GAME_STORAGE_KEY_PREFIX));
-      
-      for(const key of studentKeys){
-          const item = localStorage.getItem(key);
-          if(item){
-            try {
-              const state: StudentGameState = JSON.parse(item);
-              if (state.gameId === gameId) {
-                  return state;
-              }
-            } catch (e) {
-                console.error("Failed to parse student game state for key", key, e);
-            }
-          }
-      }
-      return null;
-  }, []);
-
-  const setRoundDecisions = (decisions: Partial<RoundDecisions>) => {
-    setStudentGame(prev => {
-      if (!prev) return null;
-      const existingDecisions = prev.decisions || initialStudentState.decisions!;
-      const newDecisions = { 
-        ...existingDecisions, 
-        ...decisions,
-      };
-      newDecisions.selectedCenterActions = Array.isArray(newDecisions.selectedCenterActions) ? newDecisions.selectedCenterActions : [];
-      newDecisions.selectedInvestments = Array.isArray(newDecisions.selectedInvestments) ? newDecisions.selectedInvestments : [];
-      
-      const newState = { ...prev, decisions: newDecisions };
-      localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
-      return newState;
+      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGameState.teamName || m.from === studentGameState.teamName),
+      performanceHistory,
+      kpis: currentKpis
     });
-  };
 
-   const setStrategicPlan = (plan: Partial<StrategicPlan>) => {
-    setStudentGame(prev => {
-        if (!prev) return null;
-        const newPlan = { ...(prev.strategicPlan || initialStudentState.strategicPlan!), ...plan };
-        const newState = { ...prev, strategicPlan: newPlan, planConfirmed: newPlan.confirmed };
-        localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
-        return newState;
-    });
-   };
+  }, [studentGameState, games, fullStudentState?.round, fullStudentState?.decisions]);
 
 
-  const requestToJoinGame = (gameId: string, gameName: string, teamName: string) => {
+  const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
+    if (!firestore || !user) return;
     const newState: StudentGameState = {
-      ...initialStudentState,
-      userId: currentUserId,
+      userId: user.id,
       status: 'pending',
-      gameId,
-      gameName,
-      teamName,
+      gameId, gameName, teamName
     };
-    setStudentGame(newState);
-    localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
+    await setDoc(doc(firestore, "studentGames", user.id), newState, { merge: true });
+    router.push('/student/dashboard');
   };
-  
-  const checkGameStatus = useCallback(() => {
-    if (studentGame?.status === 'pending' && studentGame.gameId && studentGame.teamName) {
-        const game = games.find(g => g.id === studentGame.gameId);
-        if(game && game.teamNames.includes(studentGame.teamName)) {
-            const newState = { ...studentGame, status: 'joined' as StudentGameStatus, round: game.round };
-            setStudentGame(newState);
-            localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
-        }
-    }
-  }, [studentGame, games, currentUserId]);
 
-  const abandonGame = () => {
-    if (!studentGame) return;
-
-    if (studentGame.gameId && studentGame.teamName) {
-      const game = games.find(g => g.id === studentGame.gameId);
-      if (game) {
-        const updatedTeamNames = game.teamNames.filter(name => name !== studentGame.teamName);
-        updateGame(game.id, { teamNames: updatedTeamNames });
-      }
+  const abandonGame = async () => {
+    if (!firestore || !user || !studentGameState?.gameId || !studentGameState?.teamName) return;
+    
+    const game = games.find(g => g.id === studentGameState.gameId);
+    if (game) {
+      const updatedTeamNames = game.teamNames.filter(name => name !== studentGameState.teamName);
+      await updateGame(game.id, { teamNames: updatedTeamNames });
     }
 
-    const newState = { ...initialStudentState, userId: currentUserId };
-    setStudentGame(newState);
-    localStorage.setItem(getStorageKey(currentUserId), JSON.stringify(newState));
+    await setDoc(doc(firestore, "studentGames", user.id), {
+        status: 'no-game', gameId: null, gameName: null, teamName: null
+    }, { merge: true });
+
     router.push('/student/join-game');
   };
+  
+  const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
+    if (!fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) return;
+    const updatedDecisions = { ...fullStudentState.decisions, ...newDecisions };
+    
+    // This is a local-only update for UI reactivity. Confirmation sends it to DB.
+    setFullStudentState(prev => prev ? ({ ...prev, decisions: updatedDecisions }) : null);
+
+    // Confirmation logic is now handled in the component via useGames
+    if (newDecisions.roundConfirmed) {
+      confirmStudentDecisions(fullStudentState.gameId, fullStudentState.teamName, fullStudentState.round, updatedDecisions);
+    }
+  };
+
+  const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
+    if (!firestore || !user || !studentGameState) return;
+    const newPlan = { ...(studentGameState.strategicPlan || {}), ...plan };
+    await setDoc(doc(firestore, "studentGames", user.id), {
+      strategicPlan: newPlan,
+      planConfirmed: newPlan.confirmed
+    }, { merge: true });
+  };
+  
+  const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }
+  const getStudentGameByGameId = (gameId: string) => { /* Complex to implement client-side, better handled by queries if needed */ return null; }
+  const updateStudentGame = async (userId: string, updatedState: Partial<StudentGameState>) => {
+     if(!firestore) return;
+     await setDoc(doc(firestore, "studentGames", userId), updatedState, { merge: true });
+  }
 
   const value = useMemo(() => ({
-    studentGame,
-    isLoading,
+    studentGame: fullStudentState,
+    isLoading: isLoading || isAuthLoading,
     requestToJoinGame,
     abandonGame,
     checkGameStatus,
@@ -351,7 +244,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [studentGame, isLoading, requestToJoinGame, abandonGame, checkGameStatus, updateStudentGame, getStudentGameByGameId, setRoundDecisions, setStrategicPlan]);
+  }), [fullStudentState, isLoading, isAuthLoading]);
 
   return (
     <StudentGameContext.Provider value={value}>

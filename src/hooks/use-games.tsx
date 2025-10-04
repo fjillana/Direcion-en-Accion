@@ -1,11 +1,11 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, getDoc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
-import type { AIArchetype, StrategicPlan } from "@/lib/game-logic/types";
-import { TeamKPIs } from "@/lib/game-logic/types";
+import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
 export interface InvestmentDecision {
   id: string;
@@ -58,36 +58,36 @@ export type GameMessage = {
   title?: string;
 };
 
-
 export interface Game {
   id: string;
   name: string;
   round: number;
-  teams: number; // Number of human teams
-  teamNames: string[]; // Names of the accepted teams
+  teams: number;
+  teamNames: string[];
   status: "En curso" | "Finalizado";
   numRounds: number;
   initialFunds: number;
   newStudentsPerRound: number;
   aiDifficulty: number;
-  reports?: Record<string, Record<string, any>>; // round -> teamName -> reportData
-  performance?: Record<string, TeamPerformanceData[]>; // round -> teamPerformances
+  reports?: Record<string, Record<string, any>>;
+  performance?: Record<string, TeamPerformanceData[]>;
   roundSettings?: Record<number, RoundSettings>;
   messages?: GameMessage[];
-  decisions?: Record<number, Record<string, TeamDecision>>; // round -> teamName -> decisions
+  decisions?: Record<number, Record<string, TeamDecision>>;
 }
 
 interface GamesContextType {
   games: Game[];
-  addGame: (game: Game) => void;
-  removeGame: (gameId: string) => void;
-  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'reports' | 'performance' | 'roundSettings' | 'messages' | 'decisions'>>) => void;
-  updateReport: (gameId: string, round: number, teamName: string, reportData: any) => void;
-  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => void;
-  updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => void;
-  addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => void;
-  markMessageAsRead: (gameId: string, messageId: string, userId: string) => void;
-  confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => void;
+  loading: boolean;
+  addGame: (game: Omit<Game, 'id'>) => Promise<void>;
+  removeGame: (gameId: string) => Promise<void>;
+  updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'id'>>) => Promise<void>;
+  updateReport: (gameId: string, round: number, teamName: string, reportData: any) => Promise<void>;
+  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => Promise<void>;
+  updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => Promise<void>;
+  addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => Promise<void>;
+  markMessageAsRead: (gameId: string, messageId: string, userId: string) => Promise<void>;
+  confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => Promise<void>;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -95,246 +95,166 @@ interface GamesContextType {
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
 
-const GAMES_STORAGE_KEY = 'games';
 const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
 
 export function GamesProvider({ children }: { children: ReactNode }) {
+  const firestore = useFirestore();
   const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
-
-  const updateLocalStorage = useCallback(<T,>(key: string, value: T) => {
+  
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(key, JSON.stringify(value));
-        // Dispatch a storage event to notify other tabs
-        window.dispatchEvent(
-          new StorageEvent('storage', {
-            key: key,
-            newValue: JSON.stringify(value),
-          })
-        );
-      } catch (error) {
-        console.error(`Error writing to localStorage key “${key}”:`, error);
-      }
-    }
-  }, []);
-
-  const loadState = useCallback(() => {
-    try {
-      const storedGames = localStorage.getItem(GAMES_STORAGE_KEY);
-      if (storedGames) {
-        setGames(JSON.parse(storedGames));
-      }
-      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-      if (storedActiveId) {
-        setActiveGameIdState(JSON.parse(storedActiveId));
-      }
-    } catch (error) {
-      console.error("Failed to read from localStorage:", error);
+        const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+        if (storedActiveId) {
+            setActiveGameIdState(JSON.parse(storedActiveId));
+        }
     }
   }, []);
 
   useEffect(() => {
-    loadState();
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === GAMES_STORAGE_KEY || event.key === ACTIVE_GAME_ID_STORAGE_KEY) {
-        loadState();
+    if (!firestore) return;
+    setLoading(true);
+    const unsubscribe = onSnapshot(collection(firestore, "games"), (snapshot) => {
+      const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+      setGames(gamesData);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [firestore]);
+
+  const addGame = async (game: Omit<Game, 'id'>) => {
+    if (!firestore) return;
+    await addDoc(collection(firestore, "games"), game);
+  };
+
+  const removeGame = async (gameId: string) => {
+    if (!firestore) return;
+    await deleteDoc(doc(firestore, "games", gameId));
+  };
+
+  const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
+    if (!firestore) return;
+    await updateDoc(doc(firestore, "games", gameId), updatedGame);
+  };
+
+  const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+
+    const gameData = gameDoc.data();
+    const newReports = { ...(gameData.reports || {}) };
+    if (!newReports[round]) newReports[round] = {};
+    newReports[round][teamName] = reportData;
+
+    let newMessages = [...(gameData.messages || [])];
+    if (reportData.published) {
+        newMessages.push({
+            id: `msg-report-${Date.now()}-${teamName}`,
+            from: 'system', to: teamName, title: 'Reporte Disponible',
+            content: `El reporte de la ronda ${round} ya está disponible.`,
+            type: 'report', timestamp: Date.now(), readBy: [],
+        });
+    }
+
+    await updateDoc(gameRef, { reports: newReports, messages: newMessages });
+  };
+
+  const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+
+    const newPerformance = { ...(gameDoc.data().performance || {}) };
+    newPerformance[round] = performanceData;
+    const updatedMessages = [...(gameDoc.data().messages || []), ...newMessages];
+
+    await updateDoc(gameRef, { performance: newPerformance, messages: updatedMessages });
+  };
+
+  const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+
+    const gameData = gameDoc.data();
+    const newSettingsState = { ...(gameData.roundSettings || {}) };
+    newSettingsState[round] = settings;
+
+    let newMessages: GameMessage[] = [];
+    settings.teamCrises.forEach(newTeamCrisis => {
+      if (newTeamCrisis.crisisIds.length > 0) {
+         newMessages.push({
+           id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
+           from: 'system', to: newTeamCrisis.teamName, title: 'ATENCIÓN: ¡CRISIS!',
+           content: 'Se ha presentado un evento de crisis inesperado. Revisa tu dashboard para tomar una decisión crucial.',
+           type: 'crisis', timestamp: Date.now(), readBy: [],
+         });
       }
+    });
+
+    const updatedMessages = [...(gameData.messages || []), ...newMessages];
+    await updateDoc(gameRef, { roundSettings: newSettingsState, messages: updatedMessages });
+  };
+
+  const addMessage = async (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+
+    const newMessage: GameMessage = {
+      ...message, id: `msg-${Date.now()}`, timestamp: Date.now(), readBy: [],
     };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadState]);
+    const newMessages = [...(gameDoc.data().messages || []), newMessage];
+    await updateDoc(gameRef, { messages: newMessages });
+  };
 
+  const markMessageAsRead = async (gameId: string, messageId: string, userId: string) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
 
-  const addGame = useCallback((game: Game) => {
-    setGames((prevGames) => {
-        const newGames = [...prevGames, game];
-        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-        return newGames;
+    const newMessages = (gameDoc.data().messages || []).map((msg: GameMessage) => {
+      if (msg.id === messageId && !msg.readBy.includes(userId)) {
+        return { ...msg, readBy: [...msg.readBy, userId] };
+      }
+      return msg;
     });
-  }, [updateLocalStorage]);
-
-  const removeGame = useCallback((gameId: string) => {
-    setGames((prevGames) => {
-        const newGames = prevGames.filter(game => game.id !== gameId);
-        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-        return newGames;
-    });
-  }, [updateLocalStorage]);
-
-  const updateGame = useCallback((gameId: string, updatedGame: Partial<Game>) => {
-    setGames(prevGames => {
-      const newGames = prevGames.map(game => 
-        game.id === gameId ? { ...game, ...updatedGame } : game
-      );
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
-    });
-  }, [updateLocalStorage]);
-
-  const updateReport = useCallback((gameId: string, round: number, teamName: string, reportData: any) => {
-    setGames(prevGames => {
-        const gameToUpdate = prevGames.find(g => g.id === gameId);
-        if (!gameToUpdate) return prevGames;
-
-        const reportAlreadySent = gameToUpdate.reports?.[round]?.[teamName]?.published;
-
-        const newGames = prevGames.map(game => {
-            if (game.id === gameId) {
-                const newReports = { ...game.reports };
-                if (!newReports[round]) {
-                    newReports[round] = {};
-                }
-                newReports[round][teamName] = reportData;
-                
-                let newMessages = [...(game.messages || [])];
-                if (reportData.published && !reportAlreadySent) {
-                    newMessages.push({
-                        id: `msg-report-${Date.now()}-${teamName}`,
-                        from: 'system',
-                        to: teamName,
-                        title: 'Reporte Disponible',
-                        content: `El reporte de la ronda ${round} ya está disponible.`,
-                        type: 'report',
-                        timestamp: Date.now(),
-                        readBy: [],
-                    });
-                }
-                return { ...game, reports: newReports, messages: newMessages };
-            }
-            return game;
-        });
-        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-        return newGames;
-    });
-  }, [updateLocalStorage]);
+    await updateDoc(gameRef, { messages: newMessages });
+  };
   
-  const updateTeamPerformance = useCallback((gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
-    setGames(prevGames => {
-        const newGames = prevGames.map(game => {
-            if (game.id === gameId) {
-                const newPerformance = { ...(game.performance || {}) };
-                newPerformance[round] = performanceData;
-                const updatedMessages = [...(game.messages || []), ...newMessages];
-                return { ...game, performance: newPerformance, messages: updatedMessages };
-            }
-            return game;
-        });
-        updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-        return newGames;
-    });
-  }, [updateLocalStorage]);
+  const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
 
-  const updateRoundSettings = useCallback((gameId: string, round: number, settings: RoundSettings) => {
-    setGames(prevGames => {
-      const gameToUpdate = prevGames.find(g => g.id === gameId);
-      if (!gameToUpdate) return prevGames;
+    const newDecisions = { ...(gameDoc.data().decisions || {}) };
+    if (!newDecisions[round]) newDecisions[round] = {};
+    newDecisions[round][teamName] = { ...decisions, roundConfirmed: true };
 
-      const oldSettings = gameToUpdate.roundSettings?.[round];
-      let newMessages: GameMessage[] = [];
+    await updateDoc(gameRef, { decisions: newDecisions });
+  };
 
-      settings.teamCrises.forEach(newTeamCrisis => {
-        const oldTeamCrisis = oldSettings?.teamCrises.find(tc => tc.teamName === newTeamCrisis.teamName);
-        if (newTeamCrisis.crisisIds.length > 0 && (!oldTeamCrisis || oldTeamCrisis.crisisIds.length === 0 || JSON.stringify(oldTeamCrisis.crisisIds) !== JSON.stringify(newTeamCrisis.crisisIds))) {
-           newMessages.push({
-             id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
-             from: 'system',
-             to: newTeamCrisis.teamName,
-             title: 'ATENCIÓN: ¡CRISIS!',
-             content: 'Se ha presentado un evento de crisis inesperado. Revisa tu dashboard para tomar una decisión crucial.',
-             type: 'crisis',
-             timestamp: Date.now(),
-             readBy: [],
-           });
-        }
-      });
-      
-      const newGames = prevGames.map(game => {
-        if (game.id === gameId) {
-          const newSettingsState = { ...(game.roundSettings || {}) };
-          newSettingsState[round] = settings;
-          const updatedMessages = [...(game.messages || []), ...newMessages];
-          return { ...game, roundSettings: newSettingsState, messages: updatedMessages };
-        }
-        return game;
-      });
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
-    });
-  }, [updateLocalStorage]);
+  const getGameById = (gameId: string) => games.find(g => g.id === gameId);
 
-  const addMessage = useCallback((gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
-    setGames(prevGames => {
-      const newGames = prevGames.map(game => {
-        if (game.id === gameId) {
-          const newMessage: GameMessage = {
-            ...message,
-            id: `msg-${Date.now()}-${Math.random()}`,
-            timestamp: Date.now(),
-            readBy: [],
-          };
-          const newMessages = [...(game.messages || []), newMessage];
-          return { ...game, messages: newMessages };
-        }
-        return game;
-      });
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
-    });
-  }, [updateLocalStorage]);
-
-  const markMessageAsRead = useCallback((gameId: string, messageId: string, userId: string) => {
-     setGames(prevGames => {
-      const newGames = prevGames.map(game => {
-        if (game.id === gameId) {
-          const newMessages = (game.messages || []).map(msg => {
-            if (msg.id === messageId && !msg.readBy.includes(userId)) {
-              return { ...msg, readBy: [...msg.readBy, userId] };
-            }
-            return msg;
-          });
-          return { ...game, messages: newMessages };
-        }
-        return game;
-      });
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
-    });
-  }, [updateLocalStorage]);
-  
-  const confirmStudentDecisions = useCallback((gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
-    setGames(prevGames => {
-      const newGames = prevGames.map(game => {
-        if (game.id === gameId) {
-          const newDecisions = { ...(game.decisions || {}) };
-          if (!newDecisions[round]) {
-            newDecisions[round] = {};
-          }
-          newDecisions[round][teamName] = { ...decisions, roundConfirmed: true };
-          return { ...game, decisions: newDecisions };
-        }
-        return game;
-      });
-      updateLocalStorage(GAMES_STORAGE_KEY, newGames);
-      return newGames;
-    });
-  }, [updateLocalStorage]);
-
-
-  const getGameById = useCallback((gameId: string) => {
-    return games.find(g => g.id === gameId);
-  }, [games]);
-
-  const setActiveGameId = useCallback((gameId: string | null) => {
-    updateLocalStorage(ACTIVE_GAME_ID_STORAGE_KEY, gameId);
-    setActiveGameIdState(gameId);
-  }, [updateLocalStorage]);
+  const setActiveGameId = (gameId: string | null) => {
+      if (typeof window !== 'undefined') {
+          localStorage.setItem(ACTIVE_GAME_ID_STORAGE_KEY, JSON.stringify(gameId));
+      }
+      setActiveGameIdState(gameId);
+  };
 
   return (
     <GamesContext.Provider value={{ 
         games, 
+        loading,
         addGame, 
         removeGame, 
         updateGame, 

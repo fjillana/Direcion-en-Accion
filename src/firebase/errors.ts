@@ -20,8 +20,7 @@ export class FirestorePermissionError extends Error {
     this.context = context;
 
     // This is to make the error message more readable in the console.
-    if (typeof(console) !== 'undefined') {
-        console.error(message);
-    }
+    // The console.error was removed to prevent duplicate error logging.
+    // The FirebaseErrorListener component is now responsible for displaying the error.
   }
 }

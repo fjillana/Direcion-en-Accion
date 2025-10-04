@@ -177,7 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) return;
     await signOut(auth);
     setUser(null);
-    router.push('/');
+    // Force reload and redirect to ensure clean state
+    window.location.href = '/';
   };
 
   const updateUser = async (updatedData: Partial<User>) => {

@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function JoinGamePage() {
-  const { games } = useGames();
-  const { requestToJoinGame } = useStudentGame();
+  const { games, loading: gamesLoading } = useGames();
+  const { requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +36,8 @@ export default function JoinGamePage() {
         router.push('/student/dashboard');
     }
   };
+  
+  const isLoading = gamesLoading || studentGameLoading;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
@@ -49,8 +51,12 @@ export default function JoinGamePage() {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <h3 className="font-semibold">Partidas Disponibles</h3>
-            <div className="space-y-3 rounded-lg border p-3">
-              {games.length > 0 ? games.map((game) => (
+            <div className="space-y-3 rounded-lg border p-3 min-h-[150px]">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-full py-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : games.length > 0 ? games.map((game) => (
                 <button
                   key={game.id}
                   onClick={() => setSelectedGameId(game.id)}
@@ -64,7 +70,11 @@ export default function JoinGamePage() {
                   </div>
                   <p className="text-sm mt-1">Rondas: {game.numRounds}</p>
                 </button>
-              )) : <p className="text-center text-sm text-muted-foreground py-4">No hay partidas disponibles en este momento.</p>}
+              )) : (
+                <div className="flex items-center justify-center h-full py-4">
+                    <p className="text-center text-sm text-muted-foreground">No hay partidas disponibles en este momento.</p>
+                </div>
+              )}
             </div>
           </div>
           
@@ -93,7 +103,7 @@ export default function JoinGamePage() {
           <Button 
             className="w-full" 
             onClick={handleJoinRequest}
-            disabled={!selectedGameId || !teamName}
+            disabled={!selectedGameId || !teamName || isLoading}
           >
             Solicitar Unirse a la Partida
           </Button>

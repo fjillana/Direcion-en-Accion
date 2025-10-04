@@ -105,6 +105,7 @@ export default function JoinGamePage() {
             onClick={handleJoinRequest}
             disabled={!selectedGameId || !teamName || isLoading}
           >
+            {studentGameLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Solicitar Unirse a la Partida
           </Button>
         </CardFooter>

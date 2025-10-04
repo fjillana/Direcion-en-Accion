@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { FirebaseError } from "firebase/app";
 
 const formSchema = z.object({
   email: z
@@ -41,10 +43,10 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (isLogin) {
-        const user = login(values.email, values.password);
+        const user = await login(values.email, values.password);
         if (user.role === 'teacher') {
           router.push("/teacher/dashboard");
         } else {
@@ -52,7 +54,7 @@ export function LoginForm() {
         }
       } else {
         // Registration is always for students
-        register(values.email, values.password, "estudiante");
+        await register(values.email, values.password, "estudiante");
         toast({
           title: "¡Cuenta Creada!",
           description: "Bienvenido/a. Redirigiendo a tu panel de estudiante...",
@@ -60,10 +62,19 @@ export function LoginForm() {
         router.push("/student/dashboard");
       }
     } catch (error: any) {
+        let description = "Ha ocurrido un error inesperado.";
+        if (error instanceof FirebaseError) {
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                description = "Credenciales incorrectas. Por favor, verifica tu email y contraseña. Si eres un nuevo usuario, necesitas registrarte.";
+            } else if (error.code === 'auth/email-already-in-use') {
+                description = "Este correo electrónico ya está en uso. Por favor, inicia sesión o utiliza otro correo.";
+            }
+        }
+        
         toast({
           variant: "destructive",
           title: "Error de autenticación",
-          description: error.message || "Ha ocurrido un error.",
+          description: description,
         });
     }
   }
@@ -151,3 +162,5 @@ export function LoginForm() {
     </div>
   );
 }
+
+  

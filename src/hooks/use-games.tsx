@@ -5,6 +5,8 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 
@@ -146,8 +148,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
-    await deleteDoc(doc(firestore, "games", gameId));
-    await refreshGames();
+    const gameDocRef = doc(firestore, "games", gameId);
+    deleteDoc(gameDocRef).then(() => {
+      refreshGames();
+    }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+          path: gameDocRef.path,
+          operation: 'delete',
+        });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {

@@ -9,6 +9,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
+import { useAuth } from "./use-auth";
 
 export interface InvestmentDecision {
   id: string;
@@ -84,12 +85,13 @@ export interface Game {
   roundSettings?: Record<number, RoundSettings>;
   messages?: GameMessage[];
   decisions?: Record<number, Record<string, TeamDecision>>;
+  createdBy: string;
 }
 
 interface GamesContextType {
   games: Game[];
   loading: boolean;
-  addGame: (game: Omit<Game, 'id'>) => Promise<void>;
+  addGame: (game: Omit<Game, 'id' | 'createdBy'>) => Promise<void>;
   removeGame: (gameId: string) => Promise<void>;
   updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'id'>>) => Promise<void>;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => Promise<void>;
@@ -111,6 +113,7 @@ const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
 
 export function GamesProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
+  const { user } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
@@ -140,9 +143,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     refreshGames();
   }, [refreshGames]);
 
-  const addGame = async (game: Omit<Game, 'id'>) => {
-    if (!firestore) return;
-    const docRef = await addDoc(collection(firestore, "games"), game);
+  const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {
+    if (!firestore || !user) return;
+    const gameWithOwner = { ...game, createdBy: user.id };
+    const docRef = await addDoc(collection(firestore, "games"), gameWithOwner);
     await refreshGames();
   };
 

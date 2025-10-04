@@ -1,3 +1,18 @@
+/**
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset enforces a user-ownership model for user profiles and student game states. Games are publicly readable but only modifiable by an admin (simulated by owner-only writes in this prototype). Team performance data is publicly readable but only writable within its parent game context.
+ * @data_structure
+ *  - /users/{userId}: Stores user profile data; accessible only by the owning user.
+ *  - /games/{gameId}: Stores game data; publicly readable.
+ *  - /games/{gameId}/performance/{roundId}: Stores team performance data for each round; publicly readable.
+ *  - /studentGames/{userId}: Stores student game state; accessible only by the owning user.
+ * @key_security_decisions
+ *  - Users can only read and write their own profile data.
+ *  - Listing users is disallowed for privacy.
+ *  - Games are publicly readable to allow open access to game information. However, in a production environment, writes should be restricted to admins.
+ *  - Team performance data is publicly readable to allow open access. However, writes should be restricted to admins.
+ *  - Students can only read and write their own game state.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -5,91 +20,95 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (get, update, delete) if the user is the owner of the profile.
-     * @allow (create) if the user ID in the path matches the authenticated user's ID.
-     * @deny Any other user attempting to read or write the profile.
+     * @allow (create) - User with ID 'user123' creates their own profile.
+     *   - request.auth.uid: 'user123'
+     *   - request.resource.data.id: 'user123'
+     * @allow (get, update, delete) - User with ID 'user123' reads/updates/deletes their own profile.
+     *   - request.auth.uid: 'user123'
+     *   - resource.data.id: 'user123'
+     * @deny (create) - User with ID 'user123' tries to create a profile for 'otherUser'.
+     *   - request.auth.uid: 'user123'
+     *   - request.resource.data.id: 'otherUser'
+     * @deny (get, update, delete) - User with ID 'user123' tries to read/update/delete profile for 'otherUser'.
+     *   - request.auth.uid: 'user123'
+     *   - resource.data.id: 'otherUser'
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to game documents. Games are publicly readable, but create/update/delete require authentication.
+     * @description Controls access to game documents.
      * @path /games/{gameId}
-     * @allow (get, list) to everyone.
-     * @allow (create) to authenticated users only
-     * @deny (update, delete) always.
-     * @principle Allows public read access to game data, but restricts write access to authenticated users.
+     * @allow (get, list) - Any user can read game data.
+     * @deny (create, update, delete) - Non-admin user attempts to create/update/delete a game.
+     *   - request.auth.uid: 'user123'
+     * @principle Allows public read access to game data, but restricts write access to the owner.
      */
     match /games/{gameId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Controls access to team performance data within a game. Publicly readable, requires authentication to write.
+     * @description Controls access to team performance documents within a specific game and round.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (get, list) to everyone.
-     * @allow (create) to authenticated users only.
-     * @deny (update, delete) always.
-     * @principle Allows public read access to performance data but restricts write access.
+     * @allow (get, list) - Any user can read team performance data.
+     * @deny (create, update, delete) - Non-admin user attempts to create/update/delete team performance data.
+     *   - request.auth.uid: 'user123'
+     * @principle Allows public read access to team performance data, but restricts write access to the owner.
      */
     match /games/{gameId}/performance/{roundId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
      * @description Controls access to student game state documents.
      * @path /studentGames/{userId}
-     * @allow (get, update, delete) if the user is the owner of the document.
-     * @allow (create) if the user ID in the path matches the authenticated user's ID.
-     * @deny Any other user attempting to read or write the document.
+     * @allow (create) - User with ID 'user123' creates their own game state.
+     *   - request.auth.uid: 'user123'
+     *   - request.resource.data.userId: 'user123'
+     * @allow (get, update, delete) - User with ID 'user123' reads/updates/deletes their own game state.
+     *   - request.auth.uid: 'user123'
+     *   - resource.data.userId: 'user123'
+     * @deny (create) - User with ID 'user123' tries to create a game state for 'otherUser'.
+     *   - request.auth.uid: 'user123'
+     *   - request.resource.data.userId: 'otherUser'
+     * @deny (get, update, delete) - User with ID 'user123' tries to read/update/delete game state for 'otherUser'.
+     *   - request.auth.uid: 'user123'
+     *   - resource.data.userId: 'otherUser'
      * @principle Enforces document ownership for student game states.
      */
     match /studentGames/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && resource.data.userId == request.resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
   }
 }

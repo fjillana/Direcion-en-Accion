@@ -170,32 +170,36 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const removeTeamFromGame = async (gameId: string, teamName: string) => {
+  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
     if (!firestore) return;
     
     const gameRef = doc(firestore, "games", gameId);
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
     
-    const teamNameToRemove = gameDoc.data().teamNames.find(name => name === teamName);
+    const gameData = gameDoc.data() as Game;
     
-    // Find the user ID associated with the team name from pendingJoinRequests (this is a weak link)
-    // A better approach would be to store team-to-user mappings.
-    // For now, we find the original join request if it exists.
-    const joinRequest = (gameDoc.data().pendingJoinRequests || []).find(req => req.teamName === teamName);
+    const teamNameToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
+    
+    // Find the user ID associated with the team name from pendingJoinRequests or other sources.
+    // This is a weak link. A better approach is needed if this becomes a regular operation.
+    const allRequests = [...(gameData.pendingJoinRequests || [])];
+    const studentRequest = allRequests.find(req => req.teamName === teamNameToRemove);
     
     const batch = writeBatch(firestore);
 
     // Remove team from game's teamNames
-    batch.update(gameRef, { teamNames: arrayRemove(teamNameToRemove) });
+    batch.update(gameRef, { teamNames: teamNameToKeep });
 
-    // If we can find the student's ID, reset their game state
-    // This is not guaranteed to work if the pending request was already cleared.
-    const studentIdToReset = user?.role === 'student' ? user.id : joinRequest?.userId;
-
-    if(studentIdToReset) {
-      const studentRef = doc(firestore, "studentGames", studentIdToReset);
-      batch.set(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null, userId: studentIdToReset });
+    // Try to find the student's ID to reset their game state.
+    if (studentRequest) {
+      const studentRef = doc(firestore, "studentGames", studentRequest.userId);
+      batch.update(studentRef, { 
+        status: 'no-game', 
+        gameId: null, 
+        gameName: null, 
+        teamName: null 
+      });
     }
 
     await batch.commit();
@@ -211,29 +215,45 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
-    if (!firestore) return;
+    if (!firestore) throw new Error("Firestore is not initialized.");
     
     const gameRef = doc(firestore, "games", gameId);
     const batch = writeBatch(firestore);
 
-    // Update game document: add new team names and remove pending requests
+    // Get current game data
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) throw new Error("Game not found.");
+    const gameData = gameDoc.data() as Game;
+
+    // Add new team names
     const newTeamNames = requests.map(req => req.teamName);
+    const updatedTeamNames = Array.from(new Set([...(gameData.teamNames || []), ...newTeamNames]));
+
+    // Remove accepted requests from pending list
+    const acceptedUserIds = new Set(requests.map(r => r.userId));
+    const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
+      req => !acceptedUserIds.has(req.userId)
+    );
+
+    // Update game document
     batch.update(gameRef, { 
-        teamNames: arrayUnion(...newTeamNames),
-        pendingJoinRequests: arrayRemove(...requests)
+        teamNames: updatedTeamNames,
+        pendingJoinRequests: updatedPendingRequests
     });
 
-    // Update each student's game document to change their status
+    // Update each student's game document
     for (const req of requests) {
         const studentRef = doc(firestore, "studentGames", req.userId);
         batch.update(studentRef, { status: 'joined' });
     }
-
-    // Commit all batched writes at once
-    await batch.commit();
-
-    // Refresh the games list to reflect the changes in the UI
-    await refreshGames();
+    
+    try {
+      await batch.commit();
+      await refreshGames();
+    } catch(e) {
+        console.error("Error accepting join requests:", e);
+        throw e; // Re-throw to be caught by the UI
+    }
   };
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {

@@ -5,16 +5,16 @@ import { useState, useEffect } from 'react';
 import {
   onSnapshot,
   doc,
-  type Firestore,
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
 export function useDoc<T>(path: string) {
   const firestore = useFirestore();
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!firestore) return;
@@ -32,7 +32,11 @@ export function useDoc<T>(path: string) {
         setIsLoading(false);
       },
       (err) => {
-        setError(err);
+        const permissionError = new FirestorePermissionError({
+          path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
       }
     );
@@ -40,5 +44,5 @@ export function useDoc<T>(path: string) {
     return () => unsubscribe();
   }, [firestore, path]);
 
-  return { data, isLoading, error };
+  return { data, isLoading };
 }

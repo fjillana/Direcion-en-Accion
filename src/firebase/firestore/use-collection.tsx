@@ -12,6 +12,8 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
 interface UseCollectionOptions {
   where?: [string, '==', any];
@@ -21,7 +23,6 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
   const firestore = useFirestore();
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!firestore) return;
@@ -43,7 +44,11 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
         setIsLoading(false);
       },
       (err) => {
-        setError(err);
+        const permissionError = new FirestorePermissionError({
+          path,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
       }
     );
@@ -51,6 +56,5 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
     return () => unsubscribe();
   }, [firestore, path, options?.where?.[0], options?.where?.[1], options?.where?.[2]]);
 
-  return { data, isLoading, error };
+  return { data, isLoading };
 }
-

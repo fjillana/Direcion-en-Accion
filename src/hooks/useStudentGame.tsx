@@ -88,7 +88,7 @@ const initialRoundDecisions: RoundDecisions = {
 
 
 export function StudentGameProvider({ children }: { children: ReactNode }) {
-  const { games, confirmStudentDecisions, updateGame } = useGames();
+  const { games, confirmStudentDecisions, updateGame, loading: gamesLoading } = useGames();
   const { user, isLoading: isAuthLoading } = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
@@ -129,7 +129,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   // Effect to derive the full student state by combining studentGameState and the global game data
   useEffect(() => {
-    if (!studentGameState || !studentGameState.gameId || studentGameState.status !== 'joined') {
+    if (!studentGameState || !user) {
+      setFullStudentState(null);
+      return;
+    }
+
+    // If the student is in a pending or joined state, check if the game still exists.
+    if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
+        const gameExists = games.some(g => g.id === studentGameState.gameId);
+        if (!gameExists) {
+            // The game has been deleted by the teacher, so reset the student's state.
+            const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
+            setDoc(doc(firestore, "studentGames", user.id), resetState);
+            setStudentGameState(resetState); // Immediately update local state to trigger UI change
+            return;
+        }
+    }
+
+    if (!studentGameState.gameId || studentGameState.status !== 'joined') {
       setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
       return;
     }
@@ -178,7 +195,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, fullStudentState?.round, fullStudentState?.decisions]);
+  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -248,14 +265,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     studentGame: fullStudentState,
-    isLoading: isLoading || isAuthLoading,
+    isLoading: isLoading || isAuthLoading || gamesLoading,
     requestToJoinGame,
     abandonGame,
     checkGameStatus,
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading, getStudentGameByGameId, allStudentGames]);
+  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading, getStudentGameByGameId, allStudentGames]);
 
   return (
     <StudentGameContext.Provider value={value}>

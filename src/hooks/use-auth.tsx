@@ -68,8 +68,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(appUser);
         _setTheme(appUser.theme);
       } else {
-        // This case can happen for a newly registered user before their profile is created
-        setUser(null);
+        // THIS IS THE CRITICAL FIX: If the user exists in Auth but not in Firestore,
+        // it means they were likely created but the profile document failed.
+        // We now create it on-the-fly when they log in. This can happen if a user
+        // was created, but the `register` function was interrupted.
+        console.warn("User profile not found in Firestore, creating one now.");
+        
+        // We must determine the role. This is tricky. We'll default to 'student'
+        // as it's the most common case and has fewer privileges. This is a fallback.
+        // The registration flow should be the primary source of truth for the role.
+        const role: UserRole = 'student'; // A safe default
+        const name = firebaseUser.displayName || (role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`);
+        const avatar = firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
+        
+        const newUser: Omit<User, 'id'> = {
+            name,
+            email: firebaseUser.email!,
+            role,
+            avatar,
+            theme: 'light'
+        };
+
+        await setDoc(userRef, newUser);
+        const appUser = { ...newUser, id: firebaseUser.uid };
+        setUser(appUser);
+        _setTheme(appUser.theme);
       }
     } else {
       setUser(null);
@@ -105,10 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth || !firestore) throw new Error("Firebase no está inicializado.");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
+    // After login, onAuthStateChanged and handleUser will run,
+    // which now includes the logic to create a profile if it's missing.
+    // We just need to fetch the user profile data again to return it.
     const userRef = doc(firestore, "users", userCredential.user.uid);
     const userDoc = await getDoc(userRef);
+
     if (!userDoc.exists()) {
-      throw new Error("No se encontró el perfil de usuario.");
+      // This should now be handled by handleUser, but as a fallback:
+      throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
     }
 
     const appUser: User = {

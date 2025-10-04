@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, arrayRemove, writeBatch } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -157,17 +157,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    try {
-      await deleteDoc(gameDocRef);
-      await refreshGames();
-    } catch (serverError) {
-      const permissionError = new FirestorePermissionError({
-          path: gameDocRef.path,
-          operation: 'delete',
-        });
-      errorEmitter.emit('permission-error', permissionError);
-      throw serverError;
-    }
+    await deleteDoc(gameDocRef);
+    await refreshGames();
   };
   
   const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -215,44 +206,42 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
-    if (!firestore) throw new Error("Firestore is not initialized.");
-    
-    const gameRef = doc(firestore, "games", gameId);
-    const batch = writeBatch(firestore);
+    if (!firestore) return;
 
-    // Get current game data
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) throw new Error("Game not found.");
-    const gameData = gameDoc.data() as Game;
-
-    // Add new team names
-    const newTeamNames = requests.map(req => req.teamName);
-    const updatedTeamNames = Array.from(new Set([...(gameData.teamNames || []), ...newTeamNames]));
-
-    // Remove accepted requests from pending list
-    const acceptedUserIds = new Set(requests.map(r => r.userId));
-    const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
-      req => !acceptedUserIds.has(req.userId)
-    );
-
-    // Update game document
-    batch.update(gameRef, { 
-        teamNames: updatedTeamNames,
-        pendingJoinRequests: updatedPendingRequests
-    });
-
-    // Update each student's game document
-    for (const req of requests) {
-        const studentRef = doc(firestore, "studentGames", req.userId);
-        batch.update(studentRef, { status: 'joined' });
-    }
-    
     try {
-      await batch.commit();
-      await refreshGames();
-    } catch(e) {
-        console.error("Error accepting join requests:", e);
-        throw e; // Re-throw to be caught by the UI
+        const gameRef = doc(firestore, "games", gameId);
+        const batch = writeBatch(firestore);
+
+        const gameDoc = await getDoc(gameRef);
+        if (!gameDoc.exists()) {
+            throw new Error("La partida no existe.");
+        }
+        const gameData = gameDoc.data() as Game;
+
+        const newTeamNames = requests.map(req => req.teamName);
+        const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
+
+        const requestUserIds = new Set(requests.map(req => req.userId));
+        const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
+            req => !requestUserIds.has(req.userId)
+        );
+
+        batch.update(gameRef, {
+            teamNames: updatedTeamNames,
+            pendingJoinRequests: updatedPendingRequests
+        });
+
+        for (const req of requests) {
+            const studentRef = doc(firestore, "studentGames", req.userId);
+            batch.update(studentRef, { status: "joined" });
+        }
+
+        await batch.commit();
+    } catch (e) {
+        console.error("Error al aceptar solicitudes:", e);
+        throw e; // Re-throw error to be caught in UI
+    } finally {
+        await refreshGames(); // Ensure state is always refreshed
     }
   };
 
@@ -407,3 +396,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

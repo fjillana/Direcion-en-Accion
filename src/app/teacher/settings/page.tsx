@@ -38,14 +38,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Trash2, User, Bot } from "lucide-react";
+import { PlusCircle, Trash2, User, Bot, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFirestore } from "@/firebase";
 
 
 export default function SettingsPage() {
   const { activeGame } = useGame();
-  const { updateGame, acceptJoinRequests, removeTeamFromGame } = useGames();
+  const { updateGame, acceptJoinRequests, removeTeamFromGame, loading: gamesLoading } = useGames();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -53,6 +53,7 @@ export default function SettingsPage() {
   
   const [isRequestsDialogOpen, setRequestsDialogOpen] = useState(false);
   const [selectedRequests, setSelectedRequests] = useState<JoinRequest[]>([]);
+  const [isAccepting, setIsAccepting] = useState(false);
   
   const pendingTeams = useMemo(() => {
     return activeGame?.pendingJoinRequests || [];
@@ -71,7 +72,12 @@ export default function SettingsPage() {
   const teamsWithRivals = useMemo(() => {
       if (!activeGame) return [];
       const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
-      const rivalTeams = Array.from({length: activeGame.teams - humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
+      // The total number of teams (including AI) is `activeGame.teams`.
+      // The number of human teams is `humanTeams.length`.
+      // The number of AI rivals is `activeGame.teams - humanTeams.length`.
+      // The teacher dashboard shows `teams` as the number of human teams, which is wrong.
+      const numAIRivals = activeGame.teams - humanTeams.length;
+      const rivalTeams = Array.from({length: numAIRivals > 0 ? numAIRivals : 0}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
   }, [acceptedTeams, activeGame]);
 
@@ -94,6 +100,7 @@ export default function SettingsPage() {
   const handleAcceptRequests = async () => {
     if (!activeGame || selectedRequests.length === 0) return;
     
+    setIsAccepting(true);
     try {
       await acceptJoinRequests(activeGame.id, selectedRequests);
       toast({
@@ -109,6 +116,8 @@ export default function SettingsPage() {
         title: "Error",
         description: "No se pudieron aceptar las solicitudes."
       });
+    } finally {
+        setIsAccepting(false);
     }
   };
   
@@ -210,7 +219,10 @@ export default function SettingsPage() {
                           </ScrollArea>
                           <DialogFooter>
                               <Button variant="outline" onClick={() => setRequestsDialogOpen(false)}>Cancelar</Button>
-                              <Button onClick={handleAcceptRequests} disabled={selectedRequests.length === 0}>Aceptar Seleccionados</Button>
+                              <Button onClick={handleAcceptRequests} disabled={selectedRequests.length === 0 || isAccepting}>
+                                {isAccepting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Aceptar Seleccionados
+                              </Button>
                           </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -220,7 +232,9 @@ export default function SettingsPage() {
               <h4 className="mb-2 font-medium">Equipos en la Partida</h4>
               <div className="rounded-lg border">
                 <ScrollArea className="h-64">
-                    {teamsWithRivals.length > 0 ? (
+                    {gamesLoading ? (
+                        <div className="flex items-center justify-center h-full p-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
+                    ) : teamsWithRivals.length > 0 ? (
                         teamsWithRivals.map((team, index) => (
                             <div key={`${team.name}-${index}`} className={cn("flex items-center justify-between p-3", index < teamsWithRivals.length - 1 && "border-b")}>
                                 <div className="flex items-center gap-2">
@@ -282,3 +296,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

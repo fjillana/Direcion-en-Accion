@@ -9,101 +9,119 @@ service cloud.firestore {
      * @allow (get) User with ID 'user123' can read their own profile.
      * @allow (update) User with ID 'user123' can update their own profile.
      * @allow (delete) User with ID 'user123' can delete their own profile.
-     * @deny (get) User with ID 'user456' cannot read user 'user123' profile.
-     * @deny (create) User with ID 'user456' cannot create a profile for user 'user123'.
-     * @deny (update) User with ID 'user456' cannot update user 'user123' profile.
-     * @deny (delete) User with ID 'user456' cannot delete user 'user123' profile.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the profile of 'user123'.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      // Verify identity
+      // Verify the identity of the user.
       function isSignedIn() {
         return request.auth != null;
       }
 
-      // Define owner
+      // Check if the requested user id matches the authenticated user id.
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
-      // Define isExistingOwner
+      // Check if the user is an existing owner of the document.
       function isExistingOwner(userId) {
-        return isOwner(userId);
+        return isOwner(userId) && resource != null;
       }
-      allow get: if isOwner(userId);
+
+      // Allow the user to read their own profile.
+      allow get: if isSignedIn() && isOwner(userId);
+
+      // Prevent listing of all users.
       allow list: if false;
+
+      // Allow a user to create their own profile, enforcing that the userId in the path matches the authenticated user's ID.
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+
+      // Allow a user to update their own profile, enforcing ownership and document existence.
+      allow update: if isSignedIn() && isExistingOwner(userId);
+
+      // Allow a user to delete their own profile, enforcing ownership and document existence.
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to game documents. Public read, owner-only write (requires 'ownerId' field).
+     * @description Controls access to game documents.  Games are publicly readable, but not writable.
      * @path /games/{gameId}
-     * @allow (get) Any user can read a game document.
-     * @allow (list) Any user can list game documents.
-     * @deny (create) No one can create a game (missing owner rules).
-     * @deny (update) No one can update a game (missing owner rules).
-     * @deny (delete) No one can delete a game (missing owner rules).
-     * @principle Allows public read access while restricting writes to the owner.
+     * @allow (get) Any user can read game data.
+     * @allow (list) Any user can list game data.
+     * @deny (create) No one can create game documents through the client.
+     * @deny (update) No one can update game documents through the client.
+     * @deny (delete) No one can delete game documents through the client.
+     * @principle Public read, owner-only writes (currently, no owner, so writes are always denied).
      */
     match /games/{gameId} {
+      // Allow anyone to read game data.
       allow get, list: if true;
-      allow create: if request.auth.uid == request.resource.data.ownerId;
-      allow update: if request.auth.uid == resource.data.ownerId;
-      allow delete: if request.auth.uid == resource.data.ownerId;
+
+      // Nobody can create, update, or delete games.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Controls access to team performance documents within a game. Public read, owner-only write (requires 'ownerId' field).
+     * @description Controls access to team performance documents within a game. Performance data is publicly readable, but not writable.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (get) Any user can read a team performance document.
-     * @allow (list) Any user can list team performance documents.
-     * @deny (create) No one can create a team performance (missing owner rules).
-     * @deny (update) No one can update a team performance (missing owner rules).
-     * @deny (delete) No one can delete a team performance (missing owner rules).
-     * @principle Allows public read access while restricting writes to the owner.
+     * @allow (get) Any user can read team performance data.
+     * @allow (list) Any user can list team performance data.
+     * @deny (create) No one can create team performance documents through the client.
+     * @deny (update) No one can update game documents through the client.
+     * @deny (delete) No one can delete game documents through the client.
+     * @principle Public read, owner-only writes (currently, no owner, so writes are always denied).
      */
     match /games/{gameId}/performance/{roundId} {
+      // Allow anyone to read team performance data.
       allow get, list: if true;
-      allow create: if request.auth.uid == request.resource.data.ownerId;
-      allow update: if request.auth.uid == resource.data.ownerId;
-      allow delete: if request.auth.uid == resource.data.ownerId;
+
+      // Nobody can create, update, or delete performance data.
+      allow create, update, delete: if false;
     }
 
-    /**
+     /**
      * @description Controls access to student game state documents.
      * @path /studentGames/{userId}
      * @allow (create) User with ID 'user123' can create their own game state.
      * @allow (get) User with ID 'user123' can read their own game state.
      * @allow (update) User with ID 'user123' can update their own game state.
      * @allow (delete) User with ID 'user123' can delete their own game state.
-     * @deny (get) User with ID 'user456' cannot read user 'user123' game state.
-     * @deny (create) User with ID 'user456' cannot create a game state for user 'user123'.
-     * @deny (update) User with ID 'user456' cannot update user 'user123' game state.
-     * @deny (delete) User with ID 'user456' cannot delete user 'user123' game state.
-     * @principle Enforces document ownership for all operations on student game states.
+     * @deny (create) User with ID 'user456' cannot create a game state for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the game state of 'user123'.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /studentGames/{userId} {
-      // Verify identity
+      // Verify the identity of the user.
       function isSignedIn() {
         return request.auth != null;
       }
 
-      // Define owner
+      // Check if the requested user id matches the authenticated user id.
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
-      // Define isExistingOwner
+      // Check if the user is an existing owner of the document.
       function isExistingOwner(userId) {
-        return isOwner(userId);
+        return isOwner(userId) && resource != null;
       }
-      allow get: if isOwner(userId);
+
+      // Allow the user to read their own game state.
+      allow get: if isSignedIn() && isOwner(userId);
+
+      // Prevent listing of all users.
       allow list: if false;
+
+      // Allow a user to create their own game state, enforcing that the userId in the path matches the authenticated user's ID.
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+
+      // Allow a user to update their own game state, enforcing ownership and document existence.
+      allow update: if isSignedIn() && isExistingOwner(userId);
+
+      // Allow a user to delete their own game state, enforcing ownership and document existence.
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
   }
 }

@@ -99,15 +99,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   
-  useEffect(() => {
-    if (!firestore) return;
-    const unsubscribe = onSnapshot(collection(firestore, "studentGames"), (snapshot) => {
-        setAllStudentGames(snapshot.docs.map(doc => doc.data() as StudentGameState));
-    });
-    return () => unsubscribe();
-}, [firestore]);
-
-
   // Effect to listen to the current student's game state document in Firestore
   useEffect(() => {
     if (!firestore || !user?.id) {

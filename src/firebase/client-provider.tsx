@@ -1,25 +1,35 @@
 
 'use client';
 import { initializeFirebase, FirebaseProvider } from '.';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 import { ReactNode, useState, useEffect } from 'react';
 
 export function FirebaseClientProvider({ children }: { children: ReactNode }) {
-  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
-  const { firebaseApp, auth, firestore } = initializeFirebase();
+  const [services, setServices] = useState<{
+    firebaseApp: FirebaseApp;
+    auth: Auth;
+    firestore: Firestore;
+  } | null>(null);
 
   useEffect(() => {
-    if (firebaseApp && auth && firestore) {
-      setFirebaseInitialized(true);
-    }
-  }, [firebaseApp, auth, firestore]);
+    // initializeFirebase() will only be called on the client side
+    const firebaseServices = initializeFirebase();
+    setServices(firebaseServices);
+  }, []);
 
-  if (!firebaseInitialized) {
+  if (!services) {
     // You can return a loader here if you want
     return null;
   }
 
   return (
-    <FirebaseProvider firebaseApp={firebaseApp} auth={auth} firestore={firestore}>
+    <FirebaseProvider
+      firebaseApp={services.firebaseApp}
+      auth={services.auth}
+      firestore={services.firestore}
+    >
       {children}
     </FirebaseProvider>
   );

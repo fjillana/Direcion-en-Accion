@@ -1,7 +1,7 @@
 
 'use client';
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
@@ -17,31 +17,22 @@ import {
   useAuth,
 } from './provider';
 
-let firebaseApp: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let firestore: Firestore | undefined;
-
 function initializeFirebase(): {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 } {
-  if (
-    !firebaseApp &&
-    typeof window !== 'undefined' &&
-    !getApps().length
-  ) {
-    firebaseApp = initializeApp(firebaseConfig);
-    auth = getAuth(firebaseApp);
-    firestore = getFirestore(firebaseApp);
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
 
-    if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production') {
       // Uncomment the following lines to use the local emulators
       // connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
       // connectFirestoreEmulator(firestore, 'localhost', 8080);
-    }
   }
-  return { firebaseApp: getApps()[0], auth: getAuth(), firestore: getFirestore() };
+
+  return { firebaseApp: app, auth, firestore };
 }
 
 export {

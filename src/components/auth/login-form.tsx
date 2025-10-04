@@ -17,8 +17,9 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, type UserRole } from "@/hooks/use-auth";
 import { FirebaseError } from "firebase/app";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 const formSchema = z.object({
   email: z
@@ -27,6 +28,7 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: "La contraseña debe tener al menos 6 caracteres." }),
+  role: z.enum(["teacher", "student"]).optional(),
 });
 
 export function LoginForm() {
@@ -40,6 +42,7 @@ export function LoginForm() {
     defaultValues: {
       email: "",
       password: "",
+      role: "student",
     },
   });
 
@@ -53,13 +56,17 @@ export function LoginForm() {
           router.push("/student/dashboard");
         }
       } else {
-        // Registration is always for students
-        await register(values.email, values.password, "estudiante");
+        const role = values.role || 'student';
+        const user = await register(values.email, values.password, role);
         toast({
           title: "¡Cuenta Creada!",
-          description: "Bienvenido/a. Redirigiendo a tu panel de estudiante...",
+          description: `Bienvenido/a. Redirigiendo a tu panel de ${role === 'teacher' ? 'profesor' : 'estudiante'}...`,
         });
-        router.push("/student/dashboard");
+        if (user.role === 'teacher') {
+          router.push("/teacher/dashboard");
+        } else {
+          router.push("/student/dashboard");
+        }
       }
     } catch (error: any) {
         let description = "Ha ocurrido un error inesperado.";
@@ -130,6 +137,38 @@ export function LoginForm() {
               </FormItem>
             )}
           />
+          {!isLogin && (
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-white/90">¿Qué tipo de usuario eres?</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex items-center space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="student" id="r1" />
+                        </FormControl>
+                        <FormLabel htmlFor="r1" className="font-normal text-white/80">Estudiante</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="teacher" id="r2" />
+                        </FormControl>
+                        <FormLabel htmlFor="r2" className="font-normal text-white/80">Profesor</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
             {isLogin ? "Iniciar sesión" : "Crear cuenta"}
           </Button>
@@ -150,11 +189,14 @@ export function LoginForm() {
         Google
       </Button>
       <p className="text-center text-sm text-white/70">
-        {isLogin ? "¿Eres estudiante y no tienes cuenta?" : "¿Ya tienes una cuenta?"}
+        {isLogin ? "¿No tienes cuenta?" : "¿Ya tienes una cuenta?"}
         <Button
           variant="link"
           className="px-1 text-primary-foreground/90 hover:text-primary-foreground"
-          onClick={() => setIsLogin(!isLogin)}
+          onClick={() => {
+            setIsLogin(!isLogin);
+            form.reset({ email: '', password: '', role: 'student'});
+          }}
         >
           {isLogin ? "Regístrate" : "Inicia sesión"}
         </Button>
@@ -162,5 +204,3 @@ export function LoginForm() {
     </div>
   );
 }
-
-  

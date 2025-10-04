@@ -13,7 +13,7 @@ import {
   type User as FirebaseUser
 } from "firebase/auth";
 import { doc, setDoc, getDoc, getFirestore } from "firebase/firestore";
-import { useFirebase, useFirebaseApp } from "@/firebase/provider";
+import { useFirebase } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
@@ -34,10 +34,11 @@ interface AuthContextType {
   isLoading: boolean;
   theme: Theme;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string, name: string) => Promise<User>;
+  register: (email: string, password: string, role: UserRole) => Promise<User>;
   logout: () => void;
   updateUser: (updatedData: Partial<Omit<User, 'id' | 'role'>>) => void;
   setTheme: (theme: Theme) => void;
+  changePassword: (currentPassword: string, newPassword: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,18 +125,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return appUser;
   };
   
-  const register = async (email: string, password: string, name: string): Promise<User> => {
+  const register = async (email: string, password: string, role: UserRole): Promise<User> => {
     if (!auth || !firestore) throw new Error("Firebase no está inicializado.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
+    const name = role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`;
     const avatar = `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
     await updateProfile(firebaseUser, { displayName: name, photoURL: avatar });
 
     const newUser: Omit<User, 'id'> = {
         name,
         email,
-        role: 'student', // Registration is always for students in this app
+        role,
         avatar,
         theme: 'light'
     };
@@ -170,10 +172,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: updatedData.avatar
     }, { merge: true });
 
-    setUser(prevUser => prevUser ? ({ ...prevUser, ...updatedData }) : null);
+    setUser(prevUser => prevUser ? ({ ...prevUser, ...prevUser, ...updatedData }) : null);
   };
   
-  // changePassword is not implemented for this refactor as it's a more complex flow.
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!auth || !auth.currentUser) throw new Error("Usuario no autenticado.");
+    // Re-authentication is needed for security-sensitive operations
+    const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
+    const credential = EmailAuthProvider.credential(auth.currentUser.email!, currentPassword);
+    
+    try {
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        const { updatePassword } = await import("firebase/auth");
+        await updatePassword(auth.currentUser, newPassword);
+    } catch(error) {
+        console.error("Error al cambiar la contraseña", error);
+        throw error; // Re-throw to be caught in the component
+    }
+  };
 
   const value = useMemo(() => ({
     user,
@@ -184,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     updateUser,
     setTheme,
-    changePassword: () => console.warn("Change password not implemented"), // Placeholder
+    changePassword,
   }), [user, isLoading, theme, auth, firestore]);
 
   return (

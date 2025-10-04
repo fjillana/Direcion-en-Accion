@@ -134,14 +134,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // If the student is in a pending or joined state, check if the game still exists.
     if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
         const gameExists = games.some(g => g.id === studentGameState.gameId);
         if (!gameExists) {
-            // The game has been deleted by the teacher, so reset the student's state.
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
-            setDoc(doc(firestore, "studentGames", user.id), resetState);
-            setStudentGameState(resetState); // Immediately update local state to trigger UI change
+            if(firestore) {
+              setDoc(doc(firestore, "studentGames", user.id), resetState);
+            }
+            setStudentGameState(resetState);
             return;
         }
     }

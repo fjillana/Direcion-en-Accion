@@ -33,10 +33,12 @@ import { Input } from "@/components/ui/input";
 import { useAuth, type Theme } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export function UserNav() {
-  const { user, updateUser, changePassword, setTheme, logout, isLoading } from useAuth();
+  const { user, updateUser, changePassword, setTheme, logout, isLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [isPasswordOpen, setPasswordOpen] = useState(false);
@@ -85,6 +87,11 @@ export function UserNav() {
       toast({ variant: "destructive", title: "Error", description: error.message });
     }
   };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  }
   
   if (isLoading) {
     return <Skeleton className="h-9 w-9 rounded-full" />;
@@ -145,7 +152,7 @@ export function UserNav() {
               </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={logout}>
+            <DropdownMenuItem onSelect={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Cerrar sesión</span>
             </DropdownMenuItem>

@@ -35,7 +35,7 @@ interface AuthContextType {
   theme: Theme;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, role: UserRole) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updatedData: Partial<Omit<User, 'id' | 'role'>>) => void;
   setTheme: (theme: Theme) => void;
   changePassword: (currentPassword: string, newPassword: string) => void;
@@ -124,13 +124,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth || !firestore) throw new Error("Firebase no está inicializado.");
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
-    // onAuthStateChanged will trigger handleUser, which now ensures a profile exists.
-    // To return the user data immediately, we re-fetch it here.
     const userRef = doc(firestore, "users", userCredential.user.uid);
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-      // This should theoretically not be reached due to handleUser, but serves as a fallback.
       throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
     }
 
@@ -175,9 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (!auth) return;
-    router.push('/'); // Redirect first
+    setUser(null);
     await signOut(auth);
-    setUser(null); 
   };
 
   const updateUser = async (updatedData: Partial<User>) => {

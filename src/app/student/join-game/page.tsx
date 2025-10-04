@@ -12,19 +12,26 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function JoinGamePage() {
-  const { games, loading: gamesLoading } = useGames();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { games, loading: gamesLoading, refreshGames } = useGames();
   const { requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const isLoading = gamesLoading || studentGameLoading;
+  const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
 
   useEffect(() => {
-    // Automatically select the game if there is only one available
+    if (user) {
+        refreshGames();
+    }
+  }, [user, refreshGames]);
+
+  useEffect(() => {
     if (!isLoading && games && games.length === 1) {
       setSelectedGameId(games[0].id);
     }
@@ -62,7 +69,7 @@ export default function JoinGamePage() {
               {isLoading ? (
                 <div className="flex items-center justify-center h-full py-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="sr-only">Cargando partidas...</span>
+                    <span className="ml-2">Cargando partidas...</span>
                 </div>
               ) : games && games.length > 0 ? (
                 games.map((game) => (

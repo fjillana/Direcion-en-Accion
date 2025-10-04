@@ -151,6 +151,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         // Clear state if user logs out
         setGames([]);
         setActiveGameIdState(null);
+        localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
         setLoading(false);
       }
     }
@@ -168,7 +169,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    await deleteDoc(gameDocRef);
+    deleteDoc(gameDocRef).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: gameDocRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw permissionError;
+    });
     await refreshGames();
   };
   
@@ -217,39 +225,34 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!firestore || requests.length === 0) return;
 
     const gameRef = doc(firestore, "games", gameId);
-    try {
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) {
-            throw new Error("La partida no existe.");
-        }
-        const gameData = gameDoc.data() as Game;
-
-        const newTeamNames = requests.map(req => req.teamName);
-        const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
-
-        const requestUserIds = new Set(requests.map(req => req.userId));
-        const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
-            req => !requestUserIds.has(req.userId)
-        );
-
-        const batch = writeBatch(firestore);
-
-        batch.update(gameRef, {
-            teamNames: updatedTeamNames,
-            pendingJoinRequests: updatedPendingRequests
-        });
-
-        for (const req of requests) {
-            const studentRef = doc(firestore, "studentGames", req.userId);
-            batch.update(studentRef, { status: "joined" });
-        }
-
-        await batch.commit();
-        await refreshGames();
-    } catch (e) {
-        console.error("Error al aceptar solicitudes:", e);
-        throw e;
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) {
+        throw new Error("La partida no existe.");
     }
+    const gameData = gameDoc.data() as Game;
+
+    const newTeamNames = requests.map(req => req.teamName);
+    const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
+
+    const requestUserIds = new Set(requests.map(req => req.userId));
+    const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
+        req => !requestUserIds.has(req.userId)
+    );
+
+    const batch = writeBatch(firestore);
+
+    batch.update(gameRef, {
+        teamNames: updatedTeamNames,
+        pendingJoinRequests: updatedPendingRequests
+    });
+
+    for (const req of requests) {
+        const studentRef = doc(firestore, "studentGames", req.userId);
+        batch.update(studentRef, { status: "joined" });
+    }
+
+    await batch.commit();
+    await refreshGames();
   };
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {

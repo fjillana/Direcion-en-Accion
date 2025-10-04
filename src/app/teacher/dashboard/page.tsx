@@ -72,13 +72,9 @@ export default function TeacherDashboard() {
   };
 
   const handleDeleteGame = async (gameId: string) => {
-    try {
-      await removeGame(gameId);
-    } catch (error) {
-      // The error is already being emitted to the central listener,
-      // so no need to show a toast here.
+    removeGame(gameId).catch((error) => {
       console.error("Failed to delete game:", error);
-    }
+    });
   };
 
   return (

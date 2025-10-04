@@ -1,7 +1,7 @@
 
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -48,6 +48,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
   const { user, logout } = useAuth();
+  const router = useRouter();
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
@@ -67,6 +68,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { href: "/student/inbox", label: "Inbox", icon: Inbox, badgeCount: unreadMessagesCount },
   ];
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  }
 
   return (
     <SidebarProvider>
@@ -165,7 +170,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={logout}>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar sesión
             </Button>

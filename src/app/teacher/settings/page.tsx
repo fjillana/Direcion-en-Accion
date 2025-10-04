@@ -72,10 +72,6 @@ export default function SettingsPage() {
   const teamsWithRivals = useMemo(() => {
       if (!activeGame) return [];
       const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
-      // The total number of teams (including AI) is `activeGame.teams`.
-      // The number of human teams is `humanTeams.length`.
-      // The number of AI rivals is `activeGame.teams - humanTeams.length`.
-      // The teacher dashboard shows `teams` as the number of human teams, which is wrong.
       const numAIRivals = activeGame.teams - humanTeams.length;
       const rivalTeams = Array.from({length: numAIRivals > 0 ? numAIRivals : 0}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
@@ -97,7 +93,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAcceptRequests = async () => {
+ const handleAcceptRequests = async () => {
     if (!activeGame || selectedRequests.length === 0) return;
     
     setIsAccepting(true);

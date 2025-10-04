@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile information.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their profile.
+     *    - auth: { uid: 'user123' }
+     *    - request.resource.data: { id: 'user123', name: 'John Doe', email: 'john@example.com', role: 'student' }
+     * @allow (get,update,delete) User with ID 'user123' can read, update, and delete their profile.
+     *    - auth: { uid: 'user123' }
+     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
+     *    - auth: { uid: 'user456' }
+     *    - request.resource.data: { id: 'user123', name: 'John Doe', email: 'john@example.com', role: 'student' }
+     * @deny (get,update,delete) User with ID 'user456' cannot read, update, or delete profile of 'user123'.
+     *    - auth: { uid: 'user456' }
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is disallowed
+
+      allow create: if isNewOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Controls access to game information. Games are publicly readable, but writes are restricted to validated ownership.
+     * @path /games/{gameId}
+     * @allow (get,list) Any user can read and list games.
+     * @allow (create) User can create game if creatorId matches their auth.uid.
+     *    - auth: { uid: 'user123' }
+     *    - request.resource.data: { name: 'New Game', round: 1, teams: 2, status: 'En curso', numRounds: 10, initialFunds: 1000, newStudentsPerRound: 5, creatorId: 'user123' }
+     * @allow (update,delete) Owner can update and delete the game.
+     *    - auth: { uid: 'user123' }
+     *    - resource.data: { name: 'Existing Game', round: 1, teams: 2, status: 'En curso', numRounds: 10, initialFunds: 1000, newStudentsPerRound: 5, creatorId: 'user123' }
+     * @deny (create) User cannot create game if creatorId does not match their auth.uid.
+     *    - auth: { uid: 'user456' }
+     *    - request.resource.data: { name: 'New Game', round: 1, teams: 2, status: 'En curso', numRounds: 10, initialFunds: 1000, newStudentsPerRound: 5, creatorId: 'user123' }
+     * @deny (update,delete) Non-owner cannot update or delete the game.
+     *    - auth: { uid: 'user456' }
+     *    - resource.data: { name: 'Existing Game', round: 1, teams: 2, status: 'En curso', numRounds: 10, initialFunds: 1000, newStudentsPerRound: 5, creatorId: 'user123' }
+     * @principle Public read access with owner-only writes, enforcing ownership on writes.
+     */
+    match /games/{gameId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+    }
+
+    /**
+     * @description Controls access to team performance data.  Write access is restricted to the game creator.
+     * @path /games/{gameId}/performance/{roundId}
+     * @allow (create) Game creator can create team performance data.
+     *    - auth: { uid: 'user123' }
+     *    - Parent game document: { creatorId: 'user123' }
+     *    - request.resource.data: { name: 'Team A', type: 'H', totalXp: 100 }
+     * @allow (get,list,update,delete) Game creator can read, list, update, and delete team performance data.
+     *    - auth: { uid: 'user123' }
+     *    - Parent game document: { creatorId: 'user123' }
+     *    - resource.data: { name: 'Team A', type: 'H', totalXp: 100 }
+     * @deny (create) Non-creator cannot create team performance data.
+     *    - auth: { uid: 'user456' }
+     *    - Parent game document: { creatorId: 'user123' }
+     *    - request.resource.data: { name: 'Team A', type: 'H', totalXp: 100 }
+     * @deny (get,list,update,delete) Non-creator cannot read, list, update or delete team performance data.
+     *    - auth: { uid: 'user456' }
+     *    - Parent game document: { creatorId: 'user123' }
+     *    - resource.data: { name: 'Team A', type: 'H', totalXp: 100 }
+     * @principle Restricts access based on game ownership.
+     */
+    match /games/{gameId}/performance/{roundId} {
+      allow get, list: if isGameCreator(gameId);
+      allow create: if isGameCreator(gameId);
+      allow update: if isGameCreator(gameId);
+      allow delete: if isGameCreator(gameId);
+    }
+
+    /**
+     * @description Controls access to student game state information.
+     * @path /studentGames/{userId}
+     * @allow (create) User with ID 'user123' can create their game state.
+     *    - auth: { uid: 'user123' }
+     *    - request.resource.data: { userId: 'user123', status: 'no-game', gameId: 'game1', gameName: 'My Game', teamName: 'Team A' }
+     * @allow (get,update,delete) User with ID 'user123' can read, update, and delete their game state.
+     *    - auth: { uid: 'user123' }
+     *    - resource.data: { userId: 'user123', status: 'no-game', gameId: 'game1', gameName: 'My Game', teamName: 'Team A' }
+     * @deny (create) User with ID 'user456' cannot create a game state for 'user123'.
+     *    - auth: { uid: 'user456' }
+     *    - request.resource.data: { userId: 'user123', status: 'no-game', gameId: 'game1', gameName: 'My Game', teamName: 'Team A' }
+     * @deny (get,update,delete) User with ID 'user456' cannot read, update, or delete the game state of 'user123'.
+     *    - auth: { uid: 'user456' }
+     *    - resource.data: { userId: 'user123', status: 'no-game', gameId: 'game1', gameName: 'My Game', teamName: 'Team A' }
+     * @principle Enforces document ownership for all operations.
+     */
+    match /studentGames/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isNewOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+    function isNewOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId && request.resource.data.userId == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId && getSelf().data != null;
+  }
+
+  function isGameCreator(gameId) {
+      return isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
+  }
+
+  function isExistingGameCreator(gameId) {
+      return isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
+  }
+
+    function getSelf() {
+    return get(/databases/$(database)/documents/studentGames/$(request.auth.uid));
+  }
+}

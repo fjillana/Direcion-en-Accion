@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -58,12 +59,19 @@ export type GameMessage = {
   title?: string;
 };
 
+export interface JoinRequest {
+    userId: string;
+    teamName: string;
+    requestedAt: number;
+}
+
 export interface Game {
   id: string;
   name: string;
   round: number;
   teams: number;
   teamNames: string[];
+  pendingJoinRequests?: JoinRequest[];
   status: "En curso" | "Finalizado";
   numRounds: number;
   initialFunds: number;

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useGame } from "@/hooks/use-game-context";
-import { useGames } from "@/hooks/use-games";
+import { useGames, type JoinRequest } from "@/hooks/use-games";
 import {
   Card,
   CardContent,
@@ -42,53 +42,43 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Trash2, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStudentGame } from "@/hooks/useStudentGame";
+import { useFirestore } from "@/firebase";
+import { doc, updateDoc, arrayRemove } from "firebase/firestore";
+
 
 export default function SettingsPage() {
   const { activeGame } = useGame();
-  const { updateGame, getGameById } = useGames();
+  const { updateGame } = useGames();
+  const firestore = useFirestore();
   const { toast } = useToast();
-  const { allStudentGames, updateStudentGame } = useStudentGame();
-
 
   const [aiDifficulty, setAiDifficulty] = useState(3);
-  const [acceptedTeams, setAcceptedTeams] = useState<string[]>([]);
   
   const [isRequestsDialogOpen, setRequestsDialogOpen] = useState(false);
-  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [selectedRequests, setSelectedRequests] = useState<JoinRequest[]>([]);
   
   const pendingTeams = useMemo(() => {
-    if (!activeGame) return [];
-    return allStudentGames
-        .filter(sg => sg.status === 'pending' && sg.gameId === activeGame.id)
-        .map(sg => ({
-            id: sg.userId,
-            userId: sg.userId,
-            teamName: sg.teamName || 'Sin Nombre'
-        }));
-  }, [allStudentGames, activeGame]);
+    return activeGame?.pendingJoinRequests || [];
+  }, [activeGame]);
+  
+  const acceptedTeams = useMemo(() => {
+      return activeGame?.teamNames || [];
+  }, [activeGame])
 
   useEffect(() => {
     if (activeGame) {
-      const gameData = getGameById(activeGame.id);
-      if (gameData) {
-          setAiDifficulty(gameData.aiDifficulty || 3);
-          const currentTeams = gameData.teamNames || [];
-          setAcceptedTeams(currentTeams);
-      }
-    } else {
-      setAcceptedTeams([]);
+      setAiDifficulty(activeGame.aiDifficulty || 3);
     }
-  }, [activeGame, getGameById]);
+  }, [activeGame]);
 
   
   const teamsWithRivals = useMemo(() => {
       if (!activeGame) return [];
-      const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
+      const humanTeams = activeGame.teamNames.map(name => ({name, type: 'H'}));
       // Create one AI rival per human team
       const rivalTeams = Array.from({length: humanTeams.length}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
       return [...humanTeams, ...rivalTeams];
-  }, [acceptedTeams, activeGame]);
+  }, [activeGame]);
 
   const handleDifficultyChange = (value: number[]) => {
     setAiDifficulty(value[0]);
@@ -98,7 +88,6 @@ export default function SettingsPage() {
     if (activeGame) {
       updateGame(activeGame.id, { 
         aiDifficulty,
-        teamNames: acceptedTeams
       });
       toast({
         title: "Ajustes guardados",
@@ -107,42 +96,50 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAcceptRequests = () => {
-    if (!activeGame) return;
+  const handleAcceptRequests = async () => {
+    if (!activeGame || !firestore) return;
     
-    const newlyAccepted = pendingTeams.filter(pt => selectedRequests.includes(pt.id));
-    const newTeamNames = newlyAccepted.map(pt => pt.teamName)
-    
+    const newTeamNames = selectedRequests.map(req => req.teamName);
     const updatedTeamNames = [...acceptedTeams, ...newTeamNames];
-    setAcceptedTeams(updatedTeamNames);
 
-    newlyAccepted.forEach(req => {
-        updateStudentGame(req.userId, { status: 'joined', teamName: req.teamName });
+    // Update student documents
+    for (const req of selectedRequests) {
+        const studentRef = doc(firestore, "studentGames", req.userId);
+        await updateDoc(studentRef, { status: 'joined' });
+    }
+
+    // Update game document
+    await updateGame(activeGame.id, { 
+        teamNames: updatedTeamNames,
+        pendingJoinRequests: arrayRemove(...selectedRequests)
     });
-
-    updateGame(activeGame.id, { teamNames: updatedTeamNames });
 
     setSelectedRequests([]);
     setRequestsDialogOpen(false);
   };
   
-  const handleRemoveTeam = (teamNameToRemove: string) => {
-    if (!activeGame) return;
+  const handleRemoveTeam = async (teamNameToRemove: string) => {
+    if (!activeGame || !firestore) return;
+    
+    // Find the student associated with the team
+    // This is a simplification. A real app might need a more robust lookup.
+    const studentDoc = allStudentGames.find(sg => sg.gameId === activeGame.id && sg.teamName === teamNameToRemove);
+
+    // Update teamNames array in the game
     const updatedAcceptedTeams = acceptedTeams.filter(name => name !== teamNameToRemove);
-    setAcceptedTeams(updatedAcceptedTeams);
+    await updateGame(activeGame.id, { teamNames: updatedAcceptedTeams });
     
-    const studentToRemove = allStudentGames.find(sg => sg.gameId === activeGame.id && sg.teamName === teamNameToRemove);
-    if(studentToRemove) {
-        updateStudentGame(studentToRemove.userId, { status: 'no-game', gameId: null, gameName: null, teamName: null });
+    // Reset the student's state
+    if(studentDoc) {
+        const studentRef = doc(firestore, "studentGames", studentDoc.userId);
+        await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
     }
-    
-    updateGame(activeGame.id, { teamNames: updatedAcceptedTeams });
   };
 
-  const handleRequestCheckboxChange = (teamId: string, checked: boolean) => {
+  const handleRequestCheckboxChange = (request: JoinRequest, checked: boolean) => {
     if (!activeGame) return;
     setSelectedRequests(prev =>
-      checked ? [...prev, teamId] : prev.filter(id => id !== teamId)
+      checked ? [...prev, request] : prev.filter(r => r.userId !== request.userId)
     );
   };
 
@@ -191,7 +188,7 @@ export default function SettingsPage() {
                       <DialogTrigger asChild>
                           <Button variant="outline" size="sm" disabled={acceptedTeams.length >= activeGame.teams}>
                               <PlusCircle className="mr-2 h-4 w-4" />
-                              Gestionar Solicitudes
+                              Gestionar Solicitudes ({pendingTeams.length})
                           </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -204,14 +201,14 @@ export default function SettingsPage() {
                           <ScrollArea className="h-64">
                               <div className="space-y-4 p-4">
                                   {pendingTeams.map((team) => (
-                                      <div key={team.id} className="flex items-center space-x-3">
+                                      <div key={team.userId} className="flex items-center space-x-3">
                                           <Checkbox 
-                                              id={`req-${team.id}`} 
-                                              onCheckedChange={(checked) => handleRequestCheckboxChange(team.id, !!checked)}
-                                              checked={selectedRequests.includes(team.id)}
-                                              disabled={acceptedTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.includes(team.id)}
+                                              id={`req-${team.userId}`} 
+                                              onCheckedChange={(checked) => handleRequestCheckboxChange(team, !!checked)}
+                                              checked={selectedRequests.some(r => r.userId === team.userId)}
+                                              disabled={acceptedTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.some(r => r.userId === team.userId)}
                                           />
-                                          <Label htmlFor={`req-${team.id}`} className="font-medium cursor-pointer">{team.teamName}</Label>
+                                          <Label htmlFor={`req-${team.userId}`} className="font-medium cursor-pointer">{team.teamName}</Label>
                                       </div>
                                   ))}
                                   {pendingTeams.length === 0 && <p className="text-center text-sm text-muted-foreground">No hay solicitudes pendientes.</p>}

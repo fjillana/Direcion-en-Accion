@@ -1,93 +1,95 @@
-/**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset prioritizes security by enforcing strict ownership and role-based access control.
- * Data validation is relaxed to facilitate rapid prototyping.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information; only accessible by the user themselves.
- * - /games/{gameId}: Stores game information; publicly readable, but write access is restricted to authorized users (e.g., teachers, admins - not yet implemented).
- * - /games/{gameId}/performance/{roundId}: Stores performance data for each round in a game; only accessible to authorized game members (e.g., teachers, admins - not yet implemented).
- * - /studentGames/{userId}: Stores the game state for each student; only accessible by the student themselves.
- *
- * Key Security Decisions:
- * - User listing is disallowed to protect user privacy.
- * - `get` operations on any document are allowed only if explicitly secured.
- * - Ambiguous relationships are defaulted to strict owner-only access.
- *
- * Denormalization for Authorization:
- *   - The `StudentGame` entity includes the `userId` for direct authorization within the `/studentGames/{userId}` collection.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own profile data.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (read, write) if request.auth.uid == userId
-     * @deny (read, write) if request.auth.uid != userId
-     * @principle Enforces user-ownership for profile data.
+     * @allow (get, update, delete) if the user is the owner of the profile.
+     * @allow (create) if the user ID in the path matches the authenticated user's ID.
+     * @deny Any other user attempting to read or write the profile.
+     * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
 
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Allows anyone to read games but only authenticated users to manage games (create, update, delete).
+     * @description Controls access to game documents. Games are publicly readable, but create/update/delete require authentication.
      * @path /games/{gameId}
-     * @allow (read) to anyone
-     * @allow (write) to authenticated users
-     * @deny (write) if not authenticated
-     * @principle Allows public read access but restricts write access to authenticated users.
+     * @allow (get, list) to everyone.
+     * @allow (create) to authenticated users only
+     * @deny (update, delete) always.
+     * @principle Allows public read access to game data, but restricts write access to authenticated users.
      */
     match /games/{gameId} {
-        allow get, list: if true; // Public read access
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-        function isAuthenticated() {
-            return request.auth != null;
-        }
-
-        allow create: if isAuthenticated();
-        allow update: if isAuthenticated() && resource != null;
-        allow delete: if isAuthenticated() && resource != null;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows read access to performance data for games, but restricts write access.
+     * @description Controls access to team performance data within a game. Publicly readable, requires authentication to write.
      * @path /games/{gameId}/performance/{roundId}
+     * @allow (get, list) to everyone.
+     * @allow (create) to authenticated users only.
+     * @deny (update, delete) always.
+     * @principle Allows public read access to performance data but restricts write access.
      */
     match /games/{gameId}/performance/{roundId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Define more granular rules if necessary.
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows students to manage their own game state.
+     * @description Controls access to student game state documents.
      * @path /studentGames/{userId}
-     * @allow (read, write) if request.auth.uid == userId
-     * @deny (read, write) if request.auth.uid != userId
-     * @principle Enforces user-ownership for game state data.
+     * @allow (get, update, delete) if the user is the owner of the document.
+     * @allow (create) if the user ID in the path matches the authenticated user's ID.
+     * @deny Any other user attempting to read or write the document.
+     * @principle Enforces document ownership for student game states.
      */
     match /studentGames/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
   }
 }

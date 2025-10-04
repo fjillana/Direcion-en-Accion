@@ -25,7 +25,7 @@ export default function JoinGamePage() {
 
   useEffect(() => {
     // Automatically select the game if there is only one available
-    if (!isLoading && games.length === 1) {
+    if (!isLoading && games && games.length === 1) {
       setSelectedGameId(games[0].id);
     }
   }, [games, isLoading]);
@@ -64,7 +64,7 @@ export default function JoinGamePage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="sr-only">Cargando partidas...</span>
                 </div>
-              ) : games.length > 0 ? (
+              ) : games && games.length > 0 ? (
                 games.map((game) => (
                   <button
                     key={game.id}

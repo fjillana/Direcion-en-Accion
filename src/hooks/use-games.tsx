@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -113,13 +114,17 @@ const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
 
 export function GamesProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   const refreshGames = useCallback(async () => {
-    if (!firestore) return;
+    if (!firestore || !user) {
+        setGames([]);
+        setLoading(false);
+        return;
+    };
     setLoading(true);
     try {
         const querySnapshot = await getDocs(collection(firestore, "games"));
@@ -127,29 +132,35 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setGames(gamesData);
     } catch (error) {
         console.error("Error fetching games: ", error);
+        setGames([]);
     } finally {
         setLoading(false);
     }
-  }, [firestore]);
+  }, [firestore, user]);
 
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!isAuthLoading) {
+      if (user) {
         const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
         if (storedActiveId) {
             setActiveGameIdState(JSON.parse(storedActiveId));
         }
+        refreshGames();
+      } else {
+        // Clear state if user logs out
+        setGames([]);
+        setActiveGameIdState(null);
+        setLoading(false);
+      }
     }
-    refreshGames();
-  }, [refreshGames]);
+  }, [isAuthLoading, user, refreshGames]);
 
   const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-    if (!firestore || !currentUser) {
+    if (!firestore || !user) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
-    const gameWithOwner = { ...game, createdBy: currentUser.uid };
+    const gameWithOwner = { ...game, createdBy: user.id };
     await addDoc(collection(firestore, "games"), gameWithOwner);
     await refreshGames();
   };
@@ -157,44 +168,49 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    await deleteDoc(gameDocRef);
+    await deleteDoc(gameDocRef)
+      .catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: gameDocRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+      });
     await refreshGames();
   };
   
   const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     
     const gameRef = doc(firestore, "games", gameId);
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) return;
     
-    const gameData = gameDoc.data() as Game;
-    
-    const teamNameToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
-    
-    // Find the user ID associated with the team name from pendingJoinRequests or other sources.
-    // This is a weak link. A better approach is needed if this becomes a regular operation.
-    const allRequests = [...(gameData.pendingJoinRequests || [])];
-    const studentRequest = allRequests.find(req => req.teamName === teamNameToRemove);
-    
-    const batch = writeBatch(firestore);
+    try {
+      const gameDoc = await getDoc(gameRef);
+      if (!gameDoc.exists()) throw new Error("Game not found");
+      const gameData = gameDoc.data() as Game;
+      
+      const teamNamesToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
+      
+      const studentRequest = (gameData.pendingJoinRequests || []).find(req => req.teamName === teamNameToRemove);
+      
+      const batch = writeBatch(firestore);
 
-    // Remove team from game's teamNames
-    batch.update(gameRef, { teamNames: teamNameToKeep });
+      batch.update(gameRef, { teamNames: teamNamesToKeep });
 
-    // Try to find the student's ID to reset their game state.
-    if (studentRequest) {
-      const studentRef = doc(firestore, "studentGames", studentRequest.userId);
-      batch.update(studentRef, { 
-        status: 'no-game', 
-        gameId: null, 
-        gameName: null, 
-        teamName: null 
-      });
+      if (studentRequest) {
+        const studentRef = doc(firestore, "studentGames", studentRequest.userId);
+        batch.update(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
+      }
+
+      await batch.commit();
+
+    } catch (error) {
+      console.error("Error removing team:", error);
+      throw error;
+    } finally {
+      await refreshGames();
     }
-
-    await batch.commit();
-    await refreshGames();
   };
 
 
@@ -206,12 +222,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
-    if (!firestore) return;
+    if (!firestore || requests.length === 0) return;
 
+    const gameRef = doc(firestore, "games", gameId);
     try {
-        const gameRef = doc(firestore, "games", gameId);
-        const batch = writeBatch(firestore);
-
         const gameDoc = await getDoc(gameRef);
         if (!gameDoc.exists()) {
             throw new Error("La partida no existe.");
@@ -226,6 +240,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             req => !requestUserIds.has(req.userId)
         );
 
+        const batch = writeBatch(firestore);
+
         batch.update(gameRef, {
             teamNames: updatedTeamNames,
             pendingJoinRequests: updatedPendingRequests
@@ -239,9 +255,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         await batch.commit();
     } catch (e) {
         console.error("Error al aceptar solicitudes:", e);
-        throw e; // Re-throw error to be caught in UI
+        throw e;
     } finally {
-        await refreshGames(); // Ensure state is always refreshed
+        await refreshGames();
     }
   };
 
@@ -396,5 +412,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

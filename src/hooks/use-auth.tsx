@@ -175,11 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (!auth) return;
+    router.push('/'); // Redirect first
     await signOut(auth);
-    // Setting user to null will trigger the useEffect in useGames and useStudentGame
-    // to clear their respective states, preventing any further Firestore calls.
     setUser(null); 
-    router.push('/');
   };
 
   const updateUser = async (updatedData: Partial<User>) => {

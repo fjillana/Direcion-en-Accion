@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 
 export function UserNav() {
-  const { user, updateUser, changePassword, setTheme, logout, isLoading } = useAuth();
+  const { user, updateUser, changePassword, setTheme, logout, isLoading } from useAuth();
   const { toast } = useToast();
 
   const [isProfileOpen, setProfileOpen] = useState(false);

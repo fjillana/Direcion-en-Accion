@@ -168,15 +168,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    await deleteDoc(gameDocRef)
-      .catch(error => {
-        const permissionError = new FirestorePermissionError({
-          path: gameDocRef.path,
-          operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw error;
-      });
+    await deleteDoc(gameDocRef);
     await refreshGames();
   };
   
@@ -253,11 +245,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         }
 
         await batch.commit();
+        await refreshGames();
     } catch (e) {
         console.error("Error al aceptar solicitudes:", e);
         throw e;
-    } finally {
-        await refreshGames();
     }
   };
 

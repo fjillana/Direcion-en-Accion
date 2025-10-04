@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, getDoc, setDoc, getDocs } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
@@ -123,27 +123,55 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!firestore) return;
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(firestore, "games"), (snapshot) => {
-      const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-      setGames(gamesData);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [firestore]);
+    // Switch from onSnapshot to getDocs for a one-time fetch
+    const fetchGames = async () => {
+        try {
+            const querySnapshot = await getDocs(collection(firestore, "games"));
+            const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+            setGames(gamesData);
+        } catch (error) {
+            console.error("Error fetching games: ", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchGames();
+    
+    // We will keep the real-time listener for individual active games for a better experience inside game management.
+    let unsubscribe: (() => void) | null = null;
+    if (activeGameId) {
+        const gameRef = doc(firestore, "games", activeGameId);
+        unsubscribe = onSnapshot(gameRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const updatedGame = { id: docSnap.id, ...docSnap.data() } as Game;
+                setGames(prevGames => prevGames.map(g => g.id === activeGameId ? updatedGame : g));
+            }
+        });
+    }
+
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
+}, [firestore, activeGameId]);
 
   const addGame = async (game: Omit<Game, 'id'>) => {
     if (!firestore) return;
-    await addDoc(collection(firestore, "games"), game);
+    const docRef = await addDoc(collection(firestore, "games"), game);
+    setGames(prev => [...prev, {id: docRef.id, ...game}]);
   };
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     await deleteDoc(doc(firestore, "games", gameId));
+    setGames(prev => prev.filter(g => g.id !== gameId));
   };
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     await updateDoc(doc(firestore, "games", gameId), updatedGame);
+    setGames(prev => prev.map(g => g.id === gameId ? {...g, ...updatedGame} : g));
   };
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {

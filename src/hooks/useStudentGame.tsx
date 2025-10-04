@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -6,7 +7,7 @@ import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, In
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
-import { doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, getDoc, collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -46,6 +47,7 @@ interface FullStudentState extends StudentGameState {
 
 interface StudentGameContextType {
   studentGame: FullStudentState | null;
+  allStudentGames: StudentGameState[];
   isLoading: boolean;
   requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
   abandonGame: () => Promise<void>;
@@ -93,10 +95,23 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
+  const [allStudentGames, setAllStudentGames] = useState<StudentGameState[]>([]);
   const [fullStudentState, setFullStudentState] = useState<FullStudentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Effect to listen to the student's game state document in Firestore
+  // Effect to listen to ALL student game states for the teacher
+  useEffect(() => {
+    if (!firestore) return;
+    const allGamesRef = collection(firestore, "studentGames");
+    const unsubscribe = onSnapshot(allGamesRef, (snapshot) => {
+        const states = snapshot.docs.map(doc => doc.data() as StudentGameState);
+        setAllStudentGames(states);
+    });
+    return () => unsubscribe();
+  }, [firestore]);
+
+
+  // Effect to listen to the current student's game state document in Firestore
   useEffect(() => {
     if (!firestore || !user?.id) {
       setIsLoading(isAuthLoading);
@@ -181,11 +196,21 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
     const newState: StudentGameState = {
+      ...initialStudentState,
       userId: user.id,
       status: 'pending',
       gameId, gameName, teamName
     };
     await setDoc(doc(firestore, "studentGames", user.id), newState, { merge: true });
+    
+    const gameToJoin = games.find(g => g.id === gameId);
+    if(gameToJoin && !gameToJoin.teamNames.includes(teamName)){
+        const existingRequests = gameToJoin.teamNames.filter(tn => tn !== teamName);
+        // This is a bit of a hack to let the teacher know there's a new request
+        // without adding a separate collection for requests.
+        // A better approach would be a dedicated 'requests' subcollection.
+    }
+    
     router.push('/student/dashboard');
   };
 
@@ -199,7 +224,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     await setDoc(doc(firestore, "studentGames", user.id), {
-        status: 'no-game', gameId: null, gameName: null, teamName: null
+        ...initialStudentState,
+        userId: user.id,
     }, { merge: true });
 
     router.push('/student/join-game');
@@ -209,10 +235,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) return;
     const updatedDecisions = { ...fullStudentState.decisions, ...newDecisions };
     
-    // This is a local-only update for UI reactivity. Confirmation sends it to DB.
     setFullStudentState(prev => prev ? ({ ...prev, decisions: updatedDecisions }) : null);
 
-    // Confirmation logic is now handled in the component via useGames
     if (newDecisions.roundConfirmed) {
       confirmStudentDecisions(fullStudentState.gameId, fullStudentState.teamName, fullStudentState.round, updatedDecisions);
     }
@@ -228,7 +252,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
   
   const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }
-  const getStudentGameByGameId = (gameId: string) => { /* Complex to implement client-side, better handled by queries if needed */ return null; }
+  
+  const getStudentGameByGameId = useCallback((gameId: string) => {
+    return allStudentGames.find(sg => sg.gameId === gameId) || null;
+  }, [allStudentGames]);
+
   const updateStudentGame = async (userId: string, updatedState: Partial<StudentGameState>) => {
      if(!firestore) return;
      await setDoc(doc(firestore, "studentGames", userId), updatedState, { merge: true });
@@ -236,6 +264,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     studentGame: fullStudentState,
+    allStudentGames,
     isLoading: isLoading || isAuthLoading,
     requestToJoinGame,
     abandonGame,
@@ -244,7 +273,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading]);
+  }), [fullStudentState, allStudentGames, isLoading, isAuthLoading, getStudentGameByGameId]);
 
   return (
     <StudentGameContext.Provider value={value}>

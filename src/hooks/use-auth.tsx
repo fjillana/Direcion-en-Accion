@@ -136,24 +136,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
     const userRef = doc(firestore, "users", userCredential.user.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
-    }
-
-    const appUser: User = {
-      id: userCredential.user.uid,
-      name: userDoc.data().name,
-      email: userCredential.user.email!,
-      avatar: userCredential.user.photoURL || `https://picsum.photos/seed/${userCredential.user.uid}/40/40`,
-      role: userDoc.data().role,
-      theme: userDoc.data().theme || 'light'
-    };
     
-    setUser(appUser);
-    _setTheme(appUser.theme);
-    return appUser;
+    try {
+        const userDoc = await getDoc(userRef);
+
+        if (!userDoc.exists()) {
+          throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
+        }
+
+        const appUser: User = {
+          id: userCredential.user.uid,
+          name: userDoc.data().name,
+          email: userCredential.user.email!,
+          avatar: userCredential.user.photoURL || `https://picsum.photos/seed/${userCredential.user.uid}/40/40`,
+          role: userDoc.data().role,
+          theme: userDoc.data().theme || 'light'
+        };
+        
+        setUser(appUser);
+        _setTheme(appUser.theme);
+        return appUser;
+
+    } catch (error) {
+        if ((error as any).code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        // Re-throw other errors
+        throw error;
+    }
   };
   
   const register = async (email: string, password: string, role: UserRole): Promise<User> => {

@@ -173,13 +173,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    deleteDoc(gameDocRef).catch(async (serverError) => {
+    try {
+        await deleteDoc(gameDocRef);
+    } catch (serverError: any) {
         const permissionError = new FirestorePermissionError({
             path: `games/${gameId}`,
             operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
-    });
+    }
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -295,9 +297,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     updateDoc(gameRef, updateData).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'update',
-            requestResourceData: updateData,
+          path: `games/${gameId}`,
+          operation: 'update',
+          requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
     });

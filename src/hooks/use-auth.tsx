@@ -71,34 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(appUser);
           _setTheme(appUser.theme);
         } else {
-          // User is authenticated, but no profile document exists. Create it now.
-          console.warn("User profile not found in Firestore, creating one now.");
-          
-          // This is a fallback. The role should ideally be determined during registration.
-          // We assume a 'student' role as a safe default.
-          const role: UserRole = 'student'; 
-          const name = firebaseUser.displayName || (role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`);
-          const avatar = firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
-          
-          const newUserProfile: Omit<User, 'id'> = {
-              name,
-              email: firebaseUser.email!,
-              role,
-              avatar,
-              theme: 'light'
-          };
-
-          setDoc(userRef, newUserProfile).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: `users/${firebaseUser.uid}`,
-              operation: 'create',
-              requestResourceData: newUserProfile,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
-          const appUser = { ...newUserProfile, id: firebaseUser.uid };
-          setUser(appUser);
-          _setTheme(appUser.theme);
+          // User is authenticated, but no profile document exists. This can happen
+          // during registration before the doc is created.
+          // We will let the register function handle profile creation.
         }
       } catch (error) {
          const permissionError = new FirestorePermissionError({
@@ -148,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userRef);
 
         if (!userDoc.exists()) {
-          throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
+            throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
         }
 
         const appUser: User = {
@@ -165,13 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return appUser;
 
     } catch (error) {
-        if ((error as any).code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'get',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         // Re-throw other errors
         throw error;
     }

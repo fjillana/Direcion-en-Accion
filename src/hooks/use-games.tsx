@@ -234,20 +234,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     await refreshGames();
   };
   
- const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
+  const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
     if (!firestore || requests.length === 0) return;
 
-    const gameRef = doc(firestore, "games", gameId);
-
     try {
-        // Step 1: Read the current game document
+        const gameRef = doc(firestore, "games", gameId);
         const gameDoc = await getDoc(gameRef);
         if (!gameDoc.exists()) {
             throw new Error("La partida no existe.");
         }
         const gameData = gameDoc.data() as Game;
 
-        // Step 2: Calculate the new state locally
         const newTeamNames = requests.map(req => req.teamName);
         const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
         
@@ -259,44 +256,45 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             pendingJoinRequests: updatedPendingRequests,
         };
 
-        // Step 3: Update the game document
+        // First, update the game document
         await updateDoc(gameRef, gameUpdateData);
 
-        // Step 4: Update student documents
+        // Then, update all student documents
         for (const req of requests) {
             const studentRef = doc(firestore, "studentGames", req.userId);
             await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
+                // This catch block is for the student update, we re-throw to be caught by the outer catch
+                 const permissionError = new FirestorePermissionError({
                     path: `studentGames/${req.userId}`,
                     operation: 'update',
                     requestResourceData: { status: "joined" },
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                throw permissionError; 
+                throw permissionError; // Re-throw to be caught by the main try-catch
             });
         }
 
     } catch (error) {
+        // This will catch errors from game update or the re-thrown error from student update
         if ((error as any).name !== 'FirestorePermissionError') {
              const permissionError = new FirestorePermissionError({
                 path: `games/${gameId}`,
                 operation: 'update',
-                requestResourceData: { requests },
+                requestResourceData: { "accepting-requests": requests.map(r=>r.teamName) },
             });
             errorEmitter.emit('permission-error', permissionError);
         }
-        console.error("Error accepting requests:", error);
-        throw error;
+        console.error("Error accepting join requests:", error);
+        // We don't re-throw here to prevent unhandled promise rejection in the UI
     } finally {
         await refreshGames();
     }
-};
+  };
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
     
-    // We get the existing reports to merge them, not overwrite
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
 

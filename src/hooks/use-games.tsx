@@ -222,9 +222,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
     updateDoc(gameRef, updatedGame).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'update',
-            requestResourceData: updatedGame,
+          path: `games/${gameId}`,
+          operation: 'update',
+          requestResourceData: updatedGame,
         });
         errorEmitter.emit('permission-error', permissionError);
     });

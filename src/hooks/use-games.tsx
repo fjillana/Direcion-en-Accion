@@ -183,7 +183,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     await refreshGames();
   };
   
-  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
+ const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
     if (!firestore || !user) return;
 
     const gameRef = doc(firestore, "games", gameId);
@@ -234,7 +234,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     await refreshGames();
   };
   
-  const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
+ const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
     if (!firestore || requests.length === 0) return;
 
     const gameRef = doc(firestore, "games", gameId);
@@ -295,6 +295,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
+    
+    // We get the existing reports to merge them, not overwrite
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
 
@@ -305,15 +307,28 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     let newMessages = [...(gameData.messages || [])];
     if (reportData.published) {
-        newMessages.push({
-            id: `msg-report-${Date.now()}-${teamName}`,
-            from: 'system', to: teamName, title: 'Reporte Disponible',
-            content: `El reporte de la ronda ${round} ya está disponible.`,
-            type: 'report', timestamp: Date.now(), readBy: [],
-        });
+        const existingMsgIndex = newMessages.findIndex(msg => msg.type === 'report' && msg.to === teamName && msg.content.includes(`ronda ${round}`));
+        if (existingMsgIndex === -1) {
+            newMessages.push({
+                id: `msg-report-${Date.now()}-${teamName}`,
+                from: 'system', to: teamName, title: 'Reporte Disponible',
+                content: `El reporte de la ronda ${round} ya está disponible.`,
+                type: 'report', timestamp: Date.now(), readBy: [],
+            });
+        }
     }
 
-    await updateDoc(gameRef, { reports: newReports, messages: newMessages });
+    const updateData = { reports: newReports, messages: newMessages };
+
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: `games/${gameId}`,
+            operation: 'update',
+            requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+    
     await refreshGames();
   };
 

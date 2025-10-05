@@ -233,37 +233,37 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
     if (!firestore || requests.length === 0) return;
 
+    const gameRef = doc(firestore, "games", gameId);
+    
     try {
-        const gameRef = doc(firestore, "games", gameId);
+        const gameDoc = await getDoc(gameRef);
+        if (!gameDoc.exists()) throw new Error("Game not found");
         
-        // Update game doc first
+        const currentRequests = gameDoc.data().pendingJoinRequests || [];
+        const newTeamNames = requests.map(r => r.teamName);
+        const remainingRequests = currentRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId));
+
+        // Update game doc with new team names and remove pending requests
         await updateDoc(gameRef, {
-            teamNames: arrayUnion(...requests.map(r => r.teamName)),
-            pendingJoinRequests: (await getDoc(gameRef)).data()?.pendingJoinRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId))
-        }).catch(serverError => {
-             const permissionError = new FirestorePermissionError({
-                path: `games/${gameId}`,
-                operation: 'update',
-                requestResourceData: { "accepting-requests": requests.map(r=>r.teamName) },
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw permissionError;
+            teamNames: arrayUnion(...newTeamNames),
+            pendingJoinRequests: remainingRequests
         });
 
-        // Then, update all student documents
+        // Then, update all student documents in a batch
+        const batch = writeBatch(firestore);
         for (const req of requests) {
             const studentRef = doc(firestore, "studentGames", req.userId);
-            await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: `studentGames/${req.userId}`,
-                    operation: 'update',
-                    requestResourceData: { status: "joined" },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                throw permissionError;
-            });
+            batch.update(studentRef, { status: "joined" });
         }
+        await batch.commit();
+
     } catch (error) {
+        const permissionError = new FirestorePermissionError({
+          path: `games/${gameId} or studentGames`,
+          operation: 'update',
+          requestResourceData: { action: "acceptJoinRequests", requests: requests.map(r => r.userId) },
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error accepting join requests:", error);
     }
   };

@@ -58,8 +58,8 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
   const cashAtStartOfRound = currentKpis.cash;
-  const updatedCash = isInitialSetup 
-    ? cashAtStartOfRound - totalExpenses // In round 0, you only spend
+  const updatedCash = isInitialSetup
+    ? cashAtStartOfRound // In round 0, we don't apply costs, just plan
     : cashAtStartOfRound + income - totalExpenses; // In subsequent rounds, you earn then spend
 
   // 3. Calcular nuevos KPIs de Reputación y Moral

@@ -172,15 +172,33 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === studentGameState.teamName);
             if (teamPerformance) {
                 performanceHistory.push(teamPerformance);
-                if (roundNum === serverRound - 1) {
+                if (roundNum === serverRound - 1) { // KPIs for current round are from last round's performance
                     currentKpis = teamPerformance.kpis;
                 }
             }
         });
     }
-
-    if (serverRound === 0 && !currentKpis && gameData.performance?.[0]) {
-      currentKpis = gameData.performance[0].find(p => p.name === studentGameState.teamName)?.kpis;
+    
+    // For Round 0, initialize KPIs with game's initial funds
+    if (serverRound === 0 && !currentKpis) {
+        const perfR0 = gameData.performance?.[0]?.find(p => p.name === studentGameState.teamName);
+        if (perfR0) {
+            currentKpis = perfR0.kpis;
+        } else {
+             currentKpis = {
+                cash: gameData.initialFunds,
+                personnelCost: 240000, 
+                income: 0,
+                privateIncome: 0,
+                publicIncome: 0,
+                nma: 7.5,
+                marketShare: 100 / (gameData.teamNames.length + (gameData.teams - gameData.teamNames.length)),
+                morale: 80,
+                studentTeacherRatio: 25.0,
+                numStudents: 800,
+                numTeachers: 32,
+            };
+        }
     }
 
 

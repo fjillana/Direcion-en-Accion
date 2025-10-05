@@ -5,9 +5,14 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
 import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
+import { useGames } from "@/hooks/use-games";
 
 export default function DecisionsPage() {
   const { studentGame, setRoundDecisions } = useStudentGame();
+  const { getGameById } = useGames();
+
+  const gameData = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
+  const initialFunds = gameData?.initialFunds || 0;
 
   const availableInvestments = studentGame?.roundSettings?.investments || [];
   const selectedInvestments = studentGame?.decisions?.selectedInvestments || [];
@@ -18,7 +23,9 @@ export default function DecisionsPage() {
     : [];
 
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
-  const teamCash = studentGame?.kpis?.cash || 0;
+  // En Ronda 0, el cash disponible para planificar es el inicial. En rondas posteriores, es el del KPI.
+  const teamCash = studentGame?.round === 0 ? initialFunds : studentGame?.kpis?.cash || 0;
+
 
   const centerActionsCosts = {
     'P2': 7500, // Contratar Docente

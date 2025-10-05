@@ -135,6 +135,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         (error) => {
           setGames([]);
           setLoading(false);
+          const permissionError = new FirestorePermissionError({
+            path: 'games',
+            operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
         }
       );
 
@@ -160,7 +165,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    await deleteDoc(gameDocRef)
+    deleteDoc(gameDocRef).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: `games/${gameId}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -267,11 +278,47 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const currentMessages = gameDoc.data().messages || [];
     const updatedMessages = [...currentMessages, ...newMessages];
 
-    // Use dot notation to update a specific field in the map
     const performanceUpdate = {
         [`performance.${round}`]: performanceData,
         messages: updatedMessages
     };
+
+    // DEBUGGING: Inspección completa del objeto
+    console.log('=== DEBUGGING updateTeamPerformance ===');
+    console.log('GameId:', gameId);
+    console.log('Round:', round);
+    console.log('Update data:', JSON.stringify(performanceUpdate, null, 2));
+
+    const findUndefined = (obj: any, path = ''): string[] => {
+      const undefinedPaths: string[] = [];
+      if (!obj) return undefinedPaths;
+      
+      Object.entries(obj).forEach(([key, value]) => {
+        const currentPath = path ? `${path}.${key}` : key;
+        
+        if (value === undefined) {
+          undefinedPaths.push(currentPath);
+        } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          undefinedPaths.push(...findUndefined(value, currentPath));
+        } else if (Array.isArray(value)) {
+          value.forEach((item, index) => {
+            if (item === undefined) {
+              undefinedPaths.push(`${currentPath}[${index}]`);
+            } else if (item && typeof item === 'object') {
+              undefinedPaths.push(...findUndefined(item, `${currentPath}[${index}]`));
+            }
+          });
+        }
+      });
+      
+      return undefinedPaths;
+    };
+    
+    const undefinedPaths = findUndefined(performanceUpdate);
+    if (undefinedPaths.length > 0) {
+      console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
+      throw new Error(`Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`);
+    }
 
     await updateDoc(gameRef, performanceUpdate);
   };

@@ -120,11 +120,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   const refreshGames = useCallback(async () => {
-    if (!firestore || !user) {
-        setGames([]);
-        setLoading(false);
-        return;
-    };
+    if (!firestore) return;
+    
     setLoading(true);
     try {
         const querySnapshot = await getDocs(collection(firestore, "games"));
@@ -136,7 +133,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     } finally {
         setLoading(false);
     }
-  }, [firestore, user]);
+  }, [firestore]);
 
 
   useEffect(() => {
@@ -217,11 +214,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
     if (!firestore || requests.length === 0) return;
 
-    for (const req of requests) {
+    // First, update all the student documents
+    const studentUpdatePromises = requests.map(req => {
       const studentRef = doc(firestore, "studentGames", req.userId);
-      await updateDoc(studentRef, { status: "joined" });
-    }
+      return updateDoc(studentRef, { status: "joined" });
+    });
 
+    await Promise.all(studentUpdatePromises);
+
+    // Then, update the game document
     const gameRef = doc(firestore, "games", gameId);
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) {
@@ -230,13 +231,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameData = gameDoc.data() as Game;
 
     const newTeamNames = requests.map(req => req.teamName);
+    // Combine old and new team names, ensuring no duplicates
     const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
 
     const requestUserIds = new Set(requests.map(req => req.userId));
+    // Filter out the requests that have been accepted
     const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(
         req => !requestUserIds.has(req.userId)
     );
 
+    // Update the game document with the new arrays
     await updateDoc(gameRef, {
         teamNames: updatedTeamNames,
         pendingJoinRequests: updatedPendingRequests
@@ -396,3 +400,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

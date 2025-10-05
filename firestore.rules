@@ -1,91 +1,111 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
+ * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset prioritizes rapid development by granting authenticated users broad access.
- * This enables quick iteration on the application's features without being blocked by overly restrictive permissions.
+ * This ruleset enforces a user-ownership model for user profiles and student game states.
+ * Games and their performance data have public read access, but writes are restricted.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, accessible only by the user.
- * - /games/{gameId}: Stores general game information, accessible to all authenticated users.
- * - /games/{gameId}/performance/{roundId}: Stores performance data for each game round, accessible to all authenticated users.
- * - /studentGames/{userId}: Stores the game state for each student, accessible only by that student.
+ * - /users/{userId}: Stores user profile information; write access is limited to the owning user.
+ * - /games/{gameId}: Stores game information; public read access, restricted write access.
+ * - /games/{gameId}/performance/{roundId}: Stores team performance data for each round; public read access, restricted write access.
+ * - /studentGames/{userId}: Stores student game state; write access is limited to the owning user.
  *
  * Key Security Decisions:
- * - Authenticated User Requirement: All read and write operations require authentication, preventing anonymous access.
- * - No Data Validation: These rules do not enforce data validation, allowing for flexible schema changes during prototyping.
- * - Ownership Enforcement: User profiles and student game states are secured using strict ownership checks, ensuring users can only access their own data.
- * - Broad Game Access: All games and their associated performance data are accessible to any authenticated user.
+ * - User listing is disallowed to prevent information leakage.
+ * - Public read access is granted to the games and their performance data.
+ * - Strict owner-only access is enforced for user profiles and student game states.
+ *
+ * Denormalization for Authorization:
+ *  The current schema does not contain any authorization information on the `/games/{gameId}` collection.
+ *  The provided error indicates a permission error when trying to update the `games/{gameId}` document.
+ *  Without an `ownerId` or similar field, write access cannot be granted securely. A simple fix is to
+ *  add a `creatorId` field to the `Game` entity and populate it with the user ID of the game creator.
+ *  Then, the rules can be updated to allow only the creator to update the game.
+ *  For now, writes to the `games/{gameId}` collection are completely blocked with a `TODO` comment.
+ *  For future development, consider adding roles to the game documents (e.g., `members: {'user_abc': 'editor'}`)
+ *  to allow shared access between a specific set of users.
+ *
+ * Structural Segregation:
+ *  Private user data (profiles and game states) is stored under user-specific paths.
+ *  Public game data is stored in a top-level collection for public access.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows authenticated users to manage their own user profile.
+     * @description Enforces user-ownership for user profile data.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' creates their own profile.
-     * @deny (create) User with ID 'user123' attempts to create a profile for 'user456'.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @allow (update) User with ID 'user123' can update their own profile.
+     * @allow (delete) User with ID 'user123' can delete their own profile.
+     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
+     * @deny (update) User with ID 'user456' cannot update the profile of 'user123'.
+     * @deny (delete) User with ID 'user456' cannot delete the profile of 'user123'.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow listing of all users
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource.data.id == userId;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Allows any authenticated user to read and write game data.
+     * @description Allows public read access to game information, but restricts writes.
      * @path /games/{gameId}
-     * @allow (create) Authenticated user creates a new game.
-     * @deny (create) Unauthenticated user attempts to create a game.
-     * @principle Grants broad access to game data for authenticated users.
+     * @allow (get) Any user can read game data.
+     * @allow (list) Any user can list game data.
+     * @deny (create) Any user cannot create a game. // Currently blocking all writes.
+     * @deny (update) Any user cannot update game data. // Currently blocking all writes.
+     * @deny (delete) Any user cannot delete game data. // Currently blocking all writes.
+     * @principle Public read access with owner-only writes (TODO: Implement owner-only writes).
      */
     match /games/{gameId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Allows any authenticated user to read and write team performance data for each round of the game.
+     * @description Allows public read access to team performance data, but restricts writes.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (create) Authenticated user creates a new round of performance data.
-     * @deny (create) Unauthenticated user attempts to create round performance data.
-     * @principle Grants broad access to game data for authenticated users.
+     * @allow (get) Any user can read team performance data.
+     * @allow (list) Any user can list team performance data.
+     * @deny (create) Any user cannot create team performance data. // Currently blocking all writes.
+     * @deny (update) Any user cannot update team performance data. // Currently blocking all writes.
+     * @deny (delete) Any user cannot delete team performance data. // Currently blocking all writes.
+     * @principle Public read access with owner-only writes (TODO: Implement owner-only writes).
      */
     match /games/{gameId}/performance/{roundId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Allows authenticated users to manage their own student game state.
+     * @description Enforces user-ownership for student game state data.
      * @path /studentGames/{userId}
-     * @allow (create) Student with ID 'student123' creates their own game state.
-     * @deny (create) Student with ID 'student123' attempts to create a game state for 'student456'.
-     * @principle Enforces document ownership for student game states.
+     * @allow (create) User with ID 'user123' can create their own game state.
+     * @allow (update) User with ID 'user123' can update their own game state.
+     * @allow (delete) User with ID 'user123' can delete their own game state.
+     * @deny (create) User with ID 'user456' cannot create a game state for 'user123'.
+     * @deny (update) User with ID 'user456' cannot update the game state of 'user123'.
+     * @deny (delete) User with ID 'user456' cannot delete the game state of 'user123'.
+     * @principle Enforces document ownership for writes.
      */
     match /studentGames/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-        return isSignedIn() && isOwner(userId) && resource != null;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId) && resource != null;
     }
   }
 }

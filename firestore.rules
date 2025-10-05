@@ -1,115 +1,72 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset allows all authenticated users to read and write any data in the Firestore database.
+ *
+ * Core Philosophy: All authenticated users can perform any operation. There are no restrictions based on user roles or data ownership.
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /games/{gameId}: Stores game session data.
+ * - /games/{gameId}/performance/{roundId}: Stores team performance data for each round of a game.
+ * - /studentGames/{userId}: Stores the game state for each student user.
+ * Key Security Decisions:
+ * - No user-specific or role-based access control is enforced.
+ * - All authenticated users are treated as equals with full read/write access.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure user profiles. Only the user can read/write their own profile.
+     * @description Allows any authenticated user to read and write user profile information.
      * @path /users/{userId}
-     * @allow (get, update, delete) User 'user123' can access their own profile.
-     * @allow (create) User 'user123' can create their own profile.
-     * @deny (get, update, delete) User 'user456' cannot access 'user123' profile.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
+     * @deny None
+     * @principle No access control. All authenticated users have full access.
      */
     match /users/{userId} {
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      // Helper function to check if the user is the existing owner of the document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Secure games. Any authenticated user can read games, but only the creator can modify or delete them.
+     * @description Allows any authenticated user to read and write game session data.
      * @path /games/{gameId}
-     * @allow (get, list) Any signed-in user can read game data.
-     * @allow (create) User 'user123' can create a game with creatorId 'user123'.
-     * @deny (update, delete) User 'user456' cannot update/delete game created by 'user123'.
-     * @principle Allows public read access but restricts write access to the game creator.
+     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
+     * @deny None
+     * @principle No access control. All authenticated users have full access.
      */
     match /games/{gameId} {
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
 
-      // Helper function to check if the user is the owner of the document.
-      function isOwner(ownerId) {
-        return request.auth.uid == ownerId;
+      /**
+       * @description Allows any authenticated user to read and write team performance data for each round of a game.
+       * @path /games/{gameId}/performance/{roundId}
+       * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
+       * @deny None
+       * @principle No access control. All authenticated users have full access.
+       */
+      match /performance/{roundId} {
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isSignedIn();
       }
-
-      // Helper function to check if the user is the existing owner of the document.
-      function isExistingOwner(ownerId) {
-        return isSignedIn() && isOwner(ownerId) && resource.data != null && resource.data.creatorId == request.auth.uid;
-      }
-
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isExistingOwner(request.resource.data.creatorId);
-      allow delete: if isExistingOwner(request.resource.data.creatorId);
     }
 
     /**
-     * @description Secure team performance data.  Writes only
-     * @path /games/{gameId}/performance/{roundId}
-     */
-    match /games/{gameId}/performance/{roundId} {
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Secure student game state. Only the student can read/write their own game state.
+     * @description Allows any authenticated user to read and write student game state data.
      * @path /studentGames/{userId}
-     * @allow (get, update, delete) User 'student123' can access their own game state.
-     * @allow (create) User 'student123' can create their own game state.
-     * @deny (get, update, delete) User 'student456' cannot access 'student123' game state.
-     * @principle Enforces document ownership for all operations on student game states.
+     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
+     * @deny None
+     * @principle No access control. All authenticated users have full access.
      */
     match /studentGames/{userId} {
-      // Helper function to check if the user is signed in.
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      // Helper function to check if the user is the existing owner of the document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
+  }
+
+  // Helper function to check if the user is signed in.
+  function isSignedIn() {
+    return request.auth != null;
   }
 }

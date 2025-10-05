@@ -1,103 +1,115 @@
-/**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset prioritizes secure authorization while granting flexibility in data shapes to enable rapid prototyping. It enforces user-ownership for personal data and restricts write access to specific roles or owners. Schema validation is minimized to facilitate experimentation, but critical ownership and relationship constraints are enforced.
- *
- * Data Structure:
- * - /users/{userId}: Stores individual user profiles, accessible only to the owning user.
- * - /games/{gameId}: Stores general game information, with open read access and restricted write access.
- * - /games/{gameId}/performance/{roundId}: Stores team performance data for specific rounds of a game, with restricted access.
- * - /studentGames/{userId}: Stores the game state of a student, accessible only by the owning user.
- *
- * Key Security Decisions:
- * - User listing is disabled to prevent unauthorized enumeration of user accounts.
- * - The rules explicitly deny any write operation that attempts to bypass authorization checks.
- *
- * Denormalization for Authorization:
- *  - The current data model does not require denormalization for authorization. However, if performance becomes an issue, consider denormalizing role information or game ownership directly onto the secured documents.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Secure user profiles. Only the user can read/write their own profile.
      * @path /users/{userId}
-     * @allow (get, list) if isSignedIn() && isOwner(userId)
-     * @allow (create) if isSignedIn() && isOwner(userId)
-     * @allow (update, delete) if isSignedIn() && isExistingOwner(userId)
-     * @deny (get, list) if !isSignedIn() || !isOwner(userId)
-     * @deny (create) if !isSignedIn() || !isOwner(userId)
-     * @deny (update, delete) if !isSignedIn() || !isExistingOwner(userId)
+     * @allow (get, update, delete) User 'user123' can access their own profile.
+     * @allow (create) User 'user123' can create their own profile.
+     * @deny (get, update, delete) User 'user456' cannot access 'user123' profile.
      * @principle Enforces document ownership for all operations on user profiles.
      */
     match /users/{userId} {
-      // Helper function to check if the user is signed in
-      allow get, list: if isSignedIn() && isOwner(userId);
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner of the document.
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the existing owner of the document.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
       allow create: if isSignedIn() && isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to game information. Allows public reads, but restricts writes.
+     * @description Secure games. Any authenticated user can read games, but only the creator can modify or delete them.
      * @path /games/{gameId}
-     * @allow (get, list) if true;
-     * @allow (create) if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow (update, delete) if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @deny (create) if true;
-     * @deny (update, delete) if true;
-     * @principle Allows public read access, but restricts write access to authorized users only.
+     * @allow (get, list) Any signed-in user can read game data.
+     * @allow (create) User 'user123' can create a game with creatorId 'user123'.
+     * @deny (update, delete) User 'user456' cannot update/delete game created by 'user123'.
+     * @principle Allows public read access but restricts write access to the game creator.
      */
     match /games/{gameId} {
-      allow get, list: if true;
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner of the document.
+      function isOwner(ownerId) {
+        return request.auth.uid == ownerId;
+      }
+
+      // Helper function to check if the user is the existing owner of the document.
+      function isExistingOwner(ownerId) {
+        return isSignedIn() && isOwner(ownerId) && resource.data != null && resource.data.creatorId == request.auth.uid;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isExistingOwner(request.resource.data.creatorId);
+      allow delete: if isExistingOwner(request.resource.data.creatorId);
     }
 
     /**
-     * @description Controls access to team performance data within a game.
+     * @description Secure team performance data.  Writes only
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (get, list) if false;
-     * @allow (create, update, delete) if false;
-     * @deny (get, list, create, update, delete) if true;
-     * @principle Restricts access to team performance data.
      */
     match /games/{gameId}/performance/{roundId} {
-      allow get, list: if false;
-      allow create, update, delete: if false;
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if false;
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to student game state information.
+     * @description Secure student game state. Only the student can read/write their own game state.
      * @path /studentGames/{userId}
-     * @allow (get, list) if isSignedIn() && isOwner(userId);
-     * @allow (create) if isSignedIn() && isOwner(userId);
-     * @allow (update, delete) if isExistingOwner(userId);
-     * @deny (get, list) if !isSignedIn() || !isOwner(userId);
-     * @deny (create) if !isSignedIn() || !isOwner(userId);
-     * @deny (update, delete) if !isExistingOwner(userId);
+     * @allow (get, update, delete) User 'student123' can access their own game state.
+     * @allow (create) User 'student123' can create their own game state.
+     * @deny (get, update, delete) User 'student456' cannot access 'student123' game state.
      * @principle Enforces document ownership for all operations on student game states.
      */
     match /studentGames/{userId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the user is the owner of the document.
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the existing owner of the document.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
       allow create: if isSignedIn() && isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
-  }
-
-  // Helper function to check if the user is signed in
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  // Helper function to check if the user is the owner of the document
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  // Helper function to check if the user is the owner of the document and the document exists
-  function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
   }
 }

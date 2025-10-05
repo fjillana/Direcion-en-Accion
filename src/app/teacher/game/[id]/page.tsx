@@ -118,17 +118,15 @@ export default function GameDetailsPage() {
   
   useEffect(() => {
     if (game) {
-      setCurrentRoundTab(game.round.toString());
-      const performanceForRound = game.performance?.[game.round];
+      // By default, show the last completed round
+      const lastCompletedRound = game.round > 0 ? game.round - 1 : 0;
+      setCurrentRoundTab(lastCompletedRound.toString());
+      
+      const performanceForRound = game.performance?.[lastCompletedRound];
       if (performanceForRound) {
         setMonitoringData(performanceForRound);
       } else {
-        // For round 0, show initial state if no performance data exists
-        if(game.round === 0 && game.performance?.[0]){
-            setMonitoringData(game.performance[0]);
-        } else {
-            setMonitoringData([]);
-        }
+        setMonitoringData([]);
       }
     }
   }, [game]);
@@ -292,7 +290,7 @@ export default function GameDetailsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: game.numRounds + 1 }, (_, i) => i).map((r) => (
-                                <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
+                                <SelectItem key={r} value={r.toString()} disabled={r > (game.round > 0 ? game.round-1 : 0)}>
                                     Ronda {r}
                                 </SelectItem>
                                 ))}

@@ -185,36 +185,39 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   
   const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
     if (!firestore || !user) return;
-    
+
     const gameRef = doc(firestore, "games", gameId);
-    
+
     try {
-      const gameDoc = await getDoc(gameRef);
-      if (!gameDoc.exists()) throw new Error("Game not found");
-      const gameData = gameDoc.data() as Game;
-      
-      const teamNamesToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
-      
-      const studentRequest = (gameData.pendingJoinRequests || []).find(req => req.teamName === teamNameToRemove);
-      
-      const batch = writeBatch(firestore);
+        const gameDoc = await getDoc(gameRef);
+        if (!gameDoc.exists()) throw new Error("Game not found");
+        const gameData = gameDoc.data() as Game;
 
-      batch.update(gameRef, { teamNames: teamNamesToKeep });
+        const teamNamesToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
+        const gameUpdateData = { teamNames: teamNamesToKeep };
+        
+        await updateDoc(gameRef, gameUpdateData);
 
-      if (studentRequest) {
-        const studentRef = doc(firestore, "studentGames", studentRequest.userId);
-        batch.update(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
-      }
-
-      await batch.commit();
-
-    } catch (error) {
-      console.error("Error removing team:", error);
-      throw error;
+        const studentRequest = (gameData.pendingJoinRequests || []).find(req => req.teamName === teamNameToRemove);
+        if (studentRequest) {
+            const studentRef = doc(firestore, "studentGames", studentRequest.userId);
+            await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
+        }
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `games/${gameId}`,
+                operation: 'update', // Assuming the failure is on updating the team list
+                requestResourceData: { teamNames: `(removing ${teamNameToRemove})` },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        console.error("Error removing team:", error);
+        throw error;
     } finally {
-      await refreshGames();
+        await refreshGames();
     }
-  };
+};
 
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
@@ -237,61 +240,57 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
 
     try {
-      const gameDoc = await getDoc(gameRef);
-      if (!gameDoc.exists()) {
-        throw new Error("La partida no existe.");
-      }
-      
-      const gameData = gameDoc.data() as Game;
-      
-      // Calculate the new state locally
-      const newTeamNames = requests.map(req => req.teamName);
-      const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
-      
-      const requestUserIds = new Set(requests.map(req => req.userId));
-      const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(req => !requestUserIds.has(req.userId));
+        // Step 1: Read the current game document
+        const gameDoc = await getDoc(gameRef);
+        if (!gameDoc.exists()) {
+            throw new Error("La partida no existe.");
+        }
+        const gameData = gameDoc.data() as Game;
 
-      const gameUpdateData = {
-        teamNames: updatedTeamNames,
-        pendingJoinRequests: updatedPendingRequests,
-      };
+        // Step 2: Calculate the new state locally
+        const newTeamNames = requests.map(req => req.teamName);
+        const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
+        
+        const requestUserIds = new Set(requests.map(req => req.userId));
+        const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(req => !requestUserIds.has(req.userId));
 
-      // Perform the first update on the game document
-      await updateDoc(gameRef, gameUpdateData).catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-              path: `games/${gameId}`,
-              operation: 'update',
-              requestResourceData: gameUpdateData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          // Stop execution if this fails
-          throw permissionError;
-      });
+        const gameUpdateData = {
+            teamNames: updatedTeamNames,
+            pendingJoinRequests: updatedPendingRequests,
+        };
 
-      // If the first update is successful, update student documents
-      for (const req of requests) {
-        const studentRef = doc(firestore, "studentGames", req.userId);
-        await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: `studentGames/${req.userId}`,
-                operation: 'update',
-                requestResourceData: { status: "joined" },
+        // Step 3: Update the game document
+        await updateDoc(gameRef, gameUpdateData);
+
+        // Step 4: Update student documents
+        for (const req of requests) {
+            const studentRef = doc(firestore, "studentGames", req.userId);
+            await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: `studentGames/${req.userId}`,
+                    operation: 'update',
+                    requestResourceData: { status: "joined" },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw permissionError; 
             });
-            errorEmitter.emit('permission-error', permissionError);
-            // Even if this fails, we continue, but log it
-            console.error(`Failed to update status for student ${req.userId}`);
-        });
-      }
+        }
 
     } catch (error) {
+        if ((error as any).name !== 'FirestorePermissionError') {
+             const permissionError = new FirestorePermissionError({
+                path: `games/${gameId}`,
+                operation: 'update',
+                requestResourceData: { requests },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
         console.error("Error accepting requests:", error);
-        // The error is already emitted, just re-throwing to stop the flow
         throw error;
     } finally {
-      // Always refresh to reflect any partial or full success
-      await refreshGames();
+        await refreshGames();
     }
-  };
+};
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
     if (!firestore) return;
@@ -450,5 +449,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

@@ -7,28 +7,22 @@ import type { TeamState, TeamKPIs, AIArchetype } from "./types";
 import { getAIDecisions } from "./ai-strategy";
 
 const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
-    const key = `decisions_${game.id}_${teamName}_${game.round}`;
-    if (typeof window !== 'undefined') {
-        const storedDecisions = localStorage.getItem(key);
-        if (storedDecisions) {
-            try {
-                const parsed = JSON.parse(storedDecisions);
-                // Ensure decisions are well-formed
-                return {
-                    investments: parsed.investments || [],
-                    tuitionPrice: parsed.tuitionPrice || 120,
-                    crisisResponse: parsed.crisisResponse || null,
-                    selectedCenterActions: parsed.selectedCenterActions || [],
-                    roundConfirmed: parsed.roundConfirmed || false,
-                };
-            } catch (e) {
-                console.error("Could not parse student decisions:", e);
-            }
-        }
+    const roundDecisions = game.decisions?.[game.round] || {};
+    const teamDecision = roundDecisions[teamName];
+
+    if (teamDecision) {
+        return {
+            selectedInvestments: teamDecision.selectedInvestments || [],
+            tuitionPrice: teamDecision.tuitionPrice || 120,
+            crisisResponse: teamDecision.crisisResponse || null,
+            selectedCenterActions: teamDecision.selectedCenterActions || [],
+            roundConfirmed: teamDecision.roundConfirmed || false,
+        };
     }
+    
     // Fallback if no decisions are found
     return {
-        investments: [],
+        selectedInvestments: [],
         tuitionPrice: 120,
         crisisResponse: null,
         selectedCenterActions: [],
@@ -41,16 +35,16 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 
 export function simulateRound(game: Game): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   const humanTeamsCount = game.teamNames.length;
-  const numIaTeams = humanTeamsCount > 0 ? humanTeamsCount : 4; // Manual: 4 IA rivals
+  const numIaTeams = Math.max(0, game.teams - humanTeamsCount);
 
   const initialKPIs = (gameData: Game): TeamKPIs => ({
     cash: gameData.initialFunds,
     personnelCost: 240000, 
-    income: 320000,
+    income: 0,
     privateIncome: 0,
     publicIncome: 0,
     nma: 7.5,
-    marketShare: 100 / (humanTeamsCount + numIaTeams),
+    marketShare: 100 / (gameData.teams || 1),
     morale: 80,
     studentTeacherRatio: 25.0,
     numStudents: 800,
@@ -144,28 +138,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
     };
   });
   
-  const newMessages: GameMessage[] = game.teamNames.map(teamName => ([
-    {
-        id: `msg-${Date.now()}-report-${teamName}`,
-        from: 'system',
-        to: teamName,
-        content: `El reporte de la ronda ${game.round} ya está disponible.`,
-        title: "Reporte Disponible",
-        type: "report",
-        timestamp: Date.now(),
-        readBy: []
-    },
-    {
-        id: `msg-${Date.now()}-newround-${teamName}`,
-        from: 'system',
-        to: teamName,
-        content: `Ha comenzado la ronda ${game.round + 1}. Ya puedes tomar tus decisiones.`,
-        title: "Nueva Ronda Disponible",
-        type: "message",
-        timestamp: Date.now(),
-        readBy: []
-    }
-  ])).flat();
+  const newMessages: GameMessage[] = [];
 
   return { performanceData: performanceResults, newMessages };
 }

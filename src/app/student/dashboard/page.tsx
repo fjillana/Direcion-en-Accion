@@ -38,18 +38,13 @@ import Link from "next/link";
 import { useGames } from "@/hooks/use-games";
 
 const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
-    'C1': {
-      id: "C1",
-      title: "¡Evento de Crisis! - Huelga docente",
-      description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
-      options: [
-        { id: 'op1', label: 'Aceptar todas las demandas' },
-        { id: 'op2', label: 'Negociar un acuerdo parcial' },
-        { id: 'op3', label: 'Mantener la postura' },
-        { id: 'op4', label: 'Recurrir a mediadores externos' },
-        { id: 'op5', label: 'Despedir a los líderes del sindicato' },
-      ]
-    }
+    'C1': { id: 'C1', title: '¡Evento de Crisis! - Huelga docente', description: 'La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.', options: [ { id: 'C1_op1', label: 'Aceptar todas las demandas' }, { id: 'C1_op2', label: 'Negociar un acuerdo parcial' }, { id: 'C1_op3', label: 'Mantener la postura' }, { id: 'C1_op4', label: 'Recurrir a mediadores externos' }, { id: 'C1_op5', label: 'Despedir a los líderes del sindicato' }, ] },
+    'C2': { id: 'C2', title: '¡Evento de Crisis! - Retraso en la subvención pública', description: 'La consejería de educación retrasa la transferencia de 25.000 CC de la subvención pública este trimestre.', options: [ { id: 'C2_op1', label: 'Solicitar un préstamo de emergencia' }, { id: 'C2_op2', label: 'Recortar inversiones planificadas' }, { id: 'C2_op3', label: 'Negociar con la consejería' }, { id: 'C2_op4', label: 'Utilizar reservas de tesorería' }, { id: 'C2_op5', label: 'Retrasar pagos a proveedores' }, ] },
+    'C3': { id: 'C3', title: '¡Evento de Crisis! - Morosidad en las matrículas privadas', description: 'Varias familias no pagan la matrícula privada del trimestre, generando un déficit de 10.000 CC en los ingresos privados.', options: [ { id: 'C3_op1', label: 'Ofrecer un plan de pagos' }, { id: 'C3_op2', label: 'Subir temporalmente la matrícula a los alumnos solventes' }, { id: 'C3_op3', label: 'Solicitar un préstamo de emergencia' }, { id: 'C3_op4', label: 'Recortar actividades extraescolares' }, { id: 'C3_op5', label: 'Invertir en marketing para captar nuevos alumnos' }, ] },
+    'C4': { id: 'C4', title: '¡Evento de Crisis! - Accidente en el centro', description: 'Un accidente leve (caída en el patio, inundación en un aula) genera críticas en redes sociales y preocupación de las familias.', options: [ { id: 'C4_op1', label: 'Ignorar el incidente' }, { id: 'C4_op2', label: 'Informar y pedir disculpas públicamente' }, { id: 'C4_op3', label: 'Contratar un seguro adicional' }, { id: 'C4_op4', label: 'Realizar mejoras inmediatas' }, { id: 'C4_op5', label: 'Lanzar una campaña positiva' }, ] },
+    'C5': { id: 'C5', title: '¡Evento de Crisis! - Crisis sanitaria', description: 'Brote de gripe o similar que obliga a suspender las clases presenciales una semana.', options: [ { id: 'C5_op1', label: 'Suspender todas las actividades y esperar a que pase' }, { id: 'C5_op2', label: 'Adoptar clases en línea mediante inversión en TIC (R2)' }, { id: 'C5_op3', label: 'Contratar personal sanitario temporal' }, { id: 'C5_op4', label: 'Ignorar las recomendaciones sanitarias' }, { id: 'C5_op5', label: 'Solicitar apoyo de la administración' }, ] },
+    'C6': { id: 'C6', title: '¡Evento de Crisis! - Retraso en los ingresos por patrocinio', description: 'Una empresa patrocinadora retrasa el pago de 10.000 CC correspondiente a un patrocinio.', options: [ { id: 'C6_op1', label: 'Renegociar el contrato' }, { id: 'C6_op2', label: 'Buscar otro patrocinador' }, { id: 'C6_op3', label: 'Solicitar un préstamo' }, { id: 'C6_op4', label: 'Recortar gastos de marketing' }, { id: 'C6_op5', label: 'Aceptar la pérdida' }, ] },
+    'C7': { id: 'C7', title: '¡Evento de Crisis! - Caso de redes sociales / ciberbullying', description: 'Se viraliza en redes sociales un caso de ciberbullying entre estudiantes del centro. Se acusa al colegio de no actuar con rapidez.', options: [ { id: 'C7_op1', label: 'Minimizar el caso' }, { id: 'C7_op2', label: 'Abrir una investigación interna' }, { id: 'C7_op3', label: 'Implementar un programa anti‑bullying' }, { id: 'C7_op4', label: 'Realizar un comunicado público y pedir disculpas' }, { id: 'C7_op5', label: 'Demandear a los denunciantes por difamación' }, ] },
 };
 
 export default function StudentDashboard() {
@@ -314,5 +309,3 @@ export default function StudentDashboard() {
     </StudentGate>
   );
 }
-
-    

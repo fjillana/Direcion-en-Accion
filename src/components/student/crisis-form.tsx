@@ -45,12 +45,13 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
   };
 
   const handleJustificationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const selectedOption = options.find(o => o.id === currentResponse?.optionId);
     onResponseChange({
       crisisId: id,
       optionId: currentResponse?.optionId || "",
       justification: e.target.value,
       crisisName: title,
-      option: currentResponse?.option || ""
+      option: selectedOption?.label || currentResponse?.option || ""
     });
   };
 
@@ -59,7 +60,7 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
       <CardHeader>
         <CardTitle className="text-destructive">{title}</CardTitle>
         <CardDescription className="text-destructive/80">
-          {id} - {description}
+          {description}
         </CardDescription>
       </CardHeader>
       <fieldset disabled={disabled} className="group">

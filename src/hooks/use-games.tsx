@@ -133,11 +133,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         },
         (error) => {
-          const permissionError = new FirestorePermissionError({
-            path: 'games',
-            operation: 'list',
-          });
-          errorEmitter.emit('permission-error', permissionError);
           setGames([]);
           setLoading(false);
         }
@@ -159,26 +154,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
     const gameWithOwner = { ...game, createdBy: user.id };
-    addDoc(collection(firestore, "games"), gameWithOwner).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `games`,
-        operation: 'create',
-        requestResourceData: gameWithOwner,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await addDoc(collection(firestore, "games"), gameWithOwner)
   };
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    deleteDoc(gameDocRef).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await deleteDoc(gameDocRef)
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -202,12 +184,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
         }
     } catch (error: any) {
-        const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'update',
-            requestResourceData: { teamNames: `(removing ${teamNameToRemove})` },
-        });
-        errorEmitter.emit('permission-error', permissionError);
         console.error("Error removing team:", error);
         throw error;
     }
@@ -248,12 +224,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         await batch.commit();
 
     } catch (error) {
-        const permissionError = new FirestorePermissionError({
-          path: `games/${gameId} or studentGames`,
-          operation: 'update',
-          requestResourceData: { action: "acceptJoinRequests", requests: requests.map(r => r.userId) },
-        });
-        errorEmitter.emit('permission-error', permissionError);
         console.error("Error accepting join requests:", error);
     }
   };
@@ -294,11 +264,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
 
-    const newPerformance = { ...(gameDoc.data().performance || {}) };
-    newPerformance[round] = performanceData;
-    const updatedMessages = [...(gameDoc.data().messages || []), ...newMessages];
+    const currentMessages = gameDoc.data().messages || [];
+    const updatedMessages = [...currentMessages, ...newMessages];
 
-    await updateDoc(gameRef, { performance: newPerformance, messages: updatedMessages });
+    // Use dot notation to update a specific field in the map
+    const performanceUpdate = {
+        [`performance.${round}`]: performanceData,
+        messages: updatedMessages
+    };
+
+    await updateDoc(gameRef, performanceUpdate);
   };
 
   const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {

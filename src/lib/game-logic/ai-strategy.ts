@@ -94,5 +94,10 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
     }
 
 
-    return decisions;
+    // Ensure arrays are always defined
+    return {
+        ...decisions,
+        investments: decisions.investments || [],
+        selectedCenterActions: decisions.selectedCenterActions || [],
+    };
 }

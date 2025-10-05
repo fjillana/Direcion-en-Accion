@@ -133,7 +133,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         },
         (error) => {
-          console.error("Error listening to games collection:", error);
           const permissionError = new FirestorePermissionError({
             path: 'games',
             operation: 'list',

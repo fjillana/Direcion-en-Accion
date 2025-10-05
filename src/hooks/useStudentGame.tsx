@@ -9,6 +9,8 @@ import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
 import { doc, onSnapshot, setDoc, getDoc, collection, updateDoc, arrayUnion } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -115,7 +117,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       } else {
         // If no document exists, create one with the initial state
         const initialData = { ...initialStudentState, userId: user.id };
-        setDoc(studentGameRef, initialData);
+        setDoc(studentGameRef, initialData).catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: `studentGames/${user.id}`,
+            operation: 'create',
+            requestResourceData: initialData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
         setStudentGameState(initialData);
       }
       setIsLoading(false);
@@ -200,24 +209,43 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
-
+  
     // 1. Update the student's personal game state to 'pending'
+    const studentGameRef = doc(firestore, "studentGames", user.id);
     const studentState: StudentGameState = {
       ...initialStudentState,
       userId: user.id,
       status: 'pending',
       gameId, gameName, teamName
     };
-    await setDoc(doc(firestore, "studentGames", user.id), studentState, { merge: true });
-
+  
+    setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: `studentGames/${user.id}`,
+        operation: 'update', // or 'create'
+        requestResourceData: studentState,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  
     // 2. Add a request to the game document itself
     const gameRef = doc(firestore, "games", gameId);
-    await updateDoc(gameRef, {
-        pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
+    const joinRequestData = {
+      pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
+    };
+  
+    updateDoc(gameRef, joinRequestData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: `games/${gameId}`,
+        operation: 'update',
+        requestResourceData: { teamName, userId: user.id }, // Just showing what we're trying to add
+      });
+      errorEmitter.emit('permission-error', permissionError);
     });
     
     router.push('/student/dashboard');
   };
+  
 
   const abandonGame = async () => {
     if (!firestore || !user || !studentGameState?.gameId || !studentGameState?.teamName) return;
@@ -249,11 +277,21 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !studentGameState) return;
+    const studentGameRef = doc(firestore, "studentGames", user.id);
     const newPlan = { ...(studentGameState.strategicPlan || {}), ...plan };
-    await setDoc(doc(firestore, "studentGames", user.id), {
+    const updateData = {
       strategicPlan: newPlan,
       planConfirmed: newPlan.confirmed
-    }, { merge: true });
+    };
+    
+    setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: `studentGames/${user.id}`,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
   const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }

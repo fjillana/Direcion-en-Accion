@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch, onSnapshot } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -103,7 +103,6 @@ interface GamesContextType {
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
-  refreshGames: () => Promise<void>;
   acceptJoinRequests: (gameId: string, requests: JoinRequest[]) => Promise<void>;
   removeTeamFromGame: (gameId: string, teamName: string) => Promise<void>;
 }
@@ -119,40 +118,42 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
-  const refreshGames = useCallback(async () => {
-    if (!firestore) return;
-    
-    setLoading(true);
-    try {
-        const querySnapshot = await getDocs(collection(firestore, "games"));
-        const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-        setGames(gamesData);
-    } catch (error) {
-        console.error("Error fetching games: ", error);
-        setGames([]);
-    } finally {
-        setLoading(false);
-    }
-  }, [firestore]);
-
-
   useEffect(() => {
-    if (!isAuthLoading) {
-      if (user) {
-        const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-        if (storedActiveId) {
-            setActiveGameIdState(JSON.parse(storedActiveId));
-        }
-        refreshGames();
-      } else {
-        // Clear state if user logs out
-        setGames([]);
-        setActiveGameIdState(null);
-        localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
-        setLoading(false);
+    if (user && firestore) {
+      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+      if (storedActiveId) {
+        setActiveGameIdState(JSON.parse(storedActiveId));
       }
+
+      const gamesCollectionRef = collection(firestore, "games");
+      const unsubscribe = onSnapshot(gamesCollectionRef, 
+        (querySnapshot) => {
+          const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+          setGames(gamesData);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error listening to games collection:", error);
+          const permissionError = new FirestorePermissionError({
+            path: 'games',
+            operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setGames([]);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } else if (!isAuthLoading) {
+      // Clear state if user logs out
+      setGames([]);
+      setActiveGameIdState(null);
+      localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
+      setLoading(false);
     }
-  }, [isAuthLoading, user, refreshGames]);
+  }, [isAuthLoading, user, firestore]);
+
 
   const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {
     if (!firestore || !user) {
@@ -167,7 +168,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-    await refreshGames();
   };
 
   const removeGame = async (gameId: string) => {
@@ -180,7 +180,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-    await refreshGames();
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -204,18 +203,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
         }
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `games/${gameId}`,
-                operation: 'update', // Assuming the failure is on updating the team list
-                requestResourceData: { teamNames: `(removing ${teamNameToRemove})` },
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
+        const permissionError = new FirestorePermissionError({
+            path: `games/${gameId}`,
+            operation: 'update',
+            requestResourceData: { teamNames: `(removing ${teamNameToRemove})` },
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error removing team:", error);
         throw error;
-    } finally {
-        await refreshGames();
     }
 };
 
@@ -231,7 +226,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-    await refreshGames();
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
@@ -239,55 +233,36 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     try {
         const gameRef = doc(firestore, "games", gameId);
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) {
-            throw new Error("La partida no existe.");
-        }
-        const gameData = gameDoc.data() as Game;
-
-        const newTeamNames = requests.map(req => req.teamName);
-        const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
         
-        const requestUserIds = new Set(requests.map(req => req.userId));
-        const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(req => !requestUserIds.has(req.userId));
-
-        const gameUpdateData = {
-            teamNames: updatedTeamNames,
-            pendingJoinRequests: updatedPendingRequests,
-        };
-
-        // First, update the game document
-        await updateDoc(gameRef, gameUpdateData);
-
-        // Then, update all student documents
-        for (const req of requests) {
-            const studentRef = doc(firestore, "studentGames", req.userId);
-            await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
-                // This catch block is for the student update, we re-throw to be caught by the outer catch
-                 const permissionError = new FirestorePermissionError({
-                    path: `studentGames/${req.userId}`,
-                    operation: 'update',
-                    requestResourceData: { status: "joined" },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                throw permissionError; // Re-throw to be caught by the main try-catch
-            });
-        }
-
-    } catch (error) {
-        // This will catch errors from game update or the re-thrown error from student update
-        if ((error as any).name !== 'FirestorePermissionError') {
+        // Update game doc first
+        await updateDoc(gameRef, {
+            teamNames: arrayUnion(...requests.map(r => r.teamName)),
+            pendingJoinRequests: (await getDoc(gameRef)).data()?.pendingJoinRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId))
+        }).catch(serverError => {
              const permissionError = new FirestorePermissionError({
                 path: `games/${gameId}`,
                 operation: 'update',
                 requestResourceData: { "accepting-requests": requests.map(r=>r.teamName) },
             });
             errorEmitter.emit('permission-error', permissionError);
+            throw permissionError;
+        });
+
+        // Then, update all student documents
+        for (const req of requests) {
+            const studentRef = doc(firestore, "studentGames", req.userId);
+            await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: `studentGames/${req.userId}`,
+                    operation: 'update',
+                    requestResourceData: { status: "joined" },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw permissionError;
+            });
         }
+    } catch (error) {
         console.error("Error accepting join requests:", error);
-        // We don't re-throw here to prevent unhandled promise rejection in the UI
-    } finally {
-        await refreshGames();
     }
   };
 
@@ -326,8 +301,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-    
-    await refreshGames();
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
@@ -341,7 +314,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const updatedMessages = [...(gameDoc.data().messages || []), ...newMessages];
 
     await updateDoc(gameRef, { performance: newPerformance, messages: updatedMessages });
-    await refreshGames();
   };
 
   const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {
@@ -368,7 +340,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updatedMessages = [...(gameData.messages || []), ...newMessages];
     await updateDoc(gameRef, { roundSettings: newSettingsState, messages: updatedMessages });
-    await refreshGames();
   };
 
   const addMessage = async (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
@@ -382,7 +353,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     await updateDoc(gameRef, {
         messages: arrayUnion(newMessage)
     });
-    await refreshGames();
   };
 
   const markMessageAsRead = async (gameId: string, messageId: string, userId: string) => {
@@ -398,7 +368,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return msg;
     });
     await updateDoc(gameRef, { messages: newMessages });
-    await refreshGames();
   };
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
@@ -414,7 +383,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-    await refreshGames();
   };
 
   const getGameById = (gameId: string) => games.find(g => g.id === gameId);
@@ -446,7 +414,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         addMessage,
         markMessageAsRead,
         confirmStudentDecisions,
-        refreshGames,
         acceptJoinRequests,
         removeTeamFromGame,
     }}>
@@ -462,3 +429,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

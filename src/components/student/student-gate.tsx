@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { studentGame, isLoading: isStudentGameLoading, checkGameStatus } = useStudentGame();
+  const { studentGame, isLoading: isStudentGameLoading } = useStudentGame();
   const router = useRouter();
 
   useEffect(() => {
@@ -60,3 +60,5 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+    

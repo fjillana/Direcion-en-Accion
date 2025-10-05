@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { games, loading: gamesLoading, refreshGames } = useGames();
+  const { games, loading: gamesLoading } = useGames();
   const { requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
@@ -24,12 +24,6 @@ export default function JoinGamePage() {
   const router = useRouter();
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
-
-  useEffect(() => {
-    if (user) {
-        refreshGames();
-    }
-  }, [user, refreshGames]);
 
   useEffect(() => {
     if (!isLoading && games && games.length === 1) {
@@ -130,3 +124,5 @@ export default function JoinGamePage() {
     </div>
   );
 }
+
+    

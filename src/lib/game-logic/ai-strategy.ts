@@ -1,4 +1,5 @@
 
+
 import type { Game } from "@/hooks/use-games";
 import type { TeamState, TeamDecisions, InvestmentDecision } from "./types";
 
@@ -15,9 +16,9 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
     const availableInvestments = game.roundSettings?.[game.round]?.investments || [];
     const decisions: TeamDecisions = {
         investments: [],
-        tuitionPrice: 120, // Default price
+        tuitionPrice: 120,
         selectedCenterActions: [],
-        crisisResponse: null, // AI doesn't handle crises for now
+        crisisResponse: null,
     };
 
     // --- Price Decision ---

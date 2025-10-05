@@ -32,8 +32,8 @@ import { cn } from "@/lib/utils";
 import { useGame } from "@/hooks/use-game-context";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { TeamPerformanceData, Game } from "@/hooks/use-games";
-import { useStudentGame } from "@/hooks/useStudentGame";
+import type { TeamPerformanceData, Game, StudentGameState } from "@/hooks/use-games";
+import { useGames } from "@/hooks/use-games";
 
 // Simplified team structure for the leaderboard view
 type LeaderboardTeam = {
@@ -74,12 +74,12 @@ function getProgress(value: number, goal: { target: number; operator: string; })
 
 export default function TeacherLeaderboardPage() {
   const { activeGame, setActiveGameId } = useGame();
-  // We need this hook to find the student state associated with a human team
-  const { getStudentGameByGameId } = useStudentGame();
+  const { getStudentGamesByGameId } = useGames();
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const [selectedTeam, setSelectedTeam] = useState<LeaderboardTeam | null>(null);
+  const [studentGamesData, setStudentGamesData] = useState<StudentGameState[]>([]);
 
   useEffect(() => {
     const gameId = searchParams.get('gameId');
@@ -87,6 +87,14 @@ export default function TeacherLeaderboardPage() {
       setActiveGameId(gameId);
     }
   }, [searchParams, activeGame, setActiveGameId]);
+
+  useEffect(() => {
+    if (activeGame) {
+      getStudentGamesByGameId(activeGame.id).then(data => {
+        setStudentGamesData(data);
+      });
+    }
+  }, [activeGame, getStudentGamesByGameId]);
 
   const teams = useMemo(() => {
       if (!activeGame || !activeGame.performance) return [];
@@ -96,13 +104,13 @@ export default function TeacherLeaderboardPage() {
 
       if (!performanceData) return [];
       
-      // Get the student's state to retrieve their strategic plan
-      const studentState = getStudentGameByGameId(activeGame.id);
-
       return performanceData.map(p => {
           let strategicPlan;
-          if (p.type === 'H' && p.name === studentState?.teamName) {
-              strategicPlan = studentState.strategicPlan;
+          if (p.type === 'H') {
+              const studentState = studentGamesData.find(s => s.teamName === p.name);
+              if (studentState) {
+                  strategicPlan = studentState.strategicPlan;
+              }
           }
           return {
               name: p.name,
@@ -118,7 +126,7 @@ export default function TeacherLeaderboardPage() {
           ...team,
           rank: index + 1
       }));
-  }, [activeGame, getStudentGameByGameId]);
+  }, [activeGame, studentGamesData]);
 
 
   if (!activeGame) {

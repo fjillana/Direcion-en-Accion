@@ -7,13 +7,23 @@ import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, In
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
-import { doc, onSnapshot, setDoc, getDoc, collection, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
+
+export interface StudentGameState {
+  userId: string;
+  status: StudentGameStatus;
+  gameId: string | null;
+  gameName: string | null;
+  teamName: string | null;
+  planConfirmed?: boolean;
+  strategicPlan?: StrategicPlan;
+}
 
 export interface RoundDecisions {
   selectedInvestments: InvestmentDecision[];
@@ -27,16 +37,6 @@ export interface RoundDecisions {
       option: string;
   } | null;
   roundConfirmed: boolean;
-}
-
-export interface StudentGameState {
-  userId: string;
-  status: StudentGameStatus;
-  gameId: string | null;
-  gameName: string | null;
-  teamName: string | null;
-  planConfirmed?: boolean;
-  strategicPlan?: StrategicPlan;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -53,8 +53,6 @@ interface StudentGameContextType {
   isLoading: boolean;
   requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
   abandonGame: () => Promise<void>;
-  checkGameStatus: () => void;
-  getStudentGameByGameId: (gameId: string) => StudentGameState | null; // This is a bit tricky now
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => Promise<void>;
 }
@@ -96,7 +94,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
-  const [allStudentGames, setAllStudentGames] = useState<StudentGameState[]>([]);
   const [fullStudentState, setFullStudentState] = useState<FullStudentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -147,7 +144,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       setFullStudentState(null);
       return;
     }
-
+    
+    // If student is pending/joined but game list is loaded and game doesn't exist, reset state.
     if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
         const gameExists = games.some(g => g.id === studentGameState.gameId);
         if (!gameExists) {
@@ -155,7 +153,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             if(firestore) {
               setDoc(doc(firestore, "studentGames", user.id), resetState);
             }
-            setStudentGameState(resetState);
+            // Directly update the local state to trigger UI changes immediately
+            setStudentGameState(resetState); 
             return;
         }
     }
@@ -187,15 +186,33 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === studentGameState.teamName);
             if (teamPerformance) {
                 performanceHistory.push(teamPerformance);
-                if (roundNum === serverRound - 1) {
+                if (roundNum === serverRound - 1) { // KPIs for current round are from last round's performance
                     currentKpis = teamPerformance.kpis;
                 }
             }
         });
     }
-
-    if (serverRound === 0 && !currentKpis && gameData.performance?.[0]) {
-      currentKpis = gameData.performance[0].find(p => p.name === studentGameState.teamName)?.kpis;
+    
+    // For Round 0, initialize KPIs with game's initial funds
+    if (serverRound === 0 && !currentKpis) {
+        const perfR0 = gameData.performance?.[0]?.find(p => p.name === studentGameState.teamName);
+        if (perfR0) {
+            currentKpis = perfR0.kpis;
+        } else {
+             currentKpis = {
+                cash: gameData.initialFunds,
+                personnelCost: 240000, 
+                income: 0,
+                privateIncome: 0,
+                publicIncome: 0,
+                nma: 7.5,
+                marketShare: 100 / (gameData.teamNames.length + (gameData.teams - gameData.teamNames.length)),
+                morale: 80,
+                studentTeacherRatio: 25.0,
+                numStudents: 800,
+                numTeachers: 32,
+            };
+        }
     }
 
 
@@ -215,7 +232,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
   
-    // 1. Update the student's personal game state to 'pending'
     const studentGameRef = doc(firestore, "studentGames", user.id);
     const studentState: StudentGameState = {
       ...initialStudentState,
@@ -233,7 +249,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       errorEmitter.emit('permission-error', permissionError);
     });
   
-    // 2. Add a request to the game document itself
     const gameRef = doc(firestore, "games", gameId);
     const joinRequestData = {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
@@ -299,23 +314,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     });
   };
   
-  const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }
-  
-  const getStudentGameByGameId = useCallback((gameId: string) => {
-    return allStudentGames.find(sg => sg.gameId === gameId) || null;
-  }, [allStudentGames]);
-
-
   const value = useMemo(() => ({
     studentGame: fullStudentState,
     isLoading: isLoading || isAuthLoading || gamesLoading,
     requestToJoinGame,
     abandonGame,
-    checkGameStatus,
-    getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading, getStudentGameByGameId, allStudentGames]);
+  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading]);
 
   return (
     <StudentGameContext.Provider value={value}>

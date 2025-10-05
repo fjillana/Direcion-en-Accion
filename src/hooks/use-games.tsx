@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch, onSnapshot, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -68,6 +69,16 @@ export interface JoinRequest {
     requestedAt: number;
 }
 
+export interface StudentGameState {
+  userId: string;
+  status: 'no-game' | 'pending' | 'joined';
+  gameId: string | null;
+  gameName: string | null;
+  teamName: string | null;
+  planConfirmed?: boolean;
+  strategicPlan?: StrategicPlan;
+}
+
 export interface Game {
   id: string;
   name: string;
@@ -86,6 +97,7 @@ export interface Game {
   messages?: GameMessage[];
   decisions?: Record<number, Record<string, TeamDecision>>;
   createdBy: string;
+  strategicPlan?: StrategicPlan;
 }
 
 interface GamesContextType {
@@ -105,6 +117,7 @@ interface GamesContextType {
   activeGameId: string | null;
   acceptJoinRequests: (gameId: string, requests: JoinRequest[]) => Promise<void>;
   removeTeamFromGame: (gameId: string, teamName: string) => Promise<void>;
+  getStudentGamesByGameId: (gameId: string) => Promise<StudentGameState[]>;
 }
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
@@ -285,48 +298,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           messages: updatedMessages
       };
 
-      // DEBUGGING: Inspección completa del objeto
-      console.log('=== DEBUGGING updateTeamPerformance ===');
-      console.log('GameId:', gameId);
-      console.log('Round:', round);
-      console.log('Update data:', JSON.stringify(performanceUpdate, null, 2));
-      
-      // Función para detectar undefined recursivamente
-      const findUndefined = (obj: any, path = ''): string[] => {
-        const undefinedPaths: string[] = [];
-        if (obj === null) return undefinedPaths;
-        
-        Object.entries(obj).forEach(([key, value]) => {
-          const currentPath = path ? `${path}.${key}` : key;
-          
-          if (value === undefined) {
-            undefinedPaths.push(currentPath);
-          } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-            undefinedPaths.push(...findUndefined(value, currentPath));
-          } else if (Array.isArray(value)) {
-            value.forEach((item, index) => {
-              if (item === undefined) {
-                undefinedPaths.push(`${currentPath}[${index}]`);
-              } else if (item && typeof item === 'object') {
-                undefinedPaths.push(...findUndefined(item, `${currentPath}[${index}]`));
-              }
-            });
-          }
-        });
-        
-        return undefinedPaths;
-      };
-      
-      const undefinedPaths = findUndefined(performanceUpdate);
-      if (undefinedPaths.length > 0) {
-        console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
-        throw new Error(`Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`);
-      }
-      
       await updateDoc(gameRef, performanceUpdate);
     } catch(error) {
-       console.error(error);
-       // Optional: you could re-throw or handle it in a toast
+       console.error("Error updating team performance:", error);
     }
   };
 
@@ -394,6 +368,22 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const getGameById = (gameId: string) => games.find(g => g.id === gameId);
 
+  const getStudentGamesByGameId = useCallback(async (gameId: string): Promise<StudentGameState[]> => {
+    if (!firestore) return [];
+    
+    const studentGamesRef = collection(firestore, "studentGames");
+    const q = query(studentGamesRef, where("gameId", "==", gameId));
+
+    try {
+        const querySnapshot = await getDocs(q);
+        const studentGames = querySnapshot.docs.map(doc => doc.data() as StudentGameState);
+        return studentGames;
+    } catch (error) {
+        console.error("Error fetching student games by gameId:", error);
+        return [];
+    }
+  }, [firestore]);
+
   const setActiveGameId = (gameId: string | null) => {
       if (typeof window !== 'undefined') {
           if (gameId) {
@@ -423,6 +413,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         confirmStudentDecisions,
         acceptJoinRequests,
         removeTeamFromGame,
+        getStudentGamesByGameId,
     }}>
       {children}
     </GamesContext.Provider>

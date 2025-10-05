@@ -53,6 +53,7 @@ interface StudentGameContextType {
   isLoading: boolean;
   requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
   abandonGame: () => Promise<void>;
+  checkGameStatus: () => void;
   getStudentGameByGameId: (gameId: string) => StudentGameState | null; // This is a bit tricky now
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => Promise<void>;
@@ -128,6 +129,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(false);
     }, (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: `studentGames/${user.id}`,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
         console.error("Error fetching student game state:", error);
         setIsLoading(false);
     });
@@ -293,6 +299,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     });
   };
   
+  const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }
+  
   const getStudentGameByGameId = useCallback((gameId: string) => {
     return allStudentGames.find(sg => sg.gameId === gameId) || null;
   }, [allStudentGames]);
@@ -303,6 +311,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     isLoading: isLoading || isAuthLoading || gamesLoading,
     requestToJoinGame,
     abandonGame,
+    checkGameStatus,
     getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
@@ -322,5 +331,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

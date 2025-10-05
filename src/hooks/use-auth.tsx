@@ -15,6 +15,8 @@ import {
 import { doc, setDoc, getDoc, getFirestore } from "firebase/firestore";
 import { useFirebase } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 
 export type Theme = "light" | "dark";
@@ -53,42 +55,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleUser = useCallback(async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser && firestore) {
       const userRef = doc(firestore, "users", firebaseUser.uid);
-      const userDoc = await getDoc(userRef);
+      try {
+        const userDoc = await getDoc(userRef);
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data() as Omit<User, 'id'|'avatar'>;
-        const appUser: User = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || userData.name,
-          email: firebaseUser.email!,
-          avatar: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`,
-          role: userData.role,
-          theme: userData.theme || 'light',
-        };
-        setUser(appUser);
-        _setTheme(appUser.theme);
-      } else {
-        // User is authenticated, but no profile document exists. Create it now.
-        console.warn("User profile not found in Firestore, creating one now.");
-        
-        // This is a fallback. The role should ideally be determined during registration.
-        // We assume a 'student' role as a safe default.
-        const role: UserRole = 'student'; 
-        const name = firebaseUser.displayName || (role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`);
-        const avatar = firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
-        
-        const newUserProfile: Omit<User, 'id'> = {
-            name,
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as Omit<User, 'id'|'avatar'>;
+          const appUser: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || userData.name,
             email: firebaseUser.email!,
-            role,
-            avatar,
-            theme: 'light'
-        };
+            avatar: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`,
+            role: userData.role,
+            theme: userData.theme || 'light',
+          };
+          setUser(appUser);
+          _setTheme(appUser.theme);
+        } else {
+          // User is authenticated, but no profile document exists. Create it now.
+          console.warn("User profile not found in Firestore, creating one now.");
+          
+          // This is a fallback. The role should ideally be determined during registration.
+          // We assume a 'student' role as a safe default.
+          const role: UserRole = 'student'; 
+          const name = firebaseUser.displayName || (role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`);
+          const avatar = firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
+          
+          const newUserProfile: Omit<User, 'id'> = {
+              name,
+              email: firebaseUser.email!,
+              role,
+              avatar,
+              theme: 'light'
+          };
 
-        await setDoc(userRef, newUserProfile);
-        const appUser = { ...newUserProfile, id: firebaseUser.uid };
-        setUser(appUser);
-        _setTheme(appUser.theme);
+          await setDoc(userRef, newUserProfile);
+          const appUser = { ...newUserProfile, id: firebaseUser.uid };
+          setUser(appUser);
+          _setTheme(appUser.theme);
+        }
+      } catch (error) {
+         const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'get',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          console.error("Error fetching user profile:", error);
       }
     } else {
       setUser(null);

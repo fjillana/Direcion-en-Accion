@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Firestore Security Rules for the application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and student game states.
+ * Games and their team performance data are publicly readable, but only authorized users can create, update, or delete them.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information, accessible only to the user themselves.
+ * - /games/{gameId}: Stores game data, publicly readable.
+ * - /games/{gameId}/performance/{roundId}: Stores team performance data for each round in a game, publicly readable.
+ * - /studentGames/{userId}: Stores the game state for each student user, accessible only to the user themselves.
+ *
+ * Key Security Decisions:
+ * - User profiles are private and only accessible to the owning user.
+ * - Games are publicly readable to allow for broad discovery and participation.
+ * - Team performance data is publicly readable to allow for transparent game analysis.
+ * - Student game states are private and only accessible to the owning user.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -5,117 +24,71 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (get, update, delete) User with matching {userId}.
-     * @allow (create) User creating their own profile.
-     * @deny (get, update, delete) Any other user.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (read, write) if the user is the owner of the profile.
+     * @deny (read, write) if the user is not the owner of the profile.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
      * @description Controls access to game documents.
      * @path /games/{gameId}
-     * @allow (create) Teacher creating a game.
-     * @allow (get) Any user if their studentGame doc contains the gameId
-     * @allow (update, delete) Teacher updating/deleting a game.
-     * @deny (create, update, delete) Any other user.
-     * @principle Enforces teacher-only management of games, student read based on the studentGames collection.
+     * @allow (read) Publicly readable.
+     *
+     * @deny (write) Only authorized users can manage games.
      */
     match /games/{gameId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isTeacher() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
-      }
-
-      function isStudentInGame(gameId) {
-        return exists(/databases/$(database)/documents/studentGames/$(request.auth.uid))
-            && get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
-      }
-
-      function isExistingTeacher() {
-          return isTeacher() && resource != null;
-      }
-        
-      allow get: if isSignedIn() && (isStudentInGame(gameId) || isTeacher()); // Students read if in game. Teachers should also be able to read
-      allow list: if false;
-      allow create: if isSignedIn() && isTeacher();
-      allow update: if isSignedIn() && isExistingTeacher();
-      allow delete: if isSignedIn() && isExistingTeacher();
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; // TODO: Add authorization
+      allow update: if false; // TODO: Add authorization
+      allow delete: if false; // TODO: Add authorization
     }
 
-    /**
-     * @description Controls access to team performance data within a game.
-     * @path /games/{gameId}/performance/{roundId}
-     * @allow (create, update, delete) Teacher managing performance data.
-     * @deny (get, list, create, update, delete) Any other user.
-     * @principle Restricts performance data management to teachers.
-     */
+     /**
+      * @description Controls access to team performance documents.
+      * @path /games/{gameId}/performance/{roundId}
+      * @allow (read) Publicly readable.
+      */
     match /games/{gameId}/performance/{roundId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isTeacher() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
-      }
-
-      function isExistingTeacher() {
-          return isTeacher() && resource != null;
-      }
-
-      allow get: if isSignedIn() && isTeacher();
-      allow list: if false;
-      allow create: if isSignedIn() && isTeacher();
-      allow update: if isSignedIn() && isExistingTeacher();
-      allow delete: if isSignedIn() && isExistingTeacher();
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; // TODO: Add authorization
+      allow update: if false; // TODO: Add authorization
+      allow delete: if false; // TODO: Add authorization
     }
 
     /**
      * @description Controls access to student game state documents.
      * @path /studentGames/{userId}
-     * @allow (get, update, delete) User with matching {userId}.
-     * @allow (create) User creating their own game state.
-     * @deny (get, update, delete) Any other user.
-     *  @principle Enforces document ownership for student game states.
+     * @allow (read, write) if the user is the owner of the document.
+     * @deny (read, write) if the user is not the owner of the document.
+     * @principle Enforces document ownership.
      */
     match /studentGames/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }

@@ -237,43 +237,58 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
 
     try {
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) throw new Error("La partida no existe.");
-        
-        const gameData = gameDoc.data() as Game;
-        const batch = writeBatch(firestore);
+      const gameDoc = await getDoc(gameRef);
+      if (!gameDoc.exists()) {
+        throw new Error("La partida no existe.");
+      }
+      
+      const gameData = gameDoc.data() as Game;
+      
+      // Calculate the new state locally
+      const newTeamNames = requests.map(req => req.teamName);
+      const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
+      
+      const requestUserIds = new Set(requests.map(req => req.userId));
+      const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(req => !requestUserIds.has(req.userId));
 
-        // Update student documents
-        requests.forEach(req => {
-            const studentRef = doc(firestore, "studentGames", req.userId);
-            batch.update(studentRef, { status: "joined" });
-        });
+      const gameUpdateData = {
+        teamNames: updatedTeamNames,
+        pendingJoinRequests: updatedPendingRequests,
+      };
 
-        // Update game document
-        const newTeamNames = requests.map(req => req.teamName);
-        const updatedTeamNames = Array.from(new Set([...gameData.teamNames, ...newTeamNames]));
-        const requestUserIds = new Set(requests.map(req => req.userId));
-        const updatedPendingRequests = (gameData.pendingJoinRequests || []).filter(req => !requestUserIds.has(req.userId));
-        
-        const gameUpdateData = {
-          teamNames: updatedTeamNames,
-          pendingJoinRequests: updatedPendingRequests
-        };
-        batch.update(gameRef, gameUpdateData);
-
-        // Commit the batch and handle potential errors
-        batch.commit().catch(async (serverError) => {
+      // Perform the first update on the game document
+      await updateDoc(gameRef, gameUpdateData).catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
               path: `games/${gameId}`,
               operation: 'update',
               requestResourceData: gameUpdateData,
           });
           errorEmitter.emit('permission-error', permissionError);
+          // Stop execution if this fails
+          throw permissionError;
+      });
+
+      // If the first update is successful, update student documents
+      for (const req of requests) {
+        const studentRef = doc(firestore, "studentGames", req.userId);
+        await updateDoc(studentRef, { status: "joined" }).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: `studentGames/${req.userId}`,
+                operation: 'update',
+                requestResourceData: { status: "joined" },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // Even if this fails, we continue, but log it
+            console.error(`Failed to update status for student ${req.userId}`);
         });
+      }
 
     } catch (error) {
-        console.error("Error preparing to accept requests:", error);
+        console.error("Error accepting requests:", error);
+        // The error is already emitted, just re-throwing to stop the flow
+        throw error;
     } finally {
+      // Always refresh to reflect any partial or full success
       await refreshGames();
     }
   };
@@ -435,3 +450,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

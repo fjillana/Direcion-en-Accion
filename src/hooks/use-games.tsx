@@ -159,28 +159,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
     const gameWithOwner = { ...game, createdBy: user.id };
-    addDoc(collection(firestore, "games"), gameWithOwner).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `games`,
-        operation: 'create',
-        requestResourceData: gameWithOwner,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await addDoc(collection(firestore, "games"), gameWithOwner);
   };
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    try {
-        await deleteDoc(gameDocRef);
-    } catch (serverError: any) {
-        const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
+    await deleteDoc(gameDocRef);
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -219,14 +204,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    updateDoc(gameRef, updatedGame).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `games/${gameId}`,
-          operation: 'update',
-          requestResourceData: updatedGame,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updatedGame);
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
@@ -294,14 +272,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updateData = { reports: newReports, messages: newMessages };
 
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `games/${gameId}`,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updateData);
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
@@ -376,14 +347,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
     const updateData = { [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true } };
 
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'update',
-            requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updateData);
   };
 
   const getGameById = (gameId: string) => games.find(g => g.id === gameId);

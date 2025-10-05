@@ -169,14 +169,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    deleteDoc(gameDocRef).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: gameDocRef.path,
-          operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw permissionError;
-    });
+    await deleteDoc(gameDocRef);
     await refreshGames();
   };
   
@@ -224,6 +217,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
     if (!firestore || requests.length === 0) return;
 
+    for (const req of requests) {
+      const studentRef = doc(firestore, "studentGames", req.userId);
+      await updateDoc(studentRef, { status: "joined" });
+    }
+
     const gameRef = doc(firestore, "games", gameId);
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) {
@@ -239,19 +237,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         req => !requestUserIds.has(req.userId)
     );
 
-    const batch = writeBatch(firestore);
-
-    batch.update(gameRef, {
+    await updateDoc(gameRef, {
         teamNames: updatedTeamNames,
         pendingJoinRequests: updatedPendingRequests
     });
-
-    for (const req of requests) {
-        const studentRef = doc(firestore, "studentGames", req.userId);
-        batch.update(studentRef, { status: "joined" });
-    }
-
-    await batch.commit();
+    
     await refreshGames();
   };
 

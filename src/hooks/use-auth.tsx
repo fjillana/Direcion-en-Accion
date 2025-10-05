@@ -88,7 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               theme: 'light'
           };
 
-          await setDoc(userRef, newUserProfile);
+          setDoc(userRef, newUserProfile).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: `users/${firebaseUser.uid}`,
+              operation: 'create',
+              requestResourceData: newUserProfile,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
           const appUser = { ...newUserProfile, id: firebaseUser.uid };
           setUser(appUser);
           _setTheme(appUser.theme);
@@ -187,7 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         theme: 'light'
     };
 
-    await setDoc(doc(firestore, "users", firebaseUser.uid), newUser);
+    setDoc(doc(firestore, "users", firebaseUser.uid), newUser).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${firebaseUser.uid}`,
+          operation: 'create',
+          requestResourceData: newUser,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
     
     const appUser = { ...newUser, id: firebaseUser.uid };
     setUser(appUser);

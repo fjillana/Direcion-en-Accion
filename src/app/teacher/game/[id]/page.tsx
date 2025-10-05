@@ -121,34 +121,15 @@ export default function GameDetailsPage() {
       // By default, show the last completed round
       const lastCompletedRound = game.round > 0 ? game.round - 1 : 0;
       setCurrentRoundTab(lastCompletedRound.toString());
-      
-      const performanceForRound = game.performance?.[lastCompletedRound];
-      if (performanceForRound) {
-        setMonitoringData(performanceForRound);
-      } else {
-        setMonitoringData([]);
-      }
     }
-  }, [game]);
+  }, [game?.id, game?.round]);
 
   useEffect(() => {
-    if (selectedTeam) {
-        setTeacherNotes(`Notas para ${selectedTeam.name} en la ronda ${currentRoundTab}...`);
+    if (game) {
+        const performanceForRound = game.performance?.[parseInt(currentRoundTab)];
+        setMonitoringData(performanceForRound || []);
     }
-  }, [selectedTeam, currentRoundTab]);
-  
-  useEffect(() => {
-    if (game && parseInt(currentRoundTab) <= game.round) {
-      const performanceForRound = game.performance?.[parseInt(currentRoundTab)];
-      if (performanceForRound) {
-        setMonitoringData(performanceForRound);
-      } else {
-        setMonitoringData([]);
-      }
-    } else {
-      setMonitoringData([]);
-    }
-  }, [currentRoundTab, game]);
+}, [currentRoundTab, game]);
 
 
   const handleProcessRound = () => {
@@ -290,7 +271,7 @@ export default function GameDetailsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: game.numRounds + 1 }, (_, i) => i).map((r) => (
-                                <SelectItem key={r} value={r.toString()} disabled={r > (game.round > 0 ? game.round-1 : 0)}>
+                                <SelectItem key={r} value={r.toString()} disabled={r >= game.round}>
                                     Ronda {r}
                                 </SelectItem>
                                 ))}

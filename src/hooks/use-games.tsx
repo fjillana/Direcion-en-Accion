@@ -285,23 +285,43 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
+
+    const updateData = {
+        [`performance.${round}`]: performanceData,
+        messages: arrayUnion(...newMessages)
+    };
     
-    try {
-      const gameDoc = await getDoc(gameRef);
-      if (!gameDoc.exists()) return;
+    // Debugging interceptor
+    const findUndefined = (obj: any, path = ''): string[] => {
+      const undefinedPaths: string[] = [];
+      if (obj === undefined) {
+        undefinedPaths.push(path || 'root');
+        return undefinedPaths;
+      }
+      if (obj === null || typeof obj !== 'object') {
+        return undefinedPaths;
+      }
+      if (Array.isArray(obj)) {
+        obj.forEach((item, index) => {
+          undefinedPaths.push(...findUndefined(item, `${path}[${index}]`));
+        });
+      } else {
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = path ? `${path}.${key}` : key;
+          undefinedPaths.push(...findUndefined(value, currentPath));
+        });
+      }
+      return undefinedPaths;
+    };
 
-      const currentMessages = gameDoc.data().messages || [];
-      const updatedMessages = [...currentMessages, ...newMessages];
-
-      const performanceUpdate = {
-          [`performance.${round}`]: performanceData,
-          messages: updatedMessages
-      };
-
-      await updateDoc(gameRef, performanceUpdate);
-    } catch(error) {
-       console.error("Error updating team performance:", error);
+    const undefinedPaths = findUndefined(updateData);
+    if (undefinedPaths.length > 0) {
+      const errorMessage = `Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`;
+      console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
+      throw new Error(errorMessage);
     }
+    
+    await updateDoc(gameRef, updateData);
   };
 
   const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {

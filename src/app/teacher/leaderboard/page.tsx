@@ -165,9 +165,9 @@ export default function TeacherLeaderboardPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[80px]">Ranking</TableHead>
                 <TableHead>Equipo</TableHead>
                 <TableHead className="w-[50px] text-center">Tipo</TableHead>
-                <TableHead className="w-[80px]">Ranking</TableHead>
                 <TableHead className="text-right">Tesorería</TableHead>
                 <TableHead className="text-right">Coste Personal</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
@@ -180,9 +180,9 @@ export default function TeacherLeaderboardPage() {
             <TableBody>
               {teams.map((team) => (
                 <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
+                  <TableCell className="font-bold text-lg text-center">{team.rank}</TableCell>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
-                  <TableCell className="font-bold text-lg">{team.rank}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost, team.kpis.income)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>

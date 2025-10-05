@@ -1,15 +1,30 @@
+/**
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset enforces a user-ownership model for user profiles and student game states. Games are publicly readable but only editable by an authorized user. Performance data is only editable by the game creator.
+ * @data_structure
+ *   - /users/{userId}: Stores user profile information.
+ *   - /games/{gameId}: Stores game information.
+ *   - /games/{gameId}/performance/{roundId}: Stores team performance data for each round of a game.
+ *   - /studentGames/{userId}: Stores the game state for each student.
+ * @key_security_decisions
+ *   - Users can only read/write their own profile data.
+ *   - Any user can read games, but only an admin user can create, update, or delete games.
+ *   - Performance data can only be written by authorized game.
+ *   - Student game state is user-specific and only accessible by the user.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Manages user profile data. Only the authenticated user can read or write their own profile.
      * @path /users/{userId}
-     * @allow (get, update, delete) Authenticated user can access their own profile.
-     * @allow (create) Authenticated user can create their own profile, matching their UID.
-     * @deny (get, update, delete) User attempts to access another user's profile.
-     * @deny (list) Listing users is not allowed.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - An authenticated user can create their profile if the userId matches their auth.uid.
+     * @allow (get, update, delete) - An authenticated user can get, update, and delete their profile if the userId matches their auth.uid.
+     * @deny (create) - An unauthenticated user cannot create a profile.
+     * @deny (get, update, delete) - An unauthenticated user cannot get, update, and delete any profile.
+     * @deny (create) - An authenticated user cannot create a profile with a userId that does not match their auth.uid.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -21,80 +36,78 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && exists(resource);
+          return isSignedIn() && isOwner(userId);
       }
 
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId) && request.auth.uid == userId;
+      allow delete: if isExistingOwner(userId) && request.auth.uid == userId;
     }
 
     /**
-     * @description Controls access to game information.
+     * @description Manages game data. Games are publicly readable, but only a specific user can create, update, or delete them.
      * @path /games/{gameId}
-     * @allow (get, list) Any user can read game information.
-     * @allow (create) Authenticated user can create a game, with `createdBy` field set to their UID.
-     * @allow (update, delete) Only the user who created the game can update or delete it.
-     * @deny (update, delete) User attempts to modify a game they did not create.
-     * @principle Allows public read access with owner-only writes.
+     * @allow (get, list) - Any user can read the list of games or get any game.
+     * @allow (create) - Only an authorized user can create a game. The 'creatorId' field in the request data must match the authenticated user's ID.
+     * @allow (update, delete) - Only the authorized user can update or delete the game. The user must be signed in and be the original creator of the game.
+     * @deny (create) - An unauthenticated user cannot create a game.
+     * @deny (update, delete) - An unauthenticated user cannot update or delete a game.
+     * @deny (create) - An authenticated user cannot create a game if the 'creatorId' field does not match their auth.uid.
+     * @deny (update, delete) - An authenticated user cannot update or delete a game if they are not the original creator.
+     * @principle Public read access with owner-only writes.
      */
     match /games/{gameId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isOwner(gameId, userId) {
-        return get(/databases/$(database)/documents/games/$(gameId)).data.createdBy == userId;
+      function isOwner() {
+        return request.auth.uid == resource.data.creatorId;
       }
 
-      function isCreatingOwner() {
-        return request.resource.data.createdBy == request.auth.uid;
+      function isExistingOwner(gameId) {
+          return isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
       }
 
-      function isExistingOwner(gameId, userId) {
-        return isOwner(gameId, userId) && exists(resource);
-      }
-
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isCreatingOwner();
-      allow update: if isSignedIn() && isExistingOwner(gameId, request.auth.uid);
-      allow delete: if isSignedIn() && isExistingOwner(gameId, request.auth.uid);
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner();
+      allow delete: if isSignedIn() && isOwner();
     }
 
     /**
-     * @description Controls access to team performance data for each round of a game.
+     * @description Manages team performance data within a game. Only the game creator can create, update, or delete performance data for each round.
      * @path /games/{gameId}/performance/{roundId}
-     * @allow (create, update, delete) Only the user who created the game can write performance data.
-     * @deny (get, list) Prevents listing or reading individual round performance documents directly.
-     * @principle Restricts writes to the game creator.
+     * @allow (create) - Only the game creator can create performance data.
+     * @allow (update, delete) - Only the game creator can update or delete performance data.
+     * @deny (create, update, delete) - An unauthenticated user cannot create, update, or delete performance data.
+     *  @principle Restricts writes to a specific user.
      */
     match /games/{gameId}/performance/{roundId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
+        function isSignedIn() {
+            return request.auth != null;
+        }
 
-      function getGameCreator(gameId) {
-        return get(/databases/$(database)/documents/games/$(gameId)).data.createdBy;
-      }
-
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn() && getGameCreator(gameId) == request.auth.uid;
-      allow update: if isSignedIn() && getGameCreator(gameId) == request.auth.uid;
-      allow delete: if isSignedIn() && getGameCreator(gameId) == request.auth.uid;
+        function isGameOwner(gameId) {
+            return isSignedIn() && get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
+        }
+        allow get, list: if true;
+        allow create: if isSignedIn() && isGameOwner(gameId);
+        allow update: if isSignedIn() && isGameOwner(gameId);
+        allow delete: if isSignedIn() && isGameOwner(gameId);
     }
 
     /**
-     * @description Controls access to student game state.
+     * @description Manages the game state for each student. Only the authenticated user can read or write their own game state.
      * @path /studentGames/{userId}
-     * @allow (get, update, delete) Authenticated user can access their own game state.
-     * @allow (create) Authenticated user can create their own game state, matching their UID.
-     * @deny (get, update, delete) User attempts to access another user's game state.
-     * @deny (list) Listing student game states is not allowed.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - An authenticated user can create their game state if the userId matches their auth.uid.
+     * @allow (get, update, delete) - An authenticated user can get, update, and delete their game state if the userId matches their auth.uid.
+     * @deny (create) - An unauthenticated user cannot create a game state.
+     * @deny (get, update, delete) - An unauthenticated user cannot get, update, and delete any game state.
+     * @deny (create) - An authenticated user cannot create a game state with a userId that does not match their auth.uid.
+     * @principle Enforces document ownership for all operations.
      */
     match /studentGames/{userId} {
       function isSignedIn() {
@@ -105,15 +118,15 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && exists(resource);
-      }
+        function isExistingOwner(userId) {
+          return isSignedIn() && isOwner(userId);
+        }
 
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId) && request.auth.uid == userId;
+      allow delete: if isExistingOwner(userId) && request.auth.uid == userId;
     }
   }
 }

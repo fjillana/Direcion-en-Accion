@@ -7,27 +7,13 @@ import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, In
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
-import { doc, onSnapshot, setDoc, getDoc, collection, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
-
-export interface RoundDecisions {
-  selectedInvestments: InvestmentDecision[];
-  selectedCenterActions: string[];
-  tuitionPrice: number;
-  crisisResponse: {
-      crisisId: string;
-      optionId: string;
-      justification: string;
-      crisisName: string;
-      option: string;
-  } | null;
-  roundConfirmed: boolean;
-}
 
 export interface StudentGameState {
   userId: string;
@@ -53,8 +39,6 @@ interface StudentGameContextType {
   isLoading: boolean;
   requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
   abandonGame: () => Promise<void>;
-  checkGameStatus: () => void;
-  getStudentGameByGameId: (gameId: string) => StudentGameState | null; // This is a bit tricky now
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => Promise<void>;
 }
@@ -95,122 +79,131 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const router = useRouter();
 
-  const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
-  const [allStudentGames, setAllStudentGames] = useState<StudentGameState[]>([]);
   const [fullStudentState, setFullStudentState] = useState<FullStudentState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  
-  // Effect to listen to the current student's game state document in Firestore
+  // This single, robust useEffect now handles all state updates for the student.
   useEffect(() => {
     if (!firestore || !user?.id) {
       setIsLoading(isAuthLoading);
+      if(!isAuthLoading && !user) {
+        setFullStudentState(null);
+      }
       return;
     }
-    
-    setIsLoading(true);
-    const studentGameRef = doc(firestore, "studentGames", user.id);
 
-    const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setStudentGameState(docSnap.data() as StudentGameState);
+    setIsLoading(true);
+
+    const studentGameRef = doc(firestore, "studentGames", user.id);
+    
+    // Listen to student's personal game state document
+    const unsubscribeStudent = onSnapshot(studentGameRef, (studentDoc) => {
+      let studentGameState: StudentGameState;
+      if (studentDoc.exists()) {
+        studentGameState = studentDoc.data() as StudentGameState;
       } else {
-        // If no document exists, create one with the initial state
-        const initialData = { ...initialStudentState, userId: user.id };
-        setDoc(studentGameRef, initialData).catch(async (serverError) => {
+        // Create the doc if it doesn't exist for the logged-in user
+        studentGameState = { ...initialStudentState, userId: user.id };
+        setDoc(studentGameRef, studentGameState).catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
-            path: `studentGames/${user.id}`,
-            operation: 'create',
-            requestResourceData: initialData,
+            path: `studentGames/${user.id}`, operation: 'create', requestResourceData: studentGameState,
           });
           errorEmitter.emit('permission-error', permissionError);
         });
-        setStudentGameState(initialData);
       }
-      setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching student game state:", error);
+
+      // If student is not in a game, state is simple.
+      if (studentGameState.status !== 'joined' || !studentGameState.gameId) {
+        setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
         setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore, user, isAuthLoading]);
-
-  // Effect to derive the full student state by combining studentGameState and the global game data
-  useEffect(() => {
-    if (!studentGameState || !user) {
-      setFullStudentState(null);
-      return;
-    }
-
-    if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
-        const gameExists = games.some(g => g.id === studentGameState.gameId);
-        if (!gameExists) {
-            const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
-            if(firestore) {
-              setDoc(doc(firestore, "studentGames", user.id), resetState);
-            }
-            setStudentGameState(resetState);
-            return;
+        // Stop listening to any active game listener if they are no longer in a game
+        return; 
+      }
+      
+      // If student IS in a game, start listening to that specific game document
+      const gameRef = doc(firestore, "games", studentGameState.gameId);
+      const unsubscribeGame = onSnapshot(gameRef, (gameDoc) => {
+        if (!gameDoc.exists()) {
+          // The game they were in was deleted. Reset their state.
+          const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
+          setDoc(studentGameRef, resetState);
+          return;
         }
-    }
 
-    if (!studentGameState.gameId || studentGameState.status !== 'joined') {
-      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
-      return;
-    }
-    
-    const gameData = games.find(g => g.id === studentGameState.gameId);
-    if (!gameData) {
-      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
-      return;
-    }
+        // --- Combine Student and Game Data into a Full State ---
+        const gameData = gameDoc.data();
+        const teamName = studentGameState.teamName!;
 
-    const serverRound = gameData.round;
-    const clientRound = fullStudentState?.round;
-    const hasRoundChanged = clientRound !== serverRound;
+        // Determine current decisions
+        const serverRound = gameData.round;
+        const currentDecisions = gameData.decisions?.[serverRound]?.[teamName] || 
+                               (fullStudentState?.round !== serverRound ? 
+                               { ...initialRoundDecisions, tuitionPrice: fullStudentState?.decisions.tuitionPrice || 120 } 
+                               : fullStudentState?.decisions || initialRoundDecisions);
+        
+        // Compile performance history and current KPIs
+        const performanceHistory: TeamPerformanceData[] = [];
+        let currentKpis: TeamKPIs | undefined = undefined;
 
-    let currentDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!] || 
-                           (hasRoundChanged ? { ...initialRoundDecisions, tuitionPrice: fullStudentState?.decisions.tuitionPrice || 120 } : fullStudentState?.decisions || initialRoundDecisions);
-    
-    const performanceHistory: TeamPerformanceData[] = [];
-    let currentKpis: TeamKPIs | undefined = undefined;
-
-    if (gameData.performance) {
-        Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
-            const roundNum = parseInt(roundKey, 10);
-            const teamPerformance = gameData.performance![roundNum].find(p => p.name === studentGameState.teamName);
-            if (teamPerformance) {
-                performanceHistory.push(teamPerformance);
-                if (roundNum === serverRound - 1) {
-                    currentKpis = teamPerformance.kpis;
+        if (gameData.performance) {
+            Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
+                const roundNum = parseInt(roundKey, 10);
+                const teamPerformance = gameData.performance![roundNum].find((p: TeamPerformanceData) => p.name === teamName);
+                if (teamPerformance) {
+                    performanceHistory.push(teamPerformance);
+                    if (roundNum === serverRound - 1) { // KPIs are from the last completed round
+                        currentKpis = teamPerformance.kpis;
+                    }
                 }
-            }
+            });
+        }
+        
+        // Special case for round 0 display
+        if (serverRound === 0 && !currentKpis && gameData.performance?.[0]) {
+          currentKpis = gameData.performance[0].find((p: TeamPerformanceData) => p.name === teamName)?.kpis;
+        }
+
+        // Build the final, full state object
+        setFullStudentState({
+          ...studentGameState,
+          round: serverRound,
+          decisions: currentDecisions,
+          roundSettings: gameData.roundSettings?.[serverRound],
+          messages: gameData.messages?.filter((m: GameMessage) => m.to === 'all' || m.to === teamName || m.from === teamName),
+          performanceHistory,
+          kpis: currentKpis
         });
-    }
+        setIsLoading(false);
 
-    if (serverRound === 0 && !currentKpis && gameData.performance?.[0]) {
-      currentKpis = gameData.performance[0].find(p => p.name === studentGameState.teamName)?.kpis;
-    }
+      }, (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: gameRef.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setIsLoading(false);
+      });
 
+      // Return cleanup for the game listener
+      return () => unsubscribeGame();
 
-    setFullStudentState({
-      ...studentGameState,
-      round: serverRound,
-      decisions: currentDecisions,
-      roundSettings: gameData.roundSettings?.[serverRound],
-      messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGameState.teamName || m.from === studentGameState.teamName),
-      performanceHistory,
-      kpis: currentKpis
+    }, (error) => {
+      const permissionError = new FirestorePermissionError({
+        path: studentGameRef.path,
+        operation: 'get',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      setIsLoading(false);
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
+    // Return cleanup for the student doc listener
+    return () => unsubscribeStudent();
+  }, [firestore, user, isAuthLoading]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
   
-    // 1. Update the student's personal game state to 'pending'
     const studentGameRef = doc(firestore, "studentGames", user.id);
     const studentState: StudentGameState = {
       ...initialStudentState,
@@ -218,41 +211,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       status: 'pending',
       gameId, gameName, teamName
     };
+    await setDoc(studentGameRef, studentState, { merge: true });
   
-    setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `studentGames/${user.id}`,
-        operation: 'update', // or 'create'
-        requestResourceData: studentState,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-  
-    // 2. Add a request to the game document itself
     const gameRef = doc(firestore, "games", gameId);
     const joinRequestData = {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
     };
-  
-    updateDoc(gameRef, joinRequestData).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `games/${gameId}`,
-        operation: 'update',
-        requestResourceData: { teamName, userId: user.id }, // Just showing what we're trying to add
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, joinRequestData);
     
     router.push('/student/dashboard');
   };
   
 
   const abandonGame = async () => {
-    if (!firestore || !user || !studentGameState?.gameId || !studentGameState?.teamName) return;
+    if (!firestore || !user || !fullStudentState?.gameId || !fullStudentState?.teamName) return;
     
-    const game = games.find(g => g.id === studentGameState.gameId);
+    const game = games.find(g => g.id === fullStudentState.gameId);
     if (game) {
-      const updatedTeamNames = game.teamNames.filter(name => name !== studentGameState.teamName);
+      const updatedTeamNames = game.teamNames.filter(name => name !== fullStudentState.teamName);
       await updateGame(game.id, { teamNames: updatedTeamNames });
     }
 
@@ -276,41 +252,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
-    if (!firestore || !user || !studentGameState) return;
+    if (!firestore || !user || !fullStudentState) return;
     const studentGameRef = doc(firestore, "studentGames", user.id);
-    const newPlan = { ...(studentGameState.strategicPlan || {}), ...plan };
+    const newPlan = { ...(fullStudentState.strategicPlan || {}), ...plan };
     const updateData = {
       strategicPlan: newPlan,
       planConfirmed: newPlan.confirmed
     };
     
-    setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `studentGames/${user.id}`,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await setDoc(studentGameRef, updateData, { merge: true });
   };
   
-  const checkGameStatus = () => { /* This can be removed or re-purposed as it's now real-time */ }
-  
-  const getStudentGameByGameId = useCallback((gameId: string) => {
-    return allStudentGames.find(sg => sg.gameId === gameId) || null;
-  }, [allStudentGames]);
-
-
   const value = useMemo(() => ({
     studentGame: fullStudentState,
-    isLoading: isLoading || isAuthLoading || gamesLoading,
+    isLoading: isLoading,
     requestToJoinGame,
     abandonGame,
-    checkGameStatus,
-    getStudentGameByGameId,
     setRoundDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading, getStudentGameByGameId, allStudentGames]);
+  }), [fullStudentState, isLoading]);
 
   return (
     <StudentGameContext.Provider value={value}>
@@ -326,3 +286,4 @@ export function useStudentGame() {
   }
   return context;
 }
+

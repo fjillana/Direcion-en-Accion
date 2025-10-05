@@ -159,13 +159,26 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
     const gameWithOwner = { ...game, createdBy: user.id };
-    await addDoc(collection(firestore, "games"), gameWithOwner);
+    addDoc(collection(firestore, "games"), gameWithOwner).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: `games`,
+        operation: 'create',
+        requestResourceData: gameWithOwner,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    await deleteDoc(gameDocRef);
+    deleteDoc(gameDocRef).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: `games/${gameId}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
@@ -230,7 +243,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const batch = writeBatch(firestore);
         for (const req of requests) {
             const studentRef = doc(firestore, "studentGames", req.userId);
-            batch.update(studentRef, { status: "joined" });
+             batch.update(studentRef, { status: "joined" });
         }
         await batch.commit();
 

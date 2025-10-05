@@ -272,55 +272,62 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) return;
-
-    const currentMessages = gameDoc.data().messages || [];
-    const updatedMessages = [...currentMessages, ...newMessages];
-
-    const performanceUpdate = {
-        [`performance.${round}`]: performanceData,
-        messages: updatedMessages
-    };
-
-    // DEBUGGING: Inspección completa del objeto
-    console.log('=== DEBUGGING updateTeamPerformance ===');
-    console.log('GameId:', gameId);
-    console.log('Round:', round);
-    console.log('Update data:', JSON.stringify(performanceUpdate, null, 2));
-
-    const findUndefined = (obj: any, path = ''): string[] => {
-      const undefinedPaths: string[] = [];
-      if (!obj) return undefinedPaths;
-      
-      Object.entries(obj).forEach(([key, value]) => {
-        const currentPath = path ? `${path}.${key}` : key;
-        
-        if (value === undefined) {
-          undefinedPaths.push(currentPath);
-        } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-          undefinedPaths.push(...findUndefined(value, currentPath));
-        } else if (Array.isArray(value)) {
-          value.forEach((item, index) => {
-            if (item === undefined) {
-              undefinedPaths.push(`${currentPath}[${index}]`);
-            } else if (item && typeof item === 'object') {
-              undefinedPaths.push(...findUndefined(item, `${currentPath}[${index}]`));
-            }
-          });
-        }
-      });
-      
-      return undefinedPaths;
-    };
     
-    const undefinedPaths = findUndefined(performanceUpdate);
-    if (undefinedPaths.length > 0) {
-      console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
-      throw new Error(`Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`);
-    }
+    try {
+      const gameDoc = await getDoc(gameRef);
+      if (!gameDoc.exists()) return;
 
-    await updateDoc(gameRef, performanceUpdate);
+      const currentMessages = gameDoc.data().messages || [];
+      const updatedMessages = [...currentMessages, ...newMessages];
+
+      const performanceUpdate = {
+          [`performance.${round}`]: performanceData,
+          messages: updatedMessages
+      };
+
+      // DEBUGGING: Inspección completa del objeto
+      console.log('=== DEBUGGING updateTeamPerformance ===');
+      console.log('GameId:', gameId);
+      console.log('Round:', round);
+      console.log('Update data:', JSON.stringify(performanceUpdate, null, 2));
+      
+      // Función para detectar undefined recursivamente
+      const findUndefined = (obj: any, path = ''): string[] => {
+        const undefinedPaths: string[] = [];
+        if (obj === null) return undefinedPaths;
+        
+        Object.entries(obj).forEach(([key, value]) => {
+          const currentPath = path ? `${path}.${key}` : key;
+          
+          if (value === undefined) {
+            undefinedPaths.push(currentPath);
+          } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+            undefinedPaths.push(...findUndefined(value, currentPath));
+          } else if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              if (item === undefined) {
+                undefinedPaths.push(`${currentPath}[${index}]`);
+              } else if (item && typeof item === 'object') {
+                undefinedPaths.push(...findUndefined(item, `${currentPath}[${index}]`));
+              }
+            });
+          }
+        });
+        
+        return undefinedPaths;
+      };
+      
+      const undefinedPaths = findUndefined(performanceUpdate);
+      if (undefinedPaths.length > 0) {
+        console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
+        throw new Error(`Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`);
+      }
+      
+      await updateDoc(gameRef, performanceUpdate);
+    } catch(error) {
+       console.error(error);
+       // Optional: you could re-throw or handle it in a toast
+    }
   };
 
   const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {

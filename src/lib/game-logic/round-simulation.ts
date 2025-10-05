@@ -12,7 +12,7 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
 
     if (teamDecision) {
         return {
-            selectedInvestments: teamDecision.selectedInvestments || [],
+            investments: teamDecision.investments || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
             crisisResponse: teamDecision.crisisResponse || null,
             selectedCenterActions: teamDecision.selectedCenterActions || [],
@@ -90,14 +90,19 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
       const performanceResults: TeamPerformanceData[] = currentTeamsState.map(teamState => {
         const kpisAfterInitialInvestment = updateKpisForNextRound(teamState, 0, true);
         const performance = calculateTeamPerformance(kpisAfterInitialInvestment, false);
-        return {
+        
+        const result: TeamPerformanceData = {
           name: teamState.name,
           type: teamState.type,
           ...performance,
-          decisions: teamState.decisions, // Make sure to pass the full decisions object
+          decisions: teamState.decisions,
           kpis: kpisAfterInitialInvestment,
-          archetype: teamState.archetype,
         };
+        // Only add archetype if it exists (for AI teams)
+        if (teamState.archetype) {
+            result.archetype = teamState.archetype;
+        }
+        return result;
       });
       return { performanceData: performanceResults, newMessages: [] };
   }
@@ -128,14 +133,20 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
     const performance = calculateTeamPerformance(teamState.kpis, isOverloaded);
 
-    return {
+    const result: TeamPerformanceData = {
       name: teamState.name,
       type: teamState.type,
       ...performance,
-      decisions: teamState.decisions, // Make sure to pass the full decisions object
+      decisions: teamState.decisions,
       kpis: teamState.kpis,
-      archetype: teamState.archetype,
     };
+    
+    // Only add archetype if it exists (for AI teams)
+    if (teamState.archetype) {
+        result.archetype = teamState.archetype;
+    }
+    
+    return result;
   });
   
   const newMessages: GameMessage[] = [];

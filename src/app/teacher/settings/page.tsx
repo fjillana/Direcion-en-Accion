@@ -76,8 +76,8 @@ export default function SettingsPage() {
     
     const humanTeams = acceptedHumanTeams.map(name => ({ name, type: 'H' as const }));
     
-    // The number of AI rivals fills the remaining slots up to the total number of teams.
-    const numAIRivals = activeGame.teams - humanTeams.length;
+    // RULE: Add one AI rival for each human team
+    const numAIRivals = humanTeams.length;
     
     const rivalTeams = Array.from({ length: numAIRivals > 0 ? numAIRivals : 0 }, (_, i) => ({
       name: `IA Rival ${i + 1}`,
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-              <h4 className="mb-2 font-medium">Equipos en la Partida ({teamsWithRivals.length} / {activeGame.teams})</h4>
+              <h4 className="mb-2 font-medium">Equipos en la Partida ({teamsWithRivals.length} / {activeGame.teams + teamsWithRivals.filter(t => t.type === 'IA').length})</h4>
               <div className="rounded-lg border">
                 <ScrollArea className="h-64">
                     {gamesLoading ? (

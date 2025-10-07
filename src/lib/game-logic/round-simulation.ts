@@ -39,8 +39,8 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 
 export function simulateRound(game: Game): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   const humanTeamsCount = game.teamNames.length;
-  // Correctly calculate the number of AI teams needed to fill the total slots.
-  const numIaTeams = Math.max(0, game.teams - humanTeamsCount);
+  // RULE: 1 AI team per human team. Total teams = humanTeams * 2.
+  const numIaTeams = humanTeamsCount;
 
   const initialKPIs = (gameData: Game): TeamKPIs => ({
     cash: gameData.initialFunds,
@@ -49,7 +49,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
     privateIncome: 0,
     publicIncome: 0,
     nma: 7.5,
-    marketShare: 100 / (gameData.teams || 1),
+    marketShare: 100 / (humanTeamsCount + numIaTeams || 1),
     morale: 80,
     studentTeacherRatio: 25.0,
     numStudents: 800,

@@ -41,7 +41,7 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   const humanTeamsCount = game.teamNames.length;
   // RULE: 1 AI team per human team.
-  const numIaTeams = humanTeamsCount;
+  const numIaTeams = humanTeamsCount > 0 ? humanTeamsCount : 1;
 
   const initialKPIs = (gameData: Game): TeamKPIs => ({
     cash: gameData.initialFunds,
@@ -115,7 +115,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
-    const performance = calculateTeamPerformance(teamState.kpis, isOverloaded);
+    const performance = calculateTeamPerformance(teamState.kpis, isOverloaded, teamState.decisions);
 
     const result: TeamPerformanceData = {
       name: teamState.name,

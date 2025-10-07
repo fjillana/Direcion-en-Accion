@@ -28,7 +28,7 @@ export interface CrisisDecision {
 }
 
 export interface TeamDecision {
-  investments: InvestmentDecision[];
+  selectedInvestments: InvestmentDecision[];
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
   selectedCenterActions: string[];
@@ -291,7 +291,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         messages: arrayUnion(...newMessages)
     };
     
-    // Debugging interceptor
     const findUndefined = (obj: any, path = ''): string[] => {
       const undefinedPaths: string[] = [];
       if (obj === undefined) {

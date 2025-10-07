@@ -34,6 +34,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { TeamPerformanceData, Game, StudentGameState } from "@/hooks/use-games";
 import { useGames } from "@/hooks/use-games";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Simplified team structure for the leaderboard view
 type LeaderboardTeam = {
@@ -80,6 +81,8 @@ export default function TeacherLeaderboardPage() {
 
   const [selectedTeam, setSelectedTeam] = useState<LeaderboardTeam | null>(null);
   const [studentGamesData, setStudentGamesData] = useState<StudentGameState[]>([]);
+  const [selectedRound, setSelectedRound] = useState<string>("0");
+
 
   useEffect(() => {
     const gameId = searchParams.get('gameId');
@@ -90,6 +93,10 @@ export default function TeacherLeaderboardPage() {
 
   useEffect(() => {
     if (activeGame) {
+      // Set the selected round to the latest completed round when the game changes.
+      const lastCompletedRound = activeGame.round > 0 ? activeGame.round - 1 : 0;
+      setSelectedRound(lastCompletedRound.toString());
+
       getStudentGamesByGameId(activeGame.id).then(data => {
         setStudentGamesData(data);
       });
@@ -99,8 +106,7 @@ export default function TeacherLeaderboardPage() {
   const teams = useMemo(() => {
       if (!activeGame || !activeGame.performance) return [];
       
-      const lastCompletedRound = activeGame.round > 0 ? activeGame.round - 1 : 0;
-      const performanceData = activeGame.performance[lastCompletedRound];
+      const performanceData = activeGame.performance[parseInt(selectedRound)];
 
       if (!performanceData) return [];
       
@@ -126,7 +132,7 @@ export default function TeacherLeaderboardPage() {
           ...team,
           rank: index + 1
       }));
-  }, [activeGame, studentGamesData]);
+  }, [activeGame, studentGamesData, selectedRound]);
 
 
   if (!activeGame) {
@@ -155,11 +161,30 @@ export default function TeacherLeaderboardPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Leaderboard: {activeGame.name}</CardTitle>
-          <CardDescription>
-            Clasificación global y KPIs públicos. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
-          </CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+          <div>
+            <CardTitle>Leaderboard: {activeGame.name}</CardTitle>
+            <CardDescription>
+              Clasificación global y KPIs públicos. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
+            </CardDescription>
+          </div>
+           <div className="w-[180px]">
+              <Select
+                  value={selectedRound}
+                  onValueChange={setSelectedRound}
+              >
+                  <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar Ronda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {Array.from({ length: activeGame.numRounds + 1 }, (_, i) => i).map((r) => (
+                      <SelectItem key={r} value={r.toString()} disabled={!activeGame.performance?.[r]}>
+                          Ronda {r}
+                      </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -192,6 +217,13 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
                 </TableRow>
               ))}
+               {teams.length === 0 && (
+                  <TableRow>
+                      <TableCell colSpan={10} className="h-24 text-center">
+                          No hay datos disponibles para la ronda {selectedRound}.
+                      </TableCell>
+                  </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -207,13 +239,11 @@ export default function TeacherLeaderboardPage() {
                   Comparativa de KPIs actuales contra los objetivos de la Ronda 0.
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-4">
-                {selectedTeam.strategicPlan?.rankingGoal && (
-                    <blockquote className="border-l-2 pl-6 italic">
-                        "{selectedTeam.strategicPlan.rankingGoal}"
-                    </blockquote>
-                )}
-              </div>
+              {selectedTeam.strategicPlan?.rankingGoal && (
+                  <blockquote className="mt-4 border-l-2 pl-6 italic">
+                      "{selectedTeam.strategicPlan.rankingGoal}"
+                  </blockquote>
+              )}
               <div className="overflow-hidden rounded-lg border mt-4">
                 <Table>
                   <TableHeader>

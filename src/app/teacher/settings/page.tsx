@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -59,7 +60,7 @@ export default function SettingsPage() {
     return activeGame?.pendingJoinRequests || [];
   }, [activeGame]);
   
-  const acceptedTeams = useMemo(() => {
+  const acceptedHumanTeams = useMemo(() => {
       return activeGame?.teamNames || [];
   }, [activeGame]);
 
@@ -70,12 +71,23 @@ export default function SettingsPage() {
   }, [activeGame]);
 
   const teamsWithRivals = useMemo(() => {
-      if (!activeGame) return [];
-      const humanTeams = acceptedTeams.map(name => ({name, type: 'H'}));
-      const numAIRivals = activeGame.teams - humanTeams.length;
-      const rivalTeams = Array.from({length: numAIRivals > 0 ? numAIRivals : 0}, (_, i) => ({name: `IA Rival ${i + 1}`, type: 'IA'}));
-      return [...humanTeams, ...rivalTeams];
-  }, [acceptedTeams, activeGame]);
+    if (!activeGame) return [];
+    
+    // The total number of teams in the game is `activeGame.teams`.
+    // Some are human, the rest are AI.
+    const humanTeams = acceptedHumanTeams.map(name => ({ name, type: 'H' as const }));
+    
+    // The number of AI rivals fills the remaining slots.
+    const numAIRivals = activeGame.teams - humanTeams.length;
+    
+    const rivalTeams = Array.from({ length: numAIRivals > 0 ? numAIRivals : 0 }, (_, i) => ({
+      name: `IA Rival ${i + 1}`,
+      type: 'IA' as const
+    }));
+    
+    return [...humanTeams, ...rivalTeams];
+  }, [acceptedHumanTeams, activeGame]);
+
 
   const handleDifficultyChange = (value: number[]) => {
     setAiDifficulty(value[0]);
@@ -185,7 +197,7 @@ export default function SettingsPage() {
                     </div>
                     <Dialog open={isRequestsDialogOpen} onOpenChange={setRequestsDialogOpen}>
                       <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={acceptedTeams.length >= activeGame.teams || pendingTeams.length === 0}>
+                          <Button variant="outline" size="sm" disabled={acceptedHumanTeams.length >= activeGame.teams || pendingTeams.length === 0}>
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Gestionar Solicitudes ({pendingTeams.length})
                           </Button>
@@ -205,7 +217,7 @@ export default function SettingsPage() {
                                               id={`req-${team.userId}`} 
                                               onCheckedChange={(checked) => handleRequestCheckboxChange(team, !!checked)}
                                               checked={selectedRequests.some(r => r.userId === team.userId)}
-                                              disabled={acceptedTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.some(r => r.userId === team.userId)}
+                                              disabled={acceptedHumanTeams.length + selectedRequests.length >= activeGame.teams && !selectedRequests.some(r => r.userId === team.userId)}
                                           />
                                           <Label htmlFor={`req-${team.userId}`} className="font-medium cursor-pointer">{team.teamName}</Label>
                                       </div>
@@ -225,7 +237,7 @@ export default function SettingsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-              <h4 className="mb-2 font-medium">Equipos en la Partida</h4>
+              <h4 className="mb-2 font-medium">Equipos en la Partida ({teamsWithRivals.length} / {activeGame.teams})</h4>
               <div className="rounded-lg border">
                 <ScrollArea className="h-64">
                     {gamesLoading ? (
@@ -292,5 +304,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

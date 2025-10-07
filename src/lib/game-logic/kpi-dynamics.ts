@@ -16,10 +16,9 @@ const CAPACITY = 810;
  * Recalcula los KPIs de un equipo para el inicio de la siguiente ronda.
  * @param teamState - El estado actual del equipo.
  * @param newStudents - El número de nuevos alumnos captados en esta ronda.
- * @param isInitialSetup - Si es la ronda 0, para solo calcular el gasto inicial.
  * @returns El nuevo estado de los KPIs del equipo.
  */
-export function updateKpisForNextRound(teamState: TeamState, newStudents: number, isInitialSetup = false) {
+export function updateKpisForNextRound(teamState: TeamState, newStudents: number) {
   const currentKpis = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
 
@@ -35,12 +34,10 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
     updatedNumTeachers -= 1;
   }
 
-  // En la simulación normal (no en el setup inicial), los nuevos alumnos se añaden
-  if (!isInitialSetup) {
-      const availableSpots = CAPACITY - updatedNumStudents;
-      const admittedStudents = Math.min(newStudents, availableSpots);
-      updatedNumStudents += admittedStudents;
-  }
+  // Los nuevos alumnos se añaden
+  const availableSpots = CAPACITY - updatedNumStudents;
+  const admittedStudents = Math.min(newStudents, availableSpots);
+  updatedNumStudents += admittedStudents;
   
 
   // 2. Calcular Ingresos y Costes
@@ -58,9 +55,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
   const cashAtStartOfRound = currentKpis.cash;
-  const updatedCash = isInitialSetup
-    ? cashAtStartOfRound // In round 0, we don't apply costs, just plan
-    : cashAtStartOfRound + income - totalExpenses; // In subsequent rounds, you earn then spend
+  const updatedCash = cashAtStartOfRound + income - totalExpenses;
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedNma = currentKpis.nma;
@@ -105,7 +100,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       ...currentKpis,
       cash: updatedCash,
       personnelCost: personnelCost,
-      income: isInitialSetup ? 0 : income, // Income is 0 in the setup round
+      income: income,
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,
       nma: updatedNma,

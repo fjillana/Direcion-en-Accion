@@ -10,7 +10,17 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
+    // Fallback if no decisions are found
+    const fallbackDecisions: TeamDecision = {
+        investments: [],
+        tuitionPrice: 120,
+        crisisResponse: null,
+        selectedCenterActions: [],
+        roundConfirmed: false,
+    };
+    
     if (teamDecision) {
+        // Ensure all properties are arrays to prevent runtime errors
         return {
             investments: teamDecision.investments || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
@@ -20,14 +30,7 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
         };
     }
     
-    // Fallback if no decisions are found
-    return {
-        selectedInvestments: [],
-        tuitionPrice: 120,
-        crisisResponse: null,
-        selectedCenterActions: [],
-        roundConfirmed: false
-    };
+    return fallbackDecisions;
 }
 
 const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
@@ -44,7 +47,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
     privateIncome: 0,
     publicIncome: 0,
     nma: 7.5,
-    marketShare: 100 / (gameData.teams || 1),
+    marketShare: 100 / (gameData.teamNames.length + numIaTeams || 1),
     morale: 80,
     studentTeacherRatio: 25.0,
     numStudents: 800,
@@ -85,29 +88,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
     });
   }
   
-  // For Round 0, we just apply initial decisions without market simulation
-  if (game.round === 0) {
-      const performanceResults: TeamPerformanceData[] = currentTeamsState.map(teamState => {
-        const kpisAfterInitialInvestment = updateKpisForNextRound(teamState, 0, true);
-        const performance = calculateTeamPerformance(kpisAfterInitialInvestment, false);
-        
-        const result: TeamPerformanceData = {
-          name: teamState.name,
-          type: teamState.type,
-          ...performance,
-          decisions: teamState.decisions,
-          kpis: kpisAfterInitialInvestment,
-        };
-        // Only add archetype if it exists (for AI teams)
-        if (teamState.archetype) {
-            result.archetype = teamState.archetype;
-        }
-        return result;
-      });
-      return { performanceData: performanceResults, newMessages: [] };
-  }
-
-  // --- For Round 1 onwards ---
+  // --- For ALL Rounds (including Round 0) ---
   const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
 
   const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
@@ -141,9 +122,8 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
       kpis: teamState.kpis,
     };
     
-    // Only add archetype if it exists (for AI teams)
     if (teamState.archetype) {
-        result.archetype = teamState.archetype;
+      result.archetype = teamState.archetype;
     }
     
     return result;

@@ -19,13 +19,9 @@ const CAPACITY = 810;
  * @returns El nuevo estado de los KPIs del equipo.
  */
 export function updateKpisForNextRound(teamState: TeamState, newStudents: number) {
-  console.log(`--- DEBUG: [updateKpisForNextRound] START for team ${teamState.name} ---`);
   
   const currentKpis = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
-
-  console.log('Initial KPIs:', JSON.parse(JSON.stringify(currentKpis)));
-  console.log('Decisions received:', JSON.parse(JSON.stringify(decisions)));
 
 
   // --- Pre-calculation state ---
@@ -55,17 +51,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
-      // Note: P2 (hiring) cost is part of the recurring personnelCost, not a one-time investment here.
       if (actionId === 'P2') return sum + 7500; // Hiring cost is also a one-time cost
       return sum;
   }, 0);
   
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
-  console.log('Calculated investmentCost:', investmentCost);
-  console.log('Calculated centerActionsCost:', centerActionsCost);
-  console.log('Calculated totalExpenses:', totalExpenses);
-
 
   // En Ronda 0, el cash inicial es el de la partida. En las demás, es el de la ronda anterior.
   const cashAtStartOfRound = teamState.kpis.cash;
@@ -123,9 +114,6 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       privateIncome,
       publicIncome: PUBLIC_INCOME
   };
-
-  console.log('Final KPIs:', JSON.parse(JSON.stringify(finalKPIs)));
-  console.log(`--- DEBUG: [updateKpisForNextRound] END for team ${teamState.name} ---`);
   
   return finalKPIs;
 }

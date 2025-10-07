@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -73,11 +74,9 @@ export default function SettingsPage() {
   const teamsWithRivals = useMemo(() => {
     if (!activeGame) return [];
     
-    // The total number of teams in the game is `activeGame.teams`.
-    // Some are human, the rest are AI.
     const humanTeams = acceptedHumanTeams.map(name => ({ name, type: 'H' as const }));
     
-    // The number of AI rivals fills the remaining slots.
+    // The number of AI rivals fills the remaining slots up to the total number of teams.
     const numAIRivals = activeGame.teams - humanTeams.length;
     
     const rivalTeams = Array.from({ length: numAIRivals > 0 ? numAIRivals : 0 }, (_, i) => ({

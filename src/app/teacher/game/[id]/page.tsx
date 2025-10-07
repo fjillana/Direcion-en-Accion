@@ -118,7 +118,6 @@ export default function GameDetailsPage() {
   
   useEffect(() => {
     if (game) {
-      // By default, show the last completed round
       const lastCompletedRound = game.round > 0 ? game.round - 1 : 0;
       setCurrentRoundTab(lastCompletedRound.toString());
     }
@@ -135,17 +134,13 @@ export default function GameDetailsPage() {
   const handleProcessRound = async () => {
     setIsProcessing(true);
     if (game) {
-      // 1. Get student game states to pass to simulation
       const studentGames = await getStudentGamesByGameId(game.id);
 
-      // 2. Simulate the round to get performance results
       const { performanceData, newMessages } = simulateRound(game, studentGames);
       const nextRound = game.round + 1;
 
-      // 3. Update the game state with the new performance data
       await updateTeamPerformance(game.id, game.round, performanceData, newMessages);
 
-      // 4. Move to the next round or end the game
       if (nextRound > game.numRounds) {
         await updateGame(game.id, { status: "Finalizado" });
       } else {
@@ -330,7 +325,7 @@ export default function GameDetailsPage() {
           </TabsContent>
           <TabsContent value="config">
              <RoundConfig
-              allTeams={[...game.teamNames, ...Array.from({ length: game.teams }, (_, i) => `IA Rival ${i + 1}`)]}
+              allTeams={game.teamNames.concat(Array.from({ length: game.teams - game.teamNames.length }, (_, i) => `IA Rival ${i + 1}`))}
               fullInvestments={fullInvestments}
               fullCrises={fullCrises}
             />
@@ -339,7 +334,7 @@ export default function GameDetailsPage() {
       </div>
       
       <Dialog open={isPebDetailOpen} onOpenChange={setPebDetailOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           {selectedTeam && (
             <>
               <DialogHeader>
@@ -348,24 +343,51 @@ export default function GameDetailsPage() {
                     Cálculo detallado de los Puntos de Equilibrio de Negocio para cada área en la ronda {currentRoundTab}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-6 py-4 text-sm">
-                 <div>
+              <div className="space-y-4 py-4 text-sm">
+                 <div className="space-y-2 p-3 border rounded-lg">
                     <h4 className="font-semibold text-base mb-2">Finanzas ({selectedTeam.finances.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.finances.pebBreakdown.map((line, i) => <li key={`fin-${i}`}>{line}</li>)}
                     </ul>
+                    <Separator />
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo PEB:</p>
+                        <p>{`(${selectedTeam.finances.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.finances.pebBreakdown.length} = ${selectedTeam.finances.peb.toFixed(2)}`}</p>
+                    </div>
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo XP:</p>
+                        <p>{`${selectedTeam.finances.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                    </div>
                  </div>
-                 <div>
+                 <div className="space-y-2 p-3 border rounded-lg">
                     <h4 className="font-semibold text-base mb-2">Reputación ({selectedTeam.reputation.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.reputation.pebBreakdown.map((line, i) => <li key={`rep-${i}`}>{line}</li>)}
                     </ul>
+                    <Separator />
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo PEB:</p>
+                        <p>{`(${selectedTeam.reputation.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.reputation.pebBreakdown.length} = ${selectedTeam.reputation.peb.toFixed(2)}`}</p>
+                    </div>
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo XP:</p>
+                        <p>{`${selectedTeam.reputation.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                    </div>
                  </div>
-                 <div>
+                 <div className="space-y-2 p-3 border rounded-lg">
                     <h4 className="font-semibold text-base mb-2">Moral ({selectedTeam.morale.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                         {selectedTeam.morale.pebBreakdown.map((line, i) => <li key={`mor-${i}`}>{line}</li>)}
                     </ul>
+                     <Separator />
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo PEB:</p>
+                        <p>{`(${selectedTeam.morale.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.morale.pebBreakdown.length} = ${selectedTeam.morale.peb.toFixed(2)}`}</p>
+                    </div>
+                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                        <p className="font-semibold">Cálculo XP:</p>
+                        <p>{`${selectedTeam.morale.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                    </div>
                  </div>
               </div>
                <DialogFooter>

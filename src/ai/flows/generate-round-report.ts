@@ -60,7 +60,9 @@ const prompt = ai.definePrompt({
   2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
   3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda (ej: ¿sacrificar rentabilidad por cuota de mercado?, ¿cómo una crisis impactó su plan?).
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
-  5.  **Análisis Cuantitativo de KPIs**: Para el campo 'kpiAnalysis', genera un análisis para cada uno de los 6 KPIs principales usando las claves ('tesoreria', 'costePersonal', 'nma', 'cuotaDeMercado', 'moral', 'ratioAlumnosProfesor'). El análisis debe ser CUANTITATIVO, explicando el porqué del valor. Por ejemplo, para la moral, si subió, explica qué decisiones (contratar personal: +15 puntos, formación: +10 puntos) contribuyeron a ese cambio numérico. Para el ratio, explica el cálculo.
+  5.  **Análisis Cuantitativo de KPIs**: Para el campo 'kpiAnalysis', genera un análisis para cada uno de los 6 KPIs principales.
+      - **CRÍTICO: Identifica la decisión o evento MÁS significativo que afectó a cada KPI y céntrate en él.** Tu análisis debe explicar el porqué del valor, destacando la causa principal. Por ejemplo, si la moral bajó 20 puntos por un despido y subió 5 por una inversión, tu análisis DEBE empezar por el despido como causa principal.
+      - El análisis debe ser CUANTITATIVO. Por ejemplo, para la moral, si subió, explica qué decisiones (contratar personal: +15 puntos, formación: +10 puntos) contribuyeron a ese cambio numérico. Para el ratio, explica el cálculo.
 
   **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,
 });

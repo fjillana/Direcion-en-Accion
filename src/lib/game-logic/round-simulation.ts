@@ -8,30 +8,39 @@ import type { TeamState, TeamKPIs, AIArchetype } from "./types";
 import { getAIDecisions } from "./ai-strategy";
 
 const getStudentDecisions = (teamName: string, game: Game, studentGames: StudentGameState[]): TeamDecision => {
+    console.log(`--- DEBUG: [getStudentDecisions] START for team ${teamName} ---`);
     const studentState = studentGames.find(sg => sg.teamName === teamName);
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
+    console.log('Found student state:', studentState ? JSON.parse(JSON.stringify(studentState)) : 'Not Found');
+    console.log(`Decisions for round ${game.round} in game object:`, teamDecision ? JSON.parse(JSON.stringify(teamDecision)) : 'Not Found');
+
+
     // Fallback if no decisions are found
     const fallbackDecisions: TeamDecision = {
         investments: [],
-        tuitionPrice: studentState?.strategicPlan ? 120 : 120, // Default or from strategic plan
+        tuitionPrice: 120, // Default price
         crisisResponse: null,
         selectedCenterActions: [],
         roundConfirmed: false,
     };
     
     if (teamDecision) {
-        // Ensure all properties are arrays to prevent runtime errors
-        return {
+        const decisionsToReturn = {
             investments: teamDecision.investments || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
             crisisResponse: teamDecision.crisisResponse || null,
             selectedCenterActions: teamDecision.selectedCenterActions || [],
             roundConfirmed: teamDecision.roundConfirmed || false,
         };
+        console.log('Returning decisions from game object:', JSON.parse(JSON.stringify(decisionsToReturn)));
+        console.log(`--- DEBUG: [getStudentDecisions] END for team ${teamName} ---`);
+        return decisionsToReturn;
     }
     
+    console.warn(`No decisions found for team ${teamName} in round ${game.round}. Using fallback.`);
+    console.log(`--- DEBUG: [getStudentDecisions] END for team ${teamName} ---`);
     return fallbackDecisions;
 }
 
@@ -39,9 +48,11 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 
 
 export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
-  const humanTeamsCount = game.teamNames.length;
-  // RULE: 1 AI team per human team.
-  const numIaTeams = humanTeamsCount > 0 ? humanTeamsCount : 1;
+  console.log('--- DEBUG: [simulateRound] START ---');
+  console.log('Simulating with game data:', JSON.parse(JSON.stringify(game)));
+  console.log('Simulating with studentGames data:', JSON.parse(JSON.stringify(studentGames)));
+
+  const numIaTeams = game.teams > game.teamNames.length ? game.teams - game.teamNames.length : 0;
 
   const initialKPIs = (gameData: Game): TeamKPIs => ({
     cash: gameData.initialFunds,
@@ -50,7 +61,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     privateIncome: 0,
     publicIncome: 0,
     nma: 7.5,
-    marketShare: 100 / (humanTeamsCount + numIaTeams || 1),
+    marketShare: 100 / (game.teamNames.length + numIaTeams || 1),
     morale: 80,
     studentTeacherRatio: 25.0,
     numStudents: 800,
@@ -90,9 +101,13 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
         archetype,
     });
   }
+
+  console.log('Initial teams state for simulation:', JSON.parse(JSON.stringify(currentTeamsState)));
   
   // --- For ALL Rounds (including Round 0) ---
   const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
+  console.log('Market attractiveness results:', JSON.parse(JSON.stringify(marketResults)));
+
 
   const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;
@@ -115,7 +130,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
-    const performance = calculateTeamPerformance(teamState.kpis, isOverloaded, teamState.decisions);
+    const performance = calculateTeamPerformance(teamState, isOverloaded);
 
     const result: TeamPerformanceData = {
       name: teamState.name,
@@ -131,6 +146,9 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     
     return result;
   });
+
+  console.log('Final performance results:', JSON.parse(JSON.stringify(performanceResults)));
+  console.log('--- DEBUG: [simulateRound] END ---');
   
   const newMessages: GameMessage[] = [];
 

@@ -24,6 +24,8 @@ export function StudentReport() {
       if (game && reportRound >= 0 && game.reports?.[reportRound]?.[studentGame.teamName]) {
         const report = game.reports[reportRound][studentGame.teamName];
         if (report.published) {
+          console.log('--- DEBUG: [StudentReport] ---');
+          console.log('Report data found and published:', JSON.parse(JSON.stringify(report)));
           setReportData(report);
         } else {
           setReportData(null);
@@ -72,7 +74,7 @@ export function StudentReport() {
   const centerActionsCostMap: Record<string, number> = {
     'F5': 50000, // Ampliación de Aulas
     'P7': 7500, // Despedir Docente
-    'P2': 0, // Contratar docente - coste es salarial, no de inversión puntual
+    'P2': 7500, // Contratar docente
   };
   
   const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {

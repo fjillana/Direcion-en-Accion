@@ -134,10 +134,17 @@ export default function GameDetailsPage() {
   const handleProcessRound = async () => {
     setIsProcessing(true);
     if (game) {
+      console.log('--- DEBUG: [handleProcessRound] START ---');
+      console.log('Current Game State before simulation:', JSON.parse(JSON.stringify(game)));
+
       const studentGames = await getStudentGamesByGameId(game.id);
+
+      console.log('Student Games data fetched:', JSON.parse(JSON.stringify(studentGames)));
 
       const { performanceData, newMessages } = simulateRound(game, studentGames);
       const nextRound = game.round + 1;
+      
+      console.log('--- DEBUG: [handleProcessRound] END ---');
 
       await updateTeamPerformance(game.id, game.round, performanceData, newMessages);
 

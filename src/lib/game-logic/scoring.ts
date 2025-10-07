@@ -1,5 +1,6 @@
 
-import type { TeamKPIs } from './types';
+
+import type { TeamKPIs, TeamState } from './types';
 import type { TeamDecision } from '@/hooks/use-games';
 
 // Constantes según el Manual Técnico
@@ -46,8 +47,8 @@ function calculateFinancialDecisionsPeb(decisions: TeamDecision): { peb: number,
     const madeFinancialInvestment = (decisions.investments || []).some(inv => financialInvestments.includes(inv.id));
 
     if (madeFinancialInvestment) {
-        peb += 10; // Bonus for making a smart financial investment
-        justifications.push('+10 por inversión financiera estratégica');
+        peb += 20; // Bonus for making a smart financial investment
+        justifications.push('+20 por inversión financiera estratégica');
     }
     
     if (justifications.length > 0) {
@@ -123,25 +124,27 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 
-export function calculateTeamPerformance(teamKPIs: TeamKPIs, ratioOverloaded: boolean, decisions: TeamDecision) {
+export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean) {
+    const { kpis, decisions } = teamState;
+
     // Finance
-    const treasury = calculateTreasuryPeb(teamKPIs.cash, teamKPIs.income);
-    const personnelCost = calculatePersonnelCostPeb(teamKPIs.personnelCost, teamKPIs.income);
+    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income);
+    const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
     const decisionsFinances = calculateFinancialDecisionsPeb(decisions);
     const pebFinanzas = (treasury.peb + personnelCost.peb + decisionsFinances.peb) / 3;
     const xpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
 
     // Reputation
-    const nma = calculateNmaPeb(teamKPIs.nma);
-    const marketShare = calculateMarketSharePeb(teamKPIs.numStudents);
+    const nma = calculateNmaPeb(kpis.nma);
+    const marketShare = calculateMarketSharePeb(kpis.numStudents);
     const pebReputationBase = (nma.peb + marketShare.peb) / 2;
     // Manual: -10 PEB de Reputación por sobrecarga
     const pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase; 
     const xpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
 
     // Morale
-    const staffMorale = calculateStaffMoralePeb(teamKPIs.morale);
-    const studentTeacherRatio = calculateStudentTeacherRatioPeb(teamKPIs.studentTeacherRatio);
+    const staffMorale = calculateStaffMoralePeb(kpis.morale);
+    const studentTeacherRatio = calculateStudentTeacherRatioPeb(kpis.studentTeacherRatio);
     const pebMoral = (staffMorale.peb + studentTeacherRatio.peb) / 2;
     const xpMoral = pebMoral * XP_CONVERSION_FACTOR;
 

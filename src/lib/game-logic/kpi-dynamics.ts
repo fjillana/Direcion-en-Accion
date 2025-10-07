@@ -49,12 +49,14 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
+      // Note: P2 (hiring) cost is part of the recurring personnelCost, not a one-time investment here.
       return sum;
   }, 0);
   
   const totalExpenses = personnelCost + investmentCost + centerActionsCost;
   
-  const cashAtStartOfRound = currentKpis.cash;
+  // En Ronda 0, el cash inicial es el de la partida. En las demás, es el de la ronda anterior.
+  const cashAtStartOfRound = teamState.kpis.cash;
   const updatedCash = cashAtStartOfRound + income - totalExpenses;
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
@@ -72,7 +74,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedMorale += 10;
   }
 
-  // Bonificación por ratio bajo (RE-ADDED as per user request)
+  // Bonificación por ratio bajo
   if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
     const bonusLevels = Math.floor(LOW_RATIO_THRESHOLD - updatedStudentTeacherRatio);
     updatedNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
@@ -83,7 +85,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedMorale -= 25;
   }
   if(decisions.selectedCenterActions.includes('P2')) { // Contratar
-      updatedMorale += 15; // Manual: +15
+      updatedMorale += 15;
   }
 
   // Impacto de sobrecarga (PENALTY)

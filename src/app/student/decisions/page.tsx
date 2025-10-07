@@ -2,14 +2,18 @@
 
 import { InvestmentForm } from "@/components/student/investment-form";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { StudentGate } from "@/components/student/student-gate";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { useGames } from "@/hooks/use-games";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function DecisionsPage() {
-  const { studentGame, setRoundDecisions } = useStudentGame();
+  const { studentGame, setRoundDecisions, saveStudentDecisions } = useStudentGame();
   const { getGameById } = useGames();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   const gameData = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
   const initialFunds = gameData?.initialFunds || 0;
@@ -17,13 +21,11 @@ export default function DecisionsPage() {
   const availableInvestments = studentGame?.roundSettings?.investments || [];
   const selectedInvestments = studentGame?.decisions?.selectedInvestments || [];
   
-  // Aseguramos que selectedCenterActions es siempre un array para evitar errores de ejecución.
   const selectedCenterActions = Array.isArray(studentGame?.decisions?.selectedCenterActions) 
     ? studentGame.decisions.selectedCenterActions 
     : [];
 
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
-  // En Ronda 0, el cash disponible para planificar es el inicial. En rondas posteriores, es el del KPI.
   const teamCash = studentGame?.round === 0 ? initialFunds : studentGame?.kpis?.cash || 0;
 
 
@@ -36,6 +38,25 @@ export default function DecisionsPage() {
   const centerActionTotalCost = selectedCenterActions.reduce((acc, id) => {
     return acc + (centerActionsCosts[id as keyof typeof centerActionsCosts] || 0);
   }, 0);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+        await saveStudentDecisions();
+        toast({
+            title: "Decisiones Guardadas",
+            description: "Tus decisiones de inversión han sido guardadas. Recuerda confirmar la ronda en el Dashboard.",
+        });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Error al guardar",
+            description: "No se pudieron guardar tus decisiones. Inténtalo de nuevo.",
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   return (
     <StudentGate>
@@ -64,6 +85,8 @@ export default function DecisionsPage() {
           availableInvestments={availableInvestments}
           selectedInvestments={selectedInvestments}
           onInvestmentChange={(investments) => setRoundDecisions({ selectedInvestments: investments })}
+          onSave={handleSave}
+          isSaving={isSaving}
           totalOtherCosts={centerActionTotalCost}
           teamCash={teamCash}
         />

@@ -1,14 +1,21 @@
 
 import type { TeamKPIs } from './types';
+import type { TeamDecision } from '@/hooks/use-games';
 
 // Constantes según el Manual Técnico
 const XP_CONVERSION_FACTOR = 26.67 / 100; // 100 PEB = 26.67 XP
 
 // --- Finance PEB Calculation (Sección 10.1) ---
 function calculateTreasuryPeb(cash: number, income: number): { peb: number, breakdown: string } {
-    if (income === 0) return { peb: 0, breakdown: 'Tesorería: 0 PEB (Ingresos son 0)' };
-    const treasuryPercentage = (cash / income) * 100;
+    if (income === 0 && cash <= 0) return { peb: 0, breakdown: 'Tesorería: 0 PEB (Sin ingresos y tesorería negativa o cero)'};
     const minRemanent = 16000;
+    
+    // Si no hay ingresos pero hay caja, se evalúa sobre la caja inicial.
+    if (income === 0 && cash > 0) {
+        const peb = cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
+         return { peb, breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
+    }
+
     const peb = cash < 0 ? 0 : cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
 
     return { peb, breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
@@ -29,6 +36,27 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
     }
     return { peb, breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
+
+function calculateFinancialDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
+    let peb = 80; // Base PEB
+    let breakdown = "Decisiones Financieras: 80.00 PEB (Base)";
+    const justifications: string[] = [];
+
+    const financialInvestments = ['F1', 'F2', 'F3'];
+    const madeFinancialInvestment = (decisions.investments || []).some(inv => financialInvestments.includes(inv.id));
+
+    if (madeFinancialInvestment) {
+        peb += 10; // Bonus for making a smart financial investment
+        justifications.push('+10 por inversión financiera estratégica');
+    }
+    
+    if (justifications.length > 0) {
+        breakdown = `Decisiones Financieras: ${peb.toFixed(2)} PEB (${justifications.join(', ')})`;
+    }
+
+    return { peb, breakdown };
+}
+
 
 // --- Reputation PEB Calculation (Sección 10.2) ---
 function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
@@ -95,12 +123,11 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 
-export function calculateTeamPerformance(teamKPIs: TeamKPIs, ratioOverloaded: boolean) {
+export function calculateTeamPerformance(teamKPIs: TeamKPIs, ratioOverloaded: boolean, decisions: TeamDecision) {
     // Finance
     const treasury = calculateTreasuryPeb(teamKPIs.cash, teamKPIs.income);
     const personnelCost = calculatePersonnelCostPeb(teamKPIs.personnelCost, teamKPIs.income);
-    // Placeholder for decisions factor
-    const decisionsFinances = { peb: 80, breakdown: `Decisiones Financieras: 80.00 PEB` };
+    const decisionsFinances = calculateFinancialDecisionsPeb(decisions);
     const pebFinanzas = (treasury.peb + personnelCost.peb + decisionsFinances.peb) / 3;
     const xpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
 

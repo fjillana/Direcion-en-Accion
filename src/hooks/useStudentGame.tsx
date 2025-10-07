@@ -54,6 +54,7 @@ interface StudentGameContextType {
   requestToJoinGame: (gameId: string, gameName: string, teamName: string) => Promise<void>;
   abandonGame: () => Promise<void>;
   setRoundDecisions: (decisions: Partial<RoundDecisions>) => void;
+  saveStudentDecisions: () => Promise<void>;
   setStrategicPlan: (plan: Partial<StrategicPlan>) => Promise<void>;
 }
 
@@ -145,7 +146,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // If student is pending/joined but game list is loaded and game doesn't exist, reset state.
     if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
         const gameExists = games.some(g => g.id === studentGameState.gameId);
         if (!gameExists) {
@@ -153,7 +153,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             if(firestore) {
               setDoc(doc(firestore, "studentGames", user.id), resetState);
             }
-            // Directly update the local state to trigger UI changes immediately
             setStudentGameState(resetState); 
             return;
         }
@@ -171,11 +170,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     const serverRound = gameData.round;
-    const clientRound = fullStudentState?.round;
-    const hasRoundChanged = clientRound !== serverRound;
+    
+    // Server decisions for the current round, if they exist
+    const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
+    
+    // Client decisions from the current state
+    const clientDecisions = fullStudentState?.decisions;
 
-    let currentDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!] || 
-                           (hasRoundChanged ? { ...initialRoundDecisions, tuitionPrice: fullStudentState?.decisions.tuitionPrice || 120 } : fullStudentState?.decisions || initialRoundDecisions);
+    // Determine current decisions: server's take precedence, otherwise use client's, or initial as last resort.
+    let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
     
     const performanceHistory: TeamPerformanceData[] = [];
     let currentKpis: TeamKPIs | undefined = undefined;
@@ -186,14 +189,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === studentGameState.teamName);
             if (teamPerformance) {
                 performanceHistory.push(teamPerformance);
-                if (roundNum === serverRound - 1) { // KPIs for current round are from last round's performance
+                if (roundNum === serverRound - 1) { 
                     currentKpis = teamPerformance.kpis;
                 }
             }
         });
     }
     
-    // For Round 0, initialize KPIs with game's initial funds
     if (serverRound === 0 && !currentKpis) {
         const perfR0 = gameData.performance?.[0]?.find(p => p.name === studentGameState.teamName);
         if (perfR0) {
@@ -226,7 +228,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round, fullStudentState?.decisions]);
+  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -243,7 +245,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: `studentGames/${user.id}`,
-        operation: 'update', // or 'create'
+        operation: 'update',
         requestResourceData: studentState,
       });
       errorEmitter.emit('permission-error', permissionError);
@@ -258,7 +260,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       const permissionError = new FirestorePermissionError({
         path: `games/${gameId}`,
         operation: 'update',
-        requestResourceData: { teamName, userId: user.id }, // Just showing what we're trying to add
+        requestResourceData: { teamName, userId: user.id },
       });
       errorEmitter.emit('permission-error', permissionError);
     });
@@ -295,6 +297,17 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const saveStudentDecisions = async () => {
+    if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
+      throw new Error("Cannot save decisions: missing game or user state.");
+    }
+    const gameRef = doc(firestore, "games", fullStudentState.gameId);
+    const updateData = {
+      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: fullStudentState.decisions
+    };
+    await updateDoc(gameRef, updateData);
+  }
+
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !studentGameState) return;
     const studentGameRef = doc(firestore, "studentGames", user.id);
@@ -320,6 +333,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     requestToJoinGame,
     abandonGame,
     setRoundDecisions,
+    saveStudentDecisions,
     setStrategicPlan,
   }), [fullStudentState, isLoading, isAuthLoading, gamesLoading]);
 

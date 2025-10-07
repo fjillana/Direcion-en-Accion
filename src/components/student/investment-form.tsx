@@ -7,21 +7,25 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Investment } from "@/components/teacher/catalog-editor";
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import type { InvestmentDecision } from '@/hooks/use-games';
+import { Button } from '../ui/button';
 
 interface InvestmentFormProps {
   disabled?: boolean;
   availableInvestments: Investment[];
   selectedInvestments: InvestmentDecision[];
   onInvestmentChange: (selected: InvestmentDecision[]) => void;
+  onSave: () => void;
+  isSaving: boolean;
   totalOtherCosts: number;
   teamCash: number;
 }
@@ -39,11 +43,12 @@ export function InvestmentForm({
   availableInvestments, 
   selectedInvestments: initialSelectedInvestments, 
   onInvestmentChange, 
+  onSave,
+  isSaving,
   totalOtherCosts, 
   teamCash 
 }: InvestmentFormProps) {
 
-  // Aseguramos que selectedInvestments es siempre un array para evitar errores.
   const selectedInvestments = Array.isArray(initialSelectedInvestments) 
     ? initialSelectedInvestments 
     : [];
@@ -53,7 +58,6 @@ export function InvestmentForm({
     let newSelected = [...selectedInvestments];
     if (checked) {
       const costRange = parseCostRange(investment.costRange);
-      // Default to max cost when first selected
       const cost = costRange.length > 1 ? costRange[1] : costRange[0]; 
       newSelected.push({ id: investment.id, name: investment.name, cost, effect: investment.effect });
     } else {
@@ -85,19 +89,19 @@ export function InvestmentForm({
             Selecciona las inversiones que tu equipo realizará en esta ronda. El coste se sumará al de las decisiones de personal y capacidad.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {!canAfford && !disabled && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Fondos Insuficientes</AlertTitle>
-              <AlertDescription>
-                El coste total de las decisiones supera tu tesorería disponible.
-              </AlertDescription>
-            </Alert>
-          )}
+        <fieldset disabled={disabled} className="group">
+          <CardContent className="group-disabled:opacity-50">
+            {!canAfford && !disabled && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Fondos Insuficientes</AlertTitle>
+                <AlertDescription>
+                  El coste total de las decisiones supera tu tesorería disponible.
+                </AlertDescription>
+              </Alert>
+            )}
 
-          <fieldset disabled={disabled} className="group">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 group-disabled:opacity-50">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 {availableInvestments.length > 0 ? availableInvestments.map((inv) => {
                   const isSelected = selectedInvestments.some(si => si.id === inv.id);
@@ -171,8 +175,14 @@ export function InvestmentForm({
                   </Card>
               </div>
             </div>
-          </fieldset>
-        </CardContent>
+          </CardContent>
+          <CardFooter className="group-disabled:opacity-50">
+             <Button onClick={onSave} disabled={isSaving || disabled}>
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? 'Guardando...' : 'Guardar Decisiones de Inversión'}
+             </Button>
+          </CardFooter>
+        </fieldset>
       </Card>
     </>
   );

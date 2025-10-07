@@ -207,6 +207,13 @@ export default function TeacherLeaderboardPage() {
                   Comparativa de KPIs actuales contra los objetivos de la Ronda 0.
                 </DialogDescription>
               </DialogHeader>
+              <div className="mt-4">
+                {selectedTeam.strategicPlan?.rankingGoal && (
+                    <blockquote className="border-l-2 pl-6 italic">
+                        "{selectedTeam.strategicPlan.rankingGoal}"
+                    </blockquote>
+                )}
+              </div>
               <div className="overflow-hidden rounded-lg border mt-4">
                 <Table>
                   <TableHeader>

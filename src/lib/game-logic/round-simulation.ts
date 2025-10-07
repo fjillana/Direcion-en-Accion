@@ -1,20 +1,21 @@
 
 
-import type { Game, TeamPerformanceData, TeamDecision, GameMessage } from "@/hooks/use-games";
+import type { Game, TeamPerformanceData, TeamDecision, GameMessage, StudentGameState } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
 import { updateKpisForNextRound } from "./kpi-dynamics";
 import type { TeamState, TeamKPIs, AIArchetype } from "./types";
 import { getAIDecisions } from "./ai-strategy";
 
-const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
+const getStudentDecisions = (teamName: string, game: Game, studentGames: StudentGameState[]): TeamDecision => {
+    const studentState = studentGames.find(sg => sg.teamName === teamName);
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
     // Fallback if no decisions are found
     const fallbackDecisions: TeamDecision = {
         investments: [],
-        tuitionPrice: 120,
+        tuitionPrice: studentState?.strategicPlan ? 120 : 120, // Default or from strategic plan
         crisisResponse: null,
         selectedCenterActions: [],
         roundConfirmed: false,
@@ -37,9 +38,9 @@ const getStudentDecisions = (teamName: string, game: Game): TeamDecision => {
 const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
 
 
-export function simulateRound(game: Game): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
+export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   const humanTeamsCount = game.teamNames.length;
-  // RULE: 1 AI team per human team. Total teams = humanTeams * 2.
+  // RULE: 1 AI team per human team.
   const numIaTeams = humanTeamsCount;
 
   const initialKPIs = (gameData: Game): TeamKPIs => ({
@@ -69,7 +70,7 @@ export function simulateRound(game: Game): { performanceData: TeamPerformanceDat
         name,
         type: 'H',
         kpis,
-        decisions: getStudentDecisions(name, game),
+        decisions: getStudentDecisions(name, game, studentGames),
     });
   });
 

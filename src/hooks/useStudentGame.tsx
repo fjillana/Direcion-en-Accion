@@ -25,6 +25,20 @@ export interface StudentGameState {
   strategicPlan?: StrategicPlan;
 }
 
+export interface RoundDecisions {
+  selectedInvestments: InvestmentDecision[];
+  selectedCenterActions: string[];
+  tuitionPrice: number;
+  crisisResponse: {
+      crisisId: string;
+      optionId: string;
+      justification: string;
+      crisisName: string;
+      option: string;
+  } | null;
+  roundConfirmed: boolean;
+}
+
 interface FullStudentState extends StudentGameState {
   round?: number;
   decisions: RoundDecisions;
@@ -212,7 +226,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
+  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round, fullStudentState?.decisions]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {

@@ -96,7 +96,7 @@ const fullCrises: Crisis[] = [
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games, setActiveGameId, updateGame, updateTeamPerformance } = useGames();
+  const { games, setActiveGameId, updateGame, updateTeamPerformance, getStudentGamesByGameId } = useGames();
   const router = useRouter();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -125,33 +125,34 @@ export default function GameDetailsPage() {
   }, [game?.id, game?.round]);
 
   useEffect(() => {
-    if (game) {
+    if (game && game.performance) {
         const performanceForRound = game.performance?.[parseInt(currentRoundTab)];
         setMonitoringData(performanceForRound || []);
     }
-}, [currentRoundTab, game]);
+  }, [currentRoundTab, game]);
 
 
-  const handleProcessRound = () => {
+  const handleProcessRound = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      if (game) {
-        // 1. Simulate the round to get performance results
-        const { performanceData, newMessages } = simulateRound(game);
-        const nextRound = game.round + 1;
+    if (game) {
+      // 1. Get student game states to pass to simulation
+      const studentGames = await getStudentGamesByGameId(game.id);
 
-        // 2. Update the game state with the new performance data
-        updateTeamPerformance(game.id, game.round, performanceData, newMessages);
+      // 2. Simulate the round to get performance results
+      const { performanceData, newMessages } = simulateRound(game, studentGames);
+      const nextRound = game.round + 1;
 
-        // 3. Move to the next round or end the game
-        if (nextRound > game.numRounds) {
-          updateGame(game.id, { status: "Finalizado" });
-        } else {
-          updateGame(game.id, { round: nextRound });
-        }
+      // 3. Update the game state with the new performance data
+      await updateTeamPerformance(game.id, game.round, performanceData, newMessages);
+
+      // 4. Move to the next round or end the game
+      if (nextRound > game.numRounds) {
+        await updateGame(game.id, { status: "Finalizado" });
+      } else {
+        await updateGame(game.id, { round: nextRound });
       }
-      setIsProcessing(false);
-    }, 3000);
+    }
+    setIsProcessing(false);
   };
   
   const handleTeamRowClick = (team: TeamPerformanceData) => {
@@ -329,7 +330,7 @@ export default function GameDetailsPage() {
           </TabsContent>
           <TabsContent value="config">
              <RoundConfig
-              allTeams={game.teamNames}
+              allTeams={[...game.teamNames, ...Array.from({ length: game.teams }, (_, i) => `IA Rival ${i + 1}`)]}
               fullInvestments={fullInvestments}
               fullCrises={fullCrises}
             />

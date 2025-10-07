@@ -1,6 +1,6 @@
 
 
-import type { TeamState } from "./types";
+import type { TeamState, TeamKPIs } from "./types";
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
@@ -9,7 +9,7 @@ const OVERLOAD_NMA_PENALTY = 0.3; // Manual: -0.3 en NMA
 const LOW_RATIO_THRESHOLD = 24.0;
 const LOW_RATIO_NMA_BONUS = 0.2;
 const PUBLIC_INCOME = 224000;
-const CAPACITY = 810;
+const BASE_CAPACITY = 810;
 
 
 /**
@@ -20,13 +20,14 @@ const CAPACITY = 810;
  */
 export function updateKpisForNextRound(teamState: TeamState, newStudents: number) {
   
-  const currentKpis = { ...teamState.kpis };
+  const currentKpis: TeamKPIs = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
 
 
   // --- Pre-calculation state ---
   let updatedNumStudents = currentKpis.numStudents;
   let updatedNumTeachers = currentKpis.numTeachers;
+  let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
 
   // --- Apply decisions ---
   if (decisions.selectedCenterActions.includes('P2')) { // Contratar
@@ -35,9 +36,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if (decisions.selectedCenterActions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
   }
+  if (decisions.selectedCenterActions.includes('F5')) { // Ampliación Aulas
+    updatedCapacity += 50;
+  }
 
   // Los nuevos alumnos se añaden
-  const availableSpots = CAPACITY - updatedNumStudents;
+  const availableSpots = updatedCapacity - updatedNumStudents;
   const admittedStudents = Math.min(newStudents, availableSpots);
   updatedNumStudents += admittedStudents;
   
@@ -46,19 +50,20 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;
   const income = privateIncome + PUBLIC_INCOME;
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
+  
   const investmentCost = (decisions.investments || []).reduce((sum, inv) => sum + inv.cost, 0);
   
   const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
-      if (actionId === 'P2') return sum + 7500; // Hiring cost is also a one-time cost
+      // Note: Hiring cost (P2) is part of recurring personnelCost, not a one-off investment here.
       return sum;
   }, 0);
   
-  const totalExpenses = personnelCost + investmentCost + centerActionsCost;
+  const totalDecisionsCost = investmentCost + centerActionsCost;
+  const totalExpenses = personnelCost + totalDecisionsCost;
   
 
-  // En Ronda 0, el cash inicial es el de la partida. En las demás, es el de la ronda anterior.
   const cashAtStartOfRound = teamState.kpis.cash;
   const updatedCash = cashAtStartOfRound + income - totalExpenses;
 
@@ -101,13 +106,14 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   updatedNma = Math.max(0, Math.min(10, updatedNma));
   updatedMorale = Math.max(0, Math.min(100, updatedMorale));
 
-  const finalKPIs = {
+  const finalKPIs: TeamKPIs = {
       ...currentKpis,
       cash: updatedCash,
       personnelCost: personnelCost,
       income: income,
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,
+      capacity: updatedCapacity,
       nma: updatedNma,
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,

@@ -171,13 +171,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     const serverRound = gameData.round;
     
-    // Server decisions for the current round, if they exist
     const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
     
-    // Client decisions from the current state
     const clientDecisions = fullStudentState?.decisions;
 
-    // Determine current decisions: server's take precedence, otherwise use client's, or initial as last resort.
     let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
     
     const performanceHistory: TeamPerformanceData[] = [];
@@ -213,6 +210,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
                 studentTeacherRatio: 25.0,
                 numStudents: 800,
                 numTeachers: 32,
+                capacity: 810,
             };
         }
     }
@@ -287,12 +285,17 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
   
   const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
-    if (!fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) return;
-    const updatedDecisions = { ...fullStudentState.decisions, ...newDecisions };
-    
-    setFullStudentState(prev => prev ? ({ ...prev, decisions: updatedDecisions }) : null);
+    if (!fullStudentState) return;
 
-    if (newDecisions.roundConfirmed) {
+    // Merge new partial decisions with existing decisions in the state
+    const updatedDecisions: RoundDecisions = {
+        ...fullStudentState.decisions,
+        ...newDecisions,
+    };
+    
+    setFullStudentState(prev => prev ? { ...prev, decisions: updatedDecisions } : null);
+
+    if (newDecisions.roundConfirmed && fullStudentState.gameId && fullStudentState.teamName && fullStudentState.round !== undefined) {
       confirmStudentDecisions(fullStudentState.gameId, fullStudentState.teamName, fullStudentState.round, updatedDecisions);
     }
   };

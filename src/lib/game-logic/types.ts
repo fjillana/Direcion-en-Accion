@@ -30,6 +30,7 @@ export interface TeamKPIs {
     studentTeacherRatio: number;
     numStudents: number;
     numTeachers: number;
+    capacity: number;
 }
 
 export type AIArchetype = 'BALANCED' | 'AGGRESSIVE_GROWTH' | 'FINANCE_CONSERVATIVE' | 'QUALITY_FOCUSED';

@@ -118,7 +118,7 @@ export default function GameDetailsPage() {
   
   useEffect(() => {
     if (game) {
-      const lastCompletedRound = game.round > 0 ? game.round - 1 : 0;
+      const lastCompletedRound = game.round > 0 ? game.round : 0;
       setCurrentRoundTab(lastCompletedRound.toString());
     }
   }, [game?.id, game?.round]);
@@ -187,7 +187,7 @@ export default function GameDetailsPage() {
       if (!game) return "Cargando...";
       if (game.status === 'Finalizado') return "Juego Finalizado";
       if (game.round === 0) return `Procesar Ronda 0 (Setup)`;
-      if (game.round === game.numRounds) return "Finalizar Juego";
+      if (game.round === game.numRounds) return `Procesar Ronda Final (${game.round})`;
       return `Procesar Ronda ${game.round}`;
   }
   
@@ -195,6 +195,7 @@ export default function GameDetailsPage() {
       if (isProcessing) return true;
       if (!game || game.status === 'Finalizado') return true;
       if (game.round > 0 && !allTeamsConfirmed) return true; // Disable if not all teams have confirmed
+      if (game.round > game.numRounds) return true; // Game is effectively over
       return false;
   }
 
@@ -267,7 +268,7 @@ export default function GameDetailsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: game.numRounds + 1 }, (_, i) => i).map((r) => (
-                                <SelectItem key={r} value={r.toString()} disabled={r >= game.round}>
+                                <SelectItem key={r} value={r.toString()} disabled={r > game.round}>
                                     Ronda {r}
                                 </SelectItem>
                                 ))}

@@ -45,12 +45,20 @@ export function AIReportForm() {
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
   
-  const currentRoundNumber = activeGame?.round ? activeGame.round -1 : 0;
-  
+  const reportableRound = useMemo(() => {
+    if (!activeGame) return 0;
+    // If the game is finished, the last reportable round is the final round number.
+    if (activeGame.status === "Finalizado") {
+      return activeGame.numRounds;
+    }
+    // Otherwise, it's the round that was just completed.
+    return activeGame.round > 0 ? activeGame.round - 1 : 0;
+  }, [activeGame]);
+
   const teamsData = useMemo(() => {
     if (!activeGame || !activeGame.performance) return [];
-    return activeGame.performance[currentRoundNumber] || [];
-  }, [activeGame, currentRoundNumber]);
+    return activeGame.performance[reportableRound] || [];
+  }, [activeGame, reportableRound]);
 
 
   const humanTeams = useMemo(() => teamsData.filter(t => t.type === 'H'), [teamsData]);
@@ -70,11 +78,8 @@ export function AIReportForm() {
   const [reportData, setReportData] = useState<any>(null);
 
   useEffect(() => {
-    // This effect runs when the selected team or the game data changes.
-    // It loads an existing report from the game state if available.
     if (activeGame && selectedTeam) {
-        const round = activeGame.round ? activeGame.round - 1 : 0;
-        const existingReport = activeGame.reports?.[round]?.[selectedTeam];
+        const existingReport = activeGame.reports?.[reportableRound]?.[selectedTeam];
         
         if (existingReport) {
             setReportData(existingReport);
@@ -83,7 +88,6 @@ export function AIReportForm() {
             setPedagogicalSuggestions(existingReport.pedagogicalSuggestions || "");
             setHasReport(true);
         } else {
-            // Reset if no report is found for the selected team
             setHasReport(false);
             setReportData(null);
             setQualitativeAnalysis("");
@@ -94,7 +98,7 @@ export function AIReportForm() {
       setHasReport(false);
       setReportData(null);
     }
-  }, [selectedTeam, activeGame]);
+  }, [selectedTeam, activeGame, reportableRound]);
 
   useEffect(() => {
     if (!selectedTeam && humanTeams.length > 0) {
@@ -122,7 +126,7 @@ export function AIReportForm() {
     try {
       const result = await generateRoundReport({
         gameId: activeGame.id,
-        roundNumber: activeGame.round - 1,
+        roundNumber: reportableRound,
         teamPerformanceData: JSON.stringify({
           ...teamPerformance,
           decisions: {
@@ -137,16 +141,16 @@ export function AIReportForm() {
       const teamMarketResult = marketResults[selectedTeam];
 
       const newReportData = {
-          round: activeGame.round - 1,
+          round: reportableRound,
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
-          kpiAnalysis: result.kpiAnalysis, // Use analysis from AI
+          kpiAnalysis: result.kpiAnalysis,
           marketAnalysis: {
             iam: teamMarketResult.iam,
             newStudentsCaptured: teamMarketResult.newStudents,
             newStudentsInMarket: activeGame.newStudentsPerRound,
-            capacity: 810, // Assuming static capacity for now
-            finalStudents: Math.min(teamPerformance.kpis.numStudents + teamMarketResult.newStudents, 810),
+            capacity: teamPerformance.kpis.capacity || 810,
+            finalStudents: Math.min(teamPerformance.kpis.numStudents + teamMarketResult.newStudents, teamPerformance.kpis.capacity || 810),
           },
           qualitativeAnalysis: result.reporteCualitativo,
           debriefingQuestions: result.preguntasMayeuticas,
@@ -184,10 +188,10 @@ export function AIReportForm() {
       qualitativeAnalysis,
       debriefingQuestions,
       pedagogicalSuggestions,
-      published: publish, // Track if it's a draft or published
+      published: publish,
     };
     
-    updateReport(activeGame.id, activeGame.round - 1, selectedTeam, fullReportData);
+    updateReport(activeGame.id, reportableRound, selectedTeam, fullReportData);
 
     toast({
       title: publish ? "Reporte Publicado" : "Borrador Guardado",
@@ -241,7 +245,7 @@ export function AIReportForm() {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {activeGame?.round ? activeGame.round -1 : 'anterior'}.
+              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {reportableRound}.
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">

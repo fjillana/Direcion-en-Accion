@@ -202,7 +202,9 @@ export function AIReportForm() {
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
   const { totalInvestmentCost, finalCash, totalDecisionsCost } = useMemo(() => {
-    if (!reportData) return { totalInvestmentCost: 0, totalCosts: 0, finalCash: 0, totalDecisionsCost: 0 };
+    if (!reportData || !activeGame) {
+      return { totalInvestmentCost: 0, finalCash: 0, totalDecisionsCost: 0 };
+    }
     
     const investmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
     
@@ -219,7 +221,7 @@ export function AIReportForm() {
     const totalDecisions = investmentCost + centerActionsCost;
     const totalExpenses = reportData.kpis.personnelCost + totalDecisions;
     
-    const gameData = getGameById(activeGame!.id!);
+    const gameData = getGameById(activeGame.id);
     const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
     const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
     const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;

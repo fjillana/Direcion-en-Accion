@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -16,72 +17,79 @@ import { StudentGate } from '@/components/student/student-gate';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useStudentGame } from '@/hooks/useStudentGame';
-
-const kpiDefinitions = [
-  {
-    key: 'cash',
-    title: 'Saldo de Tesorería',
-    currentValue: 50000,
-    min: 0,
-    max: 100000,
-    step: 5000,
-    format: (v: number) => `${v.toLocaleString('es-ES')} CC`,
-    advice: "Mantener una tesorería saludable te da flexibilidad. Evita caer por debajo del 5% de tus ingresos anuales para no sufrir penalizaciones en el PEB de finanzas."
-  },
-  {
-    key: 'personnelCost',
-    title: 'Coste de Personal / Ingresos',
-    currentValue: 75,
-    min: 65,
-    max: 90,
-    step: 1,
-    format: (v: number) => `${v.toFixed(1)}%`,
-    advice: "El umbral de riesgo está en el 75%. Superarlo afectará a tu PEB financiero. Contratar o subir salarios incrementa este ratio, pero puede mejorar la moral y la calidad."
-  },
-  {
-    key: 'nma',
-    title: 'Nota Media Alumnado',
-    currentValue: 7.5,
-    min: 5,
-    max: 10,
-    step: 0.1,
-    format: (v: number) => v.toFixed(1),
-    advice: "La 'Formación docente' (P1) o la 'Inversión en TIC' (R2) son acciones directas para mejorar la calidad de la enseñanza y, por tanto, las notas. Alumnos con mejores notas mejoran la reputación y atraen más matrículas."
-  },
-  {
-    key: 'marketShare',
-    title: 'Cuota de mercado',
-    currentValue: 16.7,
-    min: 10,
-    max: 25,
-    step: 0.1,
-    format: (v: number) => `${v.toFixed(1)}%`,
-    advice: "Una 'Campaña publicitaria en redes' (R1) es la forma más directa de aumentar tu visibilidad y captar nuevos alumnos. Esto es crucial para crecer, ya que compites con otros centros por un número limitado de estudiantes."
-  },
-  {
-    key: 'morale',
-    title: 'Moral del Personal',
-    currentValue: 80,
-    min: 50,
-    max: 100,
-    step: 5,
-    format: (v: number) => `${v.toFixed(0)}%`,
-    advice: "Una moral alta previene crisis como las huelgas. Inversiones en formación (P1), beneficios (P5) o mejoras salariales (P4) tienen un impacto directo en la satisfacción de tu equipo."
-  },
-  {
-    key: 'studentTeacherRatio',
-    title: 'Ratio Alumnos/Profesor',
-    currentValue: 25.0,
-    min: 20,
-    max: 30,
-    step: 0.5,
-    format: (v: number) => v.toFixed(1),
-    advice: "Para reducir este ratio, la única vía es la 'Contratación docente' (P2). Un ratio más bajo suele correlacionarse con una mejor atención al alumno y una NMA más alta, lo que a su vez mejora la reputación del centro."
-  },
-];
+import { useMemo } from 'react';
 
 export default function StrategicPlanPage() {
   const { studentGame, setStrategicPlan } = useStudentGame();
+
+  const kpiDefinitions = useMemo(() => {
+    const initialKpis = studentGame?.kpis;
+    const initialCash = studentGame?.performanceHistory && studentGame.performanceHistory.length > 0 ? studentGame.performanceHistory[0].kpis.cash : (studentGame?.round === 0 ? studentGame?.kpis?.cash : 50000);
+
+    return [
+    {
+        key: 'cash',
+        title: 'Saldo de Tesorería',
+        currentValue: initialCash,
+        min: 0,
+        max: 100000,
+        step: 5000,
+        format: (v: number) => `${v.toLocaleString('es-ES')} CC`,
+        advice: "Mantener una tesorería saludable te da flexibilidad. Evita caer por debajo del 5% de tus ingresos anuales para no sufrir penalizaciones en el PEB de finanzas."
+    },
+    {
+        key: 'personnelCost',
+        title: 'Coste de Personal / Ingresos',
+        currentValue: initialKpis?.income ? (initialKpis.personnelCost / initialKpis.income) * 100 : 75,
+        min: 65,
+        max: 90,
+        step: 1,
+        format: (v: number) => `${v.toFixed(1)}%`,
+        advice: "El umbral de riesgo está en el 75%. Superarlo afectará a tu PEB financiero. Contratar o subir salarios incrementa este ratio, pero puede mejorar la moral y la calidad."
+    },
+    {
+        key: 'nma',
+        title: 'Nota Media Alumnado',
+        currentValue: initialKpis?.nma || 7.5,
+        min: 5,
+        max: 10,
+        step: 0.1,
+        format: (v: number) => v.toFixed(1),
+        advice: "La 'Formación docente' (P1) o la 'Inversión en TIC' (R2) son acciones directas para mejorar la calidad de la enseñanza y, por tanto, las notas. Alumnos con mejores notas mejoran la reputación y atraen más matrículas."
+    },
+    {
+        key: 'marketShare',
+        title: 'Cuota de mercado',
+        currentValue: initialKpis?.marketShare || 16.7,
+        min: 10,
+        max: 100,
+        step: 1,
+        format: (v: number) => `${v.toFixed(1)}%`,
+        advice: "Una 'Campaña publicitaria en redes' (R1) es la forma más directa de aumentar tu visibilidad y captar nuevos alumnos. Esto es crucial para crecer, ya que compites con otros centros por un número limitado de estudiantes."
+    },
+    {
+        key: 'morale',
+        title: 'Moral del Personal',
+        currentValue: initialKpis?.morale || 80,
+        min: 50,
+        max: 100,
+        step: 5,
+        format: (v: number) => `${v.toFixed(0)}%`,
+        advice: "Una moral alta previene crisis como las huelgas. Inversiones en formación (P1), beneficios (P5) o mejoras salariales (P4) tienen un impacto directo en la satisfacción de tu equipo."
+    },
+    {
+        key: 'studentTeacherRatio',
+        title: 'Ratio Alumnos/Profesor',
+        currentValue: initialKpis?.studentTeacherRatio || 25.0,
+        min: 20,
+        max: 30,
+        step: 0.5,
+        format: (v: number) => v.toFixed(1),
+        advice: "Para reducir este ratio, la única vía es la 'Contratación docente' (P2). Un ratio más bajo suele correlacionarse con una mejor atención al alumno y una NMA más alta, lo que a su vez mejora la reputación del centro."
+    },
+    ];
+  }, [studentGame]);
+
 
   const planConfirmed = studentGame?.planConfirmed || false;
   const strategicPlan = studentGame?.strategicPlan;

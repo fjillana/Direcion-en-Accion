@@ -18,7 +18,6 @@ import type { Investment } from "@/components/teacher/catalog-editor";
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 interface InvestmentFormProps {
   disabled?: boolean;
@@ -41,41 +40,37 @@ export function InvestmentForm({
   teamCash 
 }: InvestmentFormProps) {
 
-  const allActionsWithCosts = useMemo(() => {
-    const actionCosts: Record<string, number> = {
-      'P2': 7500,
-      'P7': 7500,
-      'F5': 50000,
-    };
-    allInvestments.forEach(inv => {
-        if (inv.cost.type === 'fixed') {
-            actionCosts[inv.id] = inv.cost.value as number;
-        } else {
-            // For ranged investments, we can default to max cost, but this should be dynamic if sliders are used
-            actionCosts[inv.id] = inv.cost.value[1]; 
-        }
+  const [investmentCosts, setInvestmentCosts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const initialCosts: Record<string, number> = {};
+    availableInvestments.forEach(inv => {
+      if (inv.cost.type === 'fixed') {
+        initialCosts[inv.id] = inv.cost.value as number;
+      } else {
+        // Default ranged investments to their max cost
+        initialCosts[inv.id] = inv.cost.value[1];
+      }
     });
-    return actionCosts;
-  }, []);
+     // Add costs for other actions like P2, P7, F5 if they are part of a unified catalog
+    initialCosts['P2'] = 7500;
+    initialCosts['P7'] = 7500;
+    initialCosts['F5'] = 50000;
+    setInvestmentCosts(initialCosts);
+  }, [availableInvestments]);
+
+  const handleSliderChange = (investmentId: string, value: number) => {
+    setInvestmentCosts(prev => ({
+      ...prev,
+      [investmentId]: value,
+    }));
+  };
 
   const totalCost = useMemo(() => {
     return selectedActions.reduce((acc, id) => {
-      // Find the investment in the full list to get its cost details
-      const investment = allInvestments.find(inv => inv.id === id);
-      if (investment) {
-          if (investment.cost.type === 'fixed') {
-              return acc + (investment.cost.value as number);
-          }
-          // For now, assume max cost for range. This would need to be more dynamic with sliders.
-          return acc + (investment.cost.value[1]);
-      }
-      // Check for other actions
-      if (id === 'P2' || id === 'P7') return acc + 7500;
-      if (id === 'F5') return acc + 50000;
-      
-      return acc;
+      return acc + (investmentCosts[id] || 0);
     }, 0);
-  }, [selectedActions]);
+  }, [selectedActions, investmentCosts]);
 
 
   const remainingCash = teamCash - totalCost;
@@ -108,6 +103,7 @@ export function InvestmentForm({
                   const isSelected = selectedActions.includes(inv.id);
                   const isRange = inv.cost.type === 'range';
                   const [minCost, maxCost] = isRange ? inv.cost.value as [number, number] : [inv.cost.value as number, inv.cost.value as number];
+                  const currentCost = investmentCosts[inv.id] || maxCost;
 
                   return (
                     <div key={inv.id} className={cn("rounded-md border p-4", disabled && 'bg-muted/50')}>
@@ -133,12 +129,13 @@ export function InvestmentForm({
                         </div>
                         {isRange && isSelected && (
                             <div className="mt-4 pl-8 pr-2 space-y-2">
-                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Coste actual: {maxCost.toLocaleString('es-ES')} CC)</Label>
+                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Coste actual: {currentCost.toLocaleString('es-ES')} CC)</Label>
                                 <Slider
-                                    defaultValue={[maxCost]}
+                                    defaultValue={[currentCost]}
                                     min={minCost}
                                     max={maxCost}
-                                    step={(maxCost - minCost) / 10}
+                                    step={(maxCost - minCost) / 10 || 1}
+                                    onValueChange={(value) => handleSliderChange(inv.id, value[0])}
                                 />
                             </div>
                         )}

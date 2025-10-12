@@ -131,7 +131,8 @@ export function AIReportForm() {
           ...teamPerformance,
           decisions: {
             ...teamPerformance.decisions,
-            investments: teamPerformance.decisions?.investments || [],
+            selectedInvestments: teamPerformance.decisions?.selectedInvestments || [],
+            selectedCenterActions: teamPerformance.decisions?.selectedCenterActions || [],
           }
         }, null, 2),
         marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
@@ -205,33 +206,40 @@ export function AIReportForm() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
-  const { totalInvestmentCost, finalCash, totalDecisionsCost } = useMemo(() => {
-    if (!reportData || !activeGame) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalDecisionsCost: 0 };
+  const { totalInvestmentCost, finalCash, totalDecisionsCost, totalCosts, centerActionsCostMap, totalCenterActionsCost } = useMemo(() => {
+    if (!reportData || !activeGame || !selectedTeam) {
+      return { totalInvestmentCost: 0, finalCash: 0, totalDecisionsCost: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0 };
     }
     
     const investmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
     
-    const centerActionsCostMap: Record<string, number> = {
+    const cActionsCostMap: Record<string, number> = {
       'F5': 50000,
       'P7': 7500,
       'P2': 7500,
     };
     
     const centerActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
-        return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
+        return acc + (cActionsCostMap[actionId as keyof typeof cActionsCostMap] || 0);
     }, 0);
     
-    const totalDecisions = investmentCost + centerActionsCost;
-    const totalExpenses = reportData.kpis.personnelCost + totalDecisions;
+    const decisionsCost = investmentCost + centerActionsCost;
+    const allCosts = reportData.kpis.personnelCost + decisionsCost;
     
     const gameData = getGameById(activeGame.id);
     const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
     const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
     const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
-    const cash = initialCashForRound + reportData.kpis.income - totalExpenses;
+    const cash = initialCashForRound + reportData.kpis.income - allCosts;
 
-    return { totalInvestmentCost: investmentCost, finalCash: cash, totalDecisionsCost: totalDecisions };
+    return { 
+        totalInvestmentCost: investmentCost, 
+        finalCash: cash, 
+        totalDecisionsCost: decisionsCost, 
+        totalCosts: allCosts,
+        centerActionsCostMap: cActionsCostMap,
+        totalCenterActionsCost: centerActionsCost
+    };
   }, [reportData, activeGame, getGameById, selectedTeam]);
 
 
@@ -284,25 +292,7 @@ export function AIReportForm() {
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
                                 <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes de Personal:</span> <span className="text-destructive">{formatCurrency(reportData.kpis.personnelCost)}</span></Badge>
-                                <div className="p-3 border rounded-lg md:col-span-2">
-                                  <div className="flex justify-between font-medium">
-                                    <span>Decisiones de Inversión:</span>
-                                    <span className="text-destructive">{formatCurrency(totalDecisionsCost)}</span>
-                                  </div>
-                                  <ul className="mt-2 pl-4 text-xs text-muted-foreground space-y-1">
-                                    {(reportData.decisions?.selectedInvestments || []).map((inv: any) => (
-                                      <li key={inv.id} className="flex justify-between"><span>- {inv.name}</span><span>{formatCurrency(inv.cost)}</span></li>
-                                    ))}
-                                    {(reportData.decisions?.selectedCenterActions || []).map((actionId: string) => {
-                                      const costMap: Record<string, {name: string, cost: number}> = {'F5': {name: 'Ampliación Aulas', cost: 50000}, 'P7': {name: 'Despedir Docente', cost: 7500}, 'P2': {name: 'Contratar Docente', cost: 7500}};
-                                      if (costMap[actionId]) {
-                                        return <li key={actionId} className="flex justify-between"><span>- {costMap[actionId].name}</span><span>{formatCurrency(costMap[actionId].cost)}</span></li>
-                                      }
-                                      return null;
-                                    })}
-                                  </ul>
-                                </div>
+                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(totalCosts)}</span></Badge>
                                 <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(finalCash)}</span></Badge>
                             </AccordionContent>
                         </AccordionItem>

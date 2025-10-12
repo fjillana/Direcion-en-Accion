@@ -404,18 +404,16 @@ export default function GameDetailsPage() {
                                         const centerActionInfo = centerActionsMap[actionId];
                                         
                                         const name = investmentInfo?.name || centerActionInfo?.name || actionId;
-                                        let cost: number | string = '--';
-
-                                        if (investmentInfo) {
-                                            cost = investmentInfo.cost.type === 'fixed' ? investmentInfo.cost.value as number : `~${(investmentInfo.cost.value[1]).toLocaleString('es-ES')}`;
-                                        } else if (centerActionInfo) {
-                                            cost = centerActionInfo.cost;
-                                        }
+                                        
+                                        // Retrieve the specific cost saved for this decision
+                                        const cost = fullDecisionsForDialog.investmentCosts?.[actionId] ?? 
+                                                     (investmentInfo?.cost.type === 'fixed' ? investmentInfo.cost.value :
+                                                      centerActionInfo ? centerActionInfo.cost : undefined);
 
                                         return (
                                             <TableRow key={actionId}>
                                                 <TableCell>{name}</TableCell>
-                                                <TableCell className="text-right font-mono">{typeof cost === 'number' ? `${formatCurrency(cost)} CC` : cost}</TableCell>
+                                                <TableCell className="text-right font-mono">{cost !== undefined ? `${formatCurrency(cost)} CC` : '--'}</TableCell>
                                             </TableRow>
                                         );
                                     })

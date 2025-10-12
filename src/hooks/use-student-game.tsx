@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, TeamDecision } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
@@ -11,6 +11,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import type { TeamDecision } from "@/hooks/use-games";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -27,7 +28,7 @@ export interface StudentGameState {
 
 export interface RoundDecisions {
   actions: string[];
-  investmentCosts?: Record<string, number>;
+  investmentCosts: Record<string, number>;
   tuitionPrice: number;
   crisisResponse: {
       crisisId: string;
@@ -296,7 +297,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             ...prev.decisions,
             ...newDecisions,
             actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
-            investmentCosts: { ...prev.decisions.investmentCosts, ...newDecisions.investmentCosts },
+            investmentCosts: { ...(prev.decisions.investmentCosts || {}), ...newDecisions.investmentCosts },
         };
 
         if (newDecisions.roundConfirmed) {

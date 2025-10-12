@@ -27,8 +27,8 @@ export default function DecisionsPage() {
 
     if (!roundSettings || currentRound === undefined) return [];
     
-    // Correctly access round settings from the object
-    const settingsForRound = roundSettings;
+    const roundKey = currentRound.toString();
+    const settingsForRound = roundSettings[roundKey as keyof typeof roundSettings];
     if (!settingsForRound || !settingsForRound.investments) return [];
 
     return settingsForRound.investments.map(invSummary => {

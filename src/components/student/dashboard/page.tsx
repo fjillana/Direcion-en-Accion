@@ -35,40 +35,35 @@ import { useStudentGame } from "@/hooks/useStudentGame";
 import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
+import { useGames } from "@/hooks/use-games";
 
 const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
-    'C1': {
-      id: "C1",
-      title: "¡Evento de Crisis! - Huelga docente",
-      description: "La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.",
-      options: [
-        { id: 'op1', label: 'Aceptar todas las demandas' },
-        { id: 'op2', label: 'Negociar un acuerdo parcial' },
-        { id: 'op3', label: 'Mantener la postura' },
-        { id: 'op4', label: 'Recurrir a mediadores externos' },
-        { id: 'op5', label: 'Despedir a los líderes del sindicato' },
-      ]
-    }
+    'C1': { id: 'C1', title: '¡Evento de Crisis! - Huelga docente', description: 'La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.', options: [ { id: 'C1_op1', label: 'Aceptar todas las demandas', cost: '-25.000 CC' }, { id: 'C1_op2', label: 'Negociar un acuerdo parcial', cost: '-15.000 CC' }, { id: 'C1_op3', label: 'Mantener la postura', cost: '0 CC' }, { id: 'C1_op4', label: 'Recurrir a mediadores externos', cost: '-8.000 CC' }, { id: 'C1_op5', label: 'Despedir a los líderes del sindicato', cost: '-10.000 CC' }, ] },
+    'C2': { id: 'C2', title: '¡Evento de Crisis! - Retraso en la subvención pública', description: 'La consejería de educación retrasa la transferencia de 25.000 CC de la subvención pública este trimestre.', options: [ { id: 'C2_op1', label: 'Solicitar un préstamo de emergencia', cost: 'Préstamo' }, { id: 'C2_op2', label: 'Recortar inversiones planificadas', cost: '0 CC' }, { id: 'C2_op3', label: 'Negociar con la consejería', cost: '-3.000 CC' }, { id: 'C2_op4', label: 'Utilizar reservas de tesorería', cost: '0 CC' }, { id: 'C2_op5', label: 'Retrasar pagos a proveedores', cost: '0 CC' }, ] },
+    'C3': { id: 'C3', title: '¡Evento de Crisis! - Morosidad en las matrículas privadas', description: 'Varias familias no pagan la matrícula privada del trimestre, generando un déficit de 10.000 CC en los ingresos privados.', options: [ { id: 'C3_op1', label: 'Ofrecer un plan de pagos', cost: '0 CC' }, { id: 'C3_op2', label: 'Subir temporalmente la matrícula a los alumnos solventes', cost: '0 CC' }, { id: 'C3_op3', label: 'Solicitar un préstamo de emergencia', cost: 'Préstamo' }, { id: 'C3_op4', label: 'Recortar actividades extraescolares', cost: '0 CC' }, { id: 'C3_op5', label: 'Invertir en marketing para captar nuevos alumnos', cost: '-10.000 CC' }, ] },
+    'C4': { id: 'C4', title: '¡Evento de Crisis! - Accidente en el centro', description: 'Un accidente leve (caída en el patio, inundación en un aula) genera críticas en redes sociales y preocupación de las familias.', options: [ { id: 'C4_op1', label: 'Ignorar el incidente', cost: '0 CC' }, { id: 'C4_op2', label: 'Informar y pedir disculpas públicamente', cost: '0 CC' }, { id: 'C4_op3', label: 'Contratar un seguro adicional', cost: '-10.000 CC' }, { id: 'C4_op4', label: 'Realizar mejoras inmediatas', cost: '-20.000 CC' }, { id: 'C4_op5', label: 'Lanzar una campaña positiva', cost: '-8.000 CC' }, ] },
+    'C5': { id: 'C5', title: '¡Evento de Crisis! - Crisis sanitaria', description: 'Brote de gripe o similar que obliga a suspender las clases presenciales una semana.', options: [ { id: 'C5_op1', label: 'Suspender todas las actividades y esperar a que pase', cost: '0 CC' }, { id: 'C5_op2', label: 'Adoptar clases en línea mediante inversión en TIC (R2)', cost: '-10.000 CC' }, { id: 'C5_op3', label: 'Contratar personal sanitario temporal', cost: '-5.000 CC' }, { id: 'C5_op4', label: 'Ignorar las recomendaciones sanitarias', cost: '0 CC' }, { id: 'C5_op5', label: 'Solicitar apoyo de la administración', cost: '-2.000 CC' }, ] },
+    'C6': { id: 'C6', title: '¡Evento de Crisis! - Retraso en los ingresos por patrocinio', description: 'Una empresa patrocinadora retrasa el pago de 10.000 CC correspondiente a un patrocinio.', options: [ { id: 'C6_op1', label: 'Renegociar el contrato', cost: '-2.000 CC' }, { id: 'C6_op2', label: 'Buscar otro patrocinador', cost: 'Variable' }, { id: 'C6_op3', label: 'Solicitar un préstamo', cost: 'Préstamo' }, { id: 'C6_op4', label: 'Recortar gastos de marketing', cost: '0 CC' }, { id: 'C6_op5', label: 'Aceptar la pérdida', cost: '-10.000 CC' }, ] },
+    'C7': { id: 'C7', title: '¡Evento de Crisis! - Caso de redes sociales / ciberbullying', description: 'Se viraliza en redes sociales un caso de ciberbullying entre estudiantes del centro. Se acusa al colegio de no actuar con rapidez.', options: [ { id: 'C7_op1', label: 'Minimizar el caso', cost: '0 CC' }, { id: 'C7_op2', label: 'Abrir una investigación interna', cost: '0 CC' }, { id: 'C7_op3', label: 'Implementar un programa anti‑bullying', cost: '-5.000 CC' }, { id: 'C7_op4', label: 'Realizar un comunicado público y pedir disculpas', cost: '0 CC' }, { id: 'C7_op5', label: 'Demandear a los denunciantes por difamación', cost: '-10.000 CC' }, ] },
 };
 
 export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
+  const { confirmStudentDecisions } = useGames();
 
   const { decisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
   
   const roundConfirmed = decisions?.roundConfirmed || false;
 
   const handleConfirmRound = () => {
-    // Ensure decisions object exists before confirming
-    if (!decisions || !studentGame) return;
+    if (!decisions || !studentGame || !studentGame.gameId || !studentGame.teamName || studentGame.round === undefined) {
+      console.error("Attempted to confirm round with incomplete game state.", studentGame);
+      return;
+    }
 
     const confirmedDecisions = { ...decisions, roundConfirmed: true };
     setRoundDecisions(confirmedDecisions);
-    
-    if(studentGame.gameId && studentGame.teamName && studentGame.round !== undefined){
-        const key = `decisions_${studentGame.gameId}_${studentGame.teamName}_${studentGame.round}`;
-        localStorage.setItem(key, JSON.stringify(confirmedDecisions));
-    }
+    confirmStudentDecisions(studentGame.gameId, studentGame.teamName, studentGame.round, confirmedDecisions);
   }
 
   const kpiHistoryData = useMemo(() => {
@@ -292,8 +287,8 @@ export default function StudentDashboard() {
         
         <CenterDataForm 
           disabled={roundConfirmed} 
-          selectedActions={decisions?.selectedCenterActions || []}
-          onActionChange={(actions) => setRoundDecisions({ selectedCenterActions: actions })}
+          selectedActions={decisions?.actions || []}
+          onActionChange={(actions) => setRoundDecisions({ actions: actions })}
           tuitionPrice={decisions?.tuitionPrice || 120}
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
           numStudents={kpis?.numStudents || 0}

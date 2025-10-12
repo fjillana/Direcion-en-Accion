@@ -1,6 +1,7 @@
 
+
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -16,17 +17,16 @@ import { cn } from "@/lib/utils";
 import type { Investment } from "@/components/teacher/catalog-editor";
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
-import type { InvestmentDecision } from '@/hooks/use-games';
 import { Button } from '../ui/button';
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 interface InvestmentFormProps {
   disabled?: boolean;
   availableInvestments: Investment[];
-  selectedInvestments: InvestmentDecision[];
-  onInvestmentChange: (selected: InvestmentDecision[]) => void;
+  selectedActions: string[];
+  onActionChange: (actionId: string, selected: boolean) => void;
   onSave: () => void;
   isSaving: boolean;
-  totalOtherCosts: number;
   teamCash: number;
 }
 
@@ -34,41 +34,42 @@ interface InvestmentFormProps {
 export function InvestmentForm({ 
   disabled = false, 
   availableInvestments, 
-  selectedInvestments: initialSelectedInvestments, 
-  onInvestmentChange, 
+  selectedActions, 
+  onActionChange, 
   onSave,
   isSaving,
-  totalOtherCosts, 
   teamCash 
 }: InvestmentFormProps) {
 
-  const selectedInvestments = Array.isArray(initialSelectedInvestments) 
-    ? initialSelectedInvestments 
-    : [];
+  // This local state is now just for the slider values
+  const [investmentCosts, setInvestmentCosts] = useState<Record<string, number>>({});
 
-  const handleCheckboxChange = (investment: Investment, checked: boolean) => {
-    if (disabled) return;
-    let newSelected = [...selectedInvestments];
-    if (checked) {
-      const cost = investment.cost.type === 'range' ? investment.cost.value[1] : investment.cost.value;
-      newSelected.push({ id: investment.id, name: investment.name, cost });
-    } else {
-      newSelected = newSelected.filter(i => i.id !== investment.id);
-    }
-    onInvestmentChange(newSelected);
-  };
+  useEffect(() => {
+    const initialCosts: Record<string, number> = {};
+    availableInvestments.forEach(inv => {
+        if (inv.cost.type === 'range') {
+            initialCosts[inv.id] = inv.cost.value[1]; // Default to max cost
+        } else {
+            initialCosts[inv.id] = inv.cost.value;
+        }
+    });
+    setInvestmentCosts(initialCosts);
+  }, [availableInvestments]);
+
 
   const handleSliderChange = (investmentId: string, value: number[]) => {
     if (disabled) return;
-    const newSelected = selectedInvestments.map(inv => 
-      inv.id === investmentId ? { ...inv, cost: value[0] } : inv
-    );
-    onInvestmentChange(newSelected);
+    setInvestmentCosts(prev => ({...prev, [investmentId]: value[0]}));
   };
 
-  const investmentCost = selectedInvestments.reduce((acc, inv) => acc + inv.cost, 0);
+  const totalCost = useMemo(() => {
+    return selectedActions.reduce((acc, id) => {
+        const cost = investmentCosts[id] || 0;
+        return acc + cost;
+    }, 0);
+  }, [selectedActions, investmentCosts]);
 
-  const totalCost = investmentCost + totalOtherCosts;
+
   const remainingCash = teamCash - totalCost;
   const canAfford = remainingCash >= 0;
   
@@ -96,12 +97,7 @@ export function InvestmentForm({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 {availableInvestments.length > 0 ? availableInvestments.map((inv) => {
-                  // Defensive check for the old data structure
-                  if (!inv.cost || typeof inv.cost !== 'object') {
-                    return null; // Or render a fallback for invalid data
-                  }
-                  const isSelected = selectedInvestments.some(si => si.id === inv.id);
-                  const selectedValue = selectedInvestments.find(si => si.id === inv.id)?.cost;
+                  const isSelected = selectedActions.includes(inv.id);
                   const isRange = inv.cost.type === 'range';
                   const [minCost, maxCost] = isRange ? inv.cost.value as [number, number] : [inv.cost.value as number, inv.cost.value as number];
 
@@ -111,7 +107,7 @@ export function InvestmentForm({
                             <Checkbox
                                 id={inv.id}
                                 checked={isSelected}
-                                onCheckedChange={(checked) => handleCheckboxChange(inv, !!checked)}
+                                onCheckedChange={(checked) => onActionChange(inv.id, !!checked)}
                             />
                             <div className="grid flex-1 gap-1.5 leading-none">
                                 <label htmlFor={inv.id} className="font-medium cursor-pointer">
@@ -123,7 +119,7 @@ export function InvestmentForm({
                             </div>
                             <div className="font-mono text-right text-sm">
                                 {isRange 
-                                  ? `${(selectedValue || maxCost).toLocaleString('es-ES')} CC` 
+                                  ? `${(investmentCosts[inv.id] || maxCost).toLocaleString('es-ES')} CC` 
                                   : `${minCost.toLocaleString('es-ES')} CC`}
                             </div>
                         </div>
@@ -131,7 +127,7 @@ export function InvestmentForm({
                             <div className="mt-4 pl-8 pr-2 space-y-2">
                                 <Label className="text-xs text-muted-foreground">Ajustar Inversión (Mín: {minCost.toLocaleString('es-ES')} CC)</Label>
                                 <Slider
-                                    value={[selectedValue || maxCost]}
+                                    value={[investmentCosts[inv.id] || maxCost]}
                                     onValueChange={(value) => handleSliderChange(inv.id, value)}
                                     min={minCost}
                                     max={maxCost}
@@ -173,7 +169,7 @@ export function InvestmentForm({
           <CardFooter className="group-disabled:opacity-50">
              <Button onClick={onSave} disabled={isSaving || disabled}>
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving ? 'Guardando...' : 'Guardar Decisiones de Inversión'}
+                {isSaving ? 'Guardando...' : 'Guardar Decisiones'}
              </Button>
           </CardFooter>
         </fieldset>
@@ -181,5 +177,3 @@ export function InvestmentForm({
     </>
   );
 }
-
-    

@@ -27,10 +27,9 @@ export interface CrisisDecision {
 }
 
 export interface TeamDecision {
-  selectedInvestments: InvestmentDecision[];
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
-  selectedCenterActions: string[];
+  actions: string[];
   roundConfirmed: boolean;
 }
 
@@ -445,5 +444,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

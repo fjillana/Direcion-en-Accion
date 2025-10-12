@@ -11,10 +11,9 @@ export interface CrisisDecision {
 }
 
 export interface TeamDecisions {
-  selectedInvestments: InvestmentDecision[];
+  actions: string[];
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
-  selectedCenterActions: string[];
 }
 
 export interface TeamKPIs {
@@ -54,5 +53,3 @@ export interface TeamState {
   decisions: TeamDecisions;
   archetype?: AIArchetype;
 }
-
-    

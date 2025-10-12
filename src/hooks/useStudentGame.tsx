@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, InvestmentDecision, TeamDecision } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, TeamDecision } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
@@ -26,8 +26,7 @@ export interface StudentGameState {
 }
 
 export interface RoundDecisions {
-  selectedInvestments: InvestmentDecision[];
-  selectedCenterActions: string[];
+  actions: string[];
   tuitionPrice: number;
   crisisResponse: {
       crisisId: string;
@@ -80,8 +79,7 @@ const initialStudentState: Omit<StudentGameState, 'userId'> = {
 };
 
 const initialRoundDecisions: RoundDecisions = {
-  selectedInvestments: [],
-  selectedCenterActions: [],
+  actions: [],
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
@@ -292,13 +290,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setFullStudentState(prev => {
         if (!prev) return null;
         
-        // Merge new partial decisions with existing decisions in the state
         const updatedDecisions: RoundDecisions = {
             ...prev.decisions,
             ...newDecisions,
-            // Specifically handle arrays to ensure they merge correctly
-            selectedInvestments: newDecisions.selectedInvestments !== undefined ? newDecisions.selectedInvestments : prev.decisions.selectedInvestments,
-            selectedCenterActions: newDecisions.selectedCenterActions !== undefined ? newDecisions.selectedCenterActions : prev.decisions.selectedCenterActions,
+            actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
         };
 
         if (newDecisions.roundConfirmed) {

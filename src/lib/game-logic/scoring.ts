@@ -117,21 +117,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
 
         if (investmentInfo.bonus.type === 'fixed') {
             bonus[area] += investmentInfo.bonus.value as number;
-        } 
-        else if (investmentInfo.bonus.type === 'scaled') {
-            const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
+        } else if (investmentInfo.bonus.type === 'scaled') {
             const [minBonus, maxBonus] = investmentInfo.bonus.value as [number, number];
-            
-            // This part is tricky as the actual cost isn't stored per action.
-            // For now, we'll assume max investment for bonus calculation.
-            // This should be improved by storing cost with the action.
-            const investmentCost = maxCost; 
-            
-            if (investmentCost >= minCost) {
-                const investmentRatio = (investmentCost - minCost) / (maxCost - minCost);
-                const scaledBonus = minBonus + investmentRatio * (maxBonus - minBonus);
-                bonus[area] += scaledBonus;
-            }
+            // Scaled bonus is based on the investment cost, which we assume is max for now
+            // This is a simplification. A more accurate model would require the chosen cost
+            // to be part of the decision object. For now, let's grant the max bonus.
+            bonus[area] += maxBonus;
         }
     }
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);

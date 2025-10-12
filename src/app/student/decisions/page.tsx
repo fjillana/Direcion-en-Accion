@@ -44,6 +44,7 @@ export default function DecisionsPage() {
   }, [studentGame?.round, studentGame?.roundSettings]);
 
   const selectedActions = studentGame?.decisions?.actions || [];
+  const investmentCosts = studentGame?.decisions?.investmentCosts || {};
   
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
   const teamCash = studentGame?.round === 0 ? initialFunds : studentGame?.kpis?.cash || 0;
@@ -75,6 +76,15 @@ export default function DecisionsPage() {
       : currentActions.filter(id => id !== actionId);
     setRoundDecisions({ actions: newActions });
   };
+  
+  const handleCostChange = (investmentId: string, cost: number) => {
+    setRoundDecisions({ 
+      investmentCosts: {
+        ...studentGame?.decisions?.investmentCosts,
+        [investmentId]: cost,
+      } 
+    });
+  };
 
   return (
     <StudentGate>
@@ -102,7 +112,9 @@ export default function DecisionsPage() {
           disabled={roundConfirmed}
           availableInvestments={availableInvestments}
           selectedActions={selectedActions}
+          investmentCosts={investmentCosts}
           onActionChange={handleActionChange}
+          onCostChange={handleCostChange}
           onSave={handleSave}
           isSaving={isSaving}
           teamCash={teamCash}

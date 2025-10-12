@@ -23,7 +23,9 @@ interface InvestmentFormProps {
   disabled?: boolean;
   availableInvestments: Investment[];
   selectedActions: string[];
+  investmentCosts: Record<string, number>;
   onActionChange: (actionId: string, selected: boolean) => void;
+  onCostChange: (investmentId: string, cost: number) => void;
   onSave: () => void;
   isSaving: boolean;
   teamCash: number;
@@ -34,37 +36,33 @@ export function InvestmentForm({
   disabled = false, 
   availableInvestments, 
   selectedActions, 
+  investmentCosts,
   onActionChange, 
+  onCostChange,
   onSave,
   isSaving,
   teamCash 
 }: InvestmentFormProps) {
 
-  const [investmentCosts, setInvestmentCosts] = useState<Record<string, number>>({});
-
+  // Initialize costs on component mount if not already set
   useEffect(() => {
-    const initialCosts: Record<string, number> = {};
+    const costsToUpdate: Record<string, number> = {};
     availableInvestments.forEach(inv => {
-      if (inv.cost.type === 'fixed') {
-        initialCosts[inv.id] = inv.cost.value as number;
-      } else {
-        // Default ranged investments to their max cost
-        initialCosts[inv.id] = inv.cost.value[1];
+      if (investmentCosts[inv.id] === undefined) {
+         if (inv.cost.type === 'fixed') {
+            costsToUpdate[inv.id] = inv.cost.value as number;
+        } else {
+            // Default ranged investments to their max cost
+            costsToUpdate[inv.id] = inv.cost.value[1];
+        }
       }
     });
-     // Add costs for other actions like P2, P7, F5 if they are part of a unified catalog
-    initialCosts['P2'] = 7500;
-    initialCosts['P7'] = 7500;
-    initialCosts['F5'] = 50000;
-    setInvestmentCosts(initialCosts);
-  }, [availableInvestments]);
 
-  const handleSliderChange = (investmentId: string, value: number) => {
-    setInvestmentCosts(prev => ({
-      ...prev,
-      [investmentId]: value,
-    }));
-  };
+    if (Object.keys(costsToUpdate).length > 0) {
+      onCostChange("init", 0); // This is a bit of a hack to pass multiple costs
+      Object.entries(costsToUpdate).forEach(([id, cost]) => onCostChange(id, cost));
+    }
+  }, [availableInvestments]);
 
   const totalCost = useMemo(() => {
     return selectedActions.reduce((acc, id) => {
@@ -135,7 +133,7 @@ export function InvestmentForm({
                                     min={minCost}
                                     max={maxCost}
                                     step={(maxCost - minCost) / 10 || 1}
-                                    onValueChange={(value) => handleSliderChange(inv.id, value[0])}
+                                    onValueChange={(value) => onCostChange(inv.id, value[0])}
                                 />
                             </div>
                         )}

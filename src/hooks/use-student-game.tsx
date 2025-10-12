@@ -27,6 +27,7 @@ export interface StudentGameState {
 
 export interface RoundDecisions {
   actions: string[];
+  investmentCosts?: Record<string, number>;
   tuitionPrice: number;
   crisisResponse: {
       crisisId: string;
@@ -41,7 +42,7 @@ export interface RoundDecisions {
 interface FullStudentState extends StudentGameState {
   round?: number;
   decisions: RoundDecisions;
-  roundSettings?: RoundSettings;
+  roundSettings?: Record<string, RoundSettings>;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
   kpis?: TeamKPIs;
@@ -80,6 +81,7 @@ const initialStudentState: Omit<StudentGameState, 'userId'> = {
 
 const initialRoundDecisions: RoundDecisions = {
   actions: [],
+  investmentCosts: {},
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
@@ -115,7 +117,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const initialData = { ...initialStudentState, userId: user.id };
         setDoc(studentGameRef, initialData).catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
-            path: `studentGames/${'user.id'}`,
+            path: `studentGames/${user.id}`,
             operation: 'create',
             requestResourceData: initialData,
           });
@@ -126,7 +128,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }, (error) => {
         const permissionError = new FirestorePermissionError({
-          path: `studentGames/${'user.id'}`,
+          path: `studentGames/${user.id}`,
           operation: 'get',
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -220,7 +222,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       ...studentGameState,
       round: serverRound,
       decisions: currentDecisions,
-      roundSettings: gameData.roundSettings?.[serverRound],
+      roundSettings: gameData.roundSettings,
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGameState.teamName || m.from === studentGameState.teamName),
       performanceHistory,
       kpis: currentKpis
@@ -242,7 +244,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: `studentGames/${'user.id'}`,
+        path: `studentGames/${user.id}`,
         operation: 'update',
         requestResourceData: studentState,
       });
@@ -294,9 +296,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             ...prev.decisions,
             ...newDecisions,
             actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
+            investmentCosts: { ...prev.decisions.investmentCosts, ...newDecisions.investmentCosts },
         };
 
         if (newDecisions.roundConfirmed) {
+          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, updatedDecisions);
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, updatedDecisions);
         }
 
@@ -308,6 +312,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
+    console.log(`[GPS] 1. Saving Decisions for ${fullStudentState.teamName} in Round ${fullStudentState.round}. Data:`, fullStudentState.decisions);
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     const updateData = {
       [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: fullStudentState.decisions
@@ -326,7 +331,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: `studentGames/${'user.id'}`,
+          path: `studentGames/${user.id}`,
           operation: 'update',
           requestResourceData: updateData,
         });
@@ -342,7 +347,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     saveStudentDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading]);
+  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading, requestToJoinGame, abandonGame, setRoundDecisions, saveStudentDecisions, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>

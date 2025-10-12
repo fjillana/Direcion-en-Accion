@@ -172,17 +172,20 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         finances: {
             peb: pebFinanzas,
             xp: xpFinanzas,
-            pebBreakdown: [treasury.breakdown, personnelCost.breakdown]
+            pebBreakdown: [treasury.breakdown, personnelCost.breakdown],
+            xpBonus: xpBonus.finances,
         },
         reputation: {
             peb: pebReputacion,
             xp: xpReputacion,
-            pebBreakdown: [nma.breakdown, marketShare.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`]
+            pebBreakdown: [nma.breakdown, marketShare.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`],
+            xpBonus: xpBonus.reputation,
         },
         morale: {
             peb: pebMoral,
             xp: xpMoral,
-            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown]
+            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown],
+            xpBonus: xpBonus.morale,
         },
         totalXp: totalXp
     };

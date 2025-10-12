@@ -44,7 +44,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { simulateRound } from "@/lib/game-logic/round-simulation";
 import { Separator } from "@/components/ui/separator";
 import { investments as fullInvestmentsList } from "@/app/teacher/catalog/investment-data";
-import { crises as fullCrisesList } from "@/app/teacher/catalog/crises-data";
 
 
 export default function GameDetailsPage() {
@@ -90,6 +89,7 @@ export default function GameDetailsPage() {
     if (game) {
       const studentGames = await getStudentGamesByGameId(game.id);
 
+      console.log(`[GPS] 2. Processing Round ${game.round} for Game "${game.name}"`);
       const { performanceData, newMessages } = simulateRound(game, studentGames);
       const nextRound = game.round + 1;
 
@@ -289,7 +289,7 @@ export default function GameDetailsPage() {
       </div>
       
       <Dialog open={isPebDetailOpen} onOpenChange={setPebDetailOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-4xl">
           {selectedTeam && (
             <>
               <DialogHeader>
@@ -298,7 +298,7 @@ export default function GameDetailsPage() {
                     Cálculo detallado de los Puntos de Equilibrio de Negocio para cada área en la ronda {currentRoundTab}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4 text-sm">
+              <div className="grid md:grid-cols-3 gap-4 py-4 text-sm">
                  <div className="space-y-2 p-3 border rounded-lg">
                     <h4 className="font-semibold text-base mb-2">Finanzas ({selectedTeam.finances.peb.toFixed(2)} PEB)</h4>
                     <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
@@ -311,7 +311,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`${selectedTeam.finances.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.finances.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -324,9 +324,9 @@ export default function GameDetailsPage() {
                         <p className="font-semibold">Cálculo PEB:</p>
                         <p>{`(${selectedTeam.reputation.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.reputation.pebBreakdown.length} = ${selectedTeam.reputation.peb.toFixed(2)}`}</p>
                     </div>
-                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`${selectedTeam.reputation.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.reputation.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -339,9 +339,9 @@ export default function GameDetailsPage() {
                         <p className="font-semibold">Cálculo PEB:</p>
                         <p>{`(${selectedTeam.morale.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.morale.pebBreakdown.length} = ${selectedTeam.morale.peb.toFixed(2)}`}</p>
                     </div>
-                    <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
+                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`${selectedTeam.morale.peb.toFixed(2)} PEB * (26.67 / 100) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.morale.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
               </div>

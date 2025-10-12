@@ -30,9 +30,9 @@ export interface TeamDecision {
 export interface TeamPerformanceData {
   name: string;
   type: 'H' | 'IA';
-  finances: { peb: number; xp: number; pebBreakdown: string[] };
-  reputation: { peb: number; xp: number; pebBreakdown: string[] };
-  morale: { peb: number; xp: number; pebBreakdown: string[] };
+  finances: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
+  reputation: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
+  morale: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
   totalXp: number;
   decisions: TeamDecision;
   kpis: TeamKPIs;
@@ -372,6 +372,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     if (!firestore) return;
+    console.log(`[GPS] 2a. Confirming decisions in useGames hook for ${teamName}. Data:`, decisions);
     const gameRef = doc(firestore, "games", gameId);
     const updateData = { [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true } };
 

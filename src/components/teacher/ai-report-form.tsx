@@ -242,7 +242,7 @@ export function AIReportForm() {
     if (reportData.round === 0) {
       cashAtStart = gameData?.initialFunds || 0;
     } else {
-      const prevRoundIndex = reportData.round - 1;
+      const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
       const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
       cashAtStart = prevRoundPerformance ? prevRoundPerformance.kpis.cash : (gameData?.initialFunds || 0);
     }

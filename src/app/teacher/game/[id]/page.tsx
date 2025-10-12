@@ -332,7 +332,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpFinancesBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpFinancesBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`} {selectedTeam.finances.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -347,7 +347,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpReputationBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpReputationBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`} {selectedTeam.reputation.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -362,7 +362,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpMoraleBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpMoraleBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`} {selectedTeam.morale.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
               </div>

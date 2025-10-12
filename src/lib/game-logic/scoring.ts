@@ -6,6 +6,7 @@ import { investments as fullInvestmentsList } from '@/app/teacher/catalog/invest
 
 // Constantes según el Manual Técnico
 const XP_CONVERSION_FACTOR = 26.67 / 100; // 100 PEB = 26.67 XP
+const XP_AREA_MAX = 26.67 * 1.1; // 110% of base max XP
 
 // --- Finance PEB Calculation (Sección 10.1) ---
 function calculateTreasuryPeb(cash: number, income: number): { peb: number, breakdown: string } {
@@ -135,16 +136,17 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     // --- PEB Calculation ---
     const treasury = calculateTreasuryPeb(kpis.cash, kpis.income);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
-    const pebFinanzas = (treasury.peb + personnelCost.peb) / 2;
+    const pebFinanzas = Math.min(110, (treasury.peb + personnelCost.peb) / 2);
 
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
     const pebReputationBase = (nma.peb + marketShare.peb) / 2;
-    const pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase; 
+    let pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase;
+    pebReputacion = Math.min(110, pebReputacion);
 
     const staffMorale = calculateStaffMoralePeb(kpis.morale);
     const studentTeacherRatio = calculateStudentTeacherRatioPeb(kpis.studentTeacherRatio);
-    const pebMoral = (staffMorale.peb + studentTeacherRatio.peb) / 2;
+    const pebMoral = Math.min(110, (staffMorale.peb + studentTeacherRatio.peb) / 2);
 
     // --- XP Calculation ---
     const baseXpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
@@ -153,9 +155,9 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     
     const xpBonus = getXpBonusFromDecisions(decisions);
 
-    const xpFinanzas = baseXpFinanzas + xpBonus.finances;
-    const xpReputacion = baseXpReputacion + xpBonus.reputation;
-    const xpMoral = baseXpMoral + xpBonus.morale;
+    const xpFinanzas = Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances);
+    const xpReputacion = Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation);
+    const xpMoral = Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale);
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;
 

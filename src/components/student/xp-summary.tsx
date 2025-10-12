@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -46,6 +47,7 @@ interface XpCardProps {
 function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSource }: XpCardProps) {
     const calculatedXp = (peb * (80 / 3) / 100);
     const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${pebBreakdown.length} = ${peb.toFixed(2)}`;
+    const isCapped = xp >= 29.33;
 
   return (
     <Dialog>
@@ -83,7 +85,7 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSourc
             <div>
                 <h4 className="font-semibold mb-1">3. Conversión de PEB a Puntos de Experiencia (XP)</h4>
                  <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
-                    ({peb.toFixed(2)} PEB * 26.67 / 100) + {(bonusXp ?? 0).toFixed(2)} XP {bonusSource} = <span className="font-bold">{xp.toFixed(2)} XP</span>
+                    ({peb.toFixed(2)} PEB * 26.67 / 100) + {(bonusXp ?? 0).toFixed(2)} XP {bonusSource} = <span className="font-bold">{xp.toFixed(2)} XP</span> {isCapped && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}
                  </div>
                  <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100, más bonus por decisiones.</p>
             </div>

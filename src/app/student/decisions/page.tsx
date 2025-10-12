@@ -71,10 +71,30 @@ export default function DecisionsPage() {
 
   const handleActionChange = (actionId: string, selected: boolean) => {
     const currentActions = studentGame?.decisions?.actions || [];
-    const newActions = selected 
-      ? [...currentActions, actionId]
-      : currentActions.filter(id => id !== actionId);
-    setRoundDecisions({ actions: newActions });
+    const currentCosts = studentGame?.decisions?.investmentCosts || {};
+    let newActions = currentActions;
+    const newCosts = { ...currentCosts };
+
+    const investment = allInvestments.find(inv => inv.id === actionId);
+
+    if (selected) {
+        newActions = [...currentActions, actionId];
+        if (investment) {
+            // If newly selected, set a default cost.
+            // For 'range', default to max cost. For 'fixed', set the fixed value.
+            if (investment.cost.type === 'range') {
+                newCosts[actionId] = investment.cost.value[1];
+            } else {
+                newCosts[actionId] = investment.cost.value as number;
+            }
+        }
+    } else {
+        newActions = currentActions.filter(id => id !== actionId);
+        // Remove cost when unselected
+        delete newCosts[actionId];
+    }
+    
+    setRoundDecisions({ actions: newActions, investmentCosts: newCosts });
   };
   
   const handleCostChange = (investmentId: string, cost: number) => {

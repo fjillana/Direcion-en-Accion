@@ -106,19 +106,40 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finance: number; re
     const bonus = { finance: 0, reputation: 0, morale: 0 };
     if (!decisions.investments) return bonus;
 
+    // This mapping should be maintained and is the source of truth for XP bonuses.
+    const xpBonusMap: Record<string, { area: keyof typeof bonus, xp: number }> = {
+        'F1': { area: 'finance', xp: 10 },
+        'F2': { area: 'finance', xp: 8 },
+        'F3': { area: 'finance', xp: 5 },
+        'F4': { area: 'finance', xp: 8 },
+        'F5': { area: 'finance', xp: 10 },
+        'R1': { area: 'reputation', xp: 10 },
+        'R2': { area: 'reputation', xp: 15 },
+        'R3': { area: 'reputation', xp: 12 },
+        'R4': { area: 'reputation', xp: 5 },
+        'R5': { area: 'reputation', xp: 4 },
+        'P1': { area: 'morale', xp: 5 },
+        'P2': { area: 'morale', xp: 10 },
+        'P3': { area: 'morale', xp: 15 },
+        'P4': { area: 'morale', xp: 15 },
+        'P5': { area: 'morale', xp: 8 },
+    };
+
     for (const investment of decisions.investments) {
-        // This is a simplified parsing of the effect string. It's brittle.
-        const xpMatch = investment.effect.match(/(\+\d+)\s*a\s*\+(\d+)\s*XP\s*(\w+)/);
-        if (xpMatch) {
-            const maxXP = parseInt(xpMatch[2], 10);
-            const area = xpMatch[3].toLowerCase();
-            
-            if (area.includes('finanza')) {
-                bonus.finance += maxXP;
-            } else if (area.includes('reputaci')) {
-                bonus.reputation += maxXP;
-            } else if (area.includes('personal')) {
-                bonus.morale += maxXP;
+        const bonusInfo = xpBonusMap[investment.id];
+        if (bonusInfo) {
+            // Logic to scale XP based on cost for variable investments
+            if (investment.id === 'R1') { // Campaña publicitaria
+                const maxCost = 20000;
+                const minCost = 5000;
+                const maxBonus = 10;
+                const minBonus = 2;
+                if (investment.cost >= minCost) {
+                    const scaledBonus = minBonus + ((investment.cost - minCost) / (maxCost - minCost)) * (maxBonus - minBonus);
+                    bonus[bonusInfo.area] += scaledBonus;
+                }
+            } else {
+                bonus[bonusInfo.area] += bonusInfo.xp;
             }
         }
     }
@@ -147,7 +168,6 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const baseXpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
     const baseXpMoral = pebMoral * XP_CONVERSION_FACTOR;
     
-    // Get direct XP bonus from investments
     const xpBonus = getXpBonusFromDecisions(decisions);
 
     const xpFinanzas = baseXpFinanzas + xpBonus.finance;

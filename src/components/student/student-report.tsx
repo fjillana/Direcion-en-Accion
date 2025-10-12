@@ -24,8 +24,6 @@ export function StudentReport() {
       if (game && reportRound >= 0 && game.reports?.[reportRound]?.[studentGame.teamName]) {
         const report = game.reports[reportRound][studentGame.teamName];
         if (report.published) {
-          console.log('--- DEBUG: [StudentReport] ---');
-          console.log('Report data found and published:', JSON.parse(JSON.stringify(report)));
           setReportData(report);
         } else {
           setReportData(null);

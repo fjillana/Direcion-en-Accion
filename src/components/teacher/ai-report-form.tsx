@@ -47,17 +47,17 @@ export function AIReportForm() {
   
   const reportableRound = useMemo(() => {
     if (!activeGame) return 0;
-    // If the game is finished, the last reportable round is the final round number.
     if (activeGame.status === "Finalizado") {
       return activeGame.numRounds;
     }
-    // Otherwise, it's the round that was just completed.
     return activeGame.round > 0 ? activeGame.round - 1 : 0;
   }, [activeGame]);
 
   const teamsData = useMemo(() => {
     if (!activeGame || !activeGame.performance) return [];
-    return activeGame.performance[reportableRound] || [];
+    const perf = activeGame.performance[reportableRound];
+    if (!perf) return [];
+    return perf;
   }, [activeGame, reportableRound]);
 
 
@@ -156,6 +156,7 @@ export function AIReportForm() {
           qualitativeAnalysis: result.reporteCualitativo,
           debriefingQuestions: result.preguntasMayeuticas,
           pedagogicalSuggestions: result.sugerenciasPedagogicas,
+          published: false, // Default to not published
       };
 
       setReportData(newReportData);
@@ -163,6 +164,9 @@ export function AIReportForm() {
       setDebriefingQuestions(result.preguntasMayeuticas);
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       setHasReport(true);
+      
+      // Also save this generated report as a draft immediately
+      updateReport(activeGame.id, reportableRound, selectedTeam, newReportData);
 
     } catch (error) {
       console.error("Error generating report:", error);
@@ -206,9 +210,9 @@ export function AIReportForm() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
-  const { totalInvestmentCost, finalCash, totalDecisionsCost, totalCosts, centerActionsCostMap, totalCenterActionsCost } = useMemo(() => {
+ const { totalInvestmentCost, finalCash, totalCosts, centerActionsCostMap, totalCenterActionsCost } = useMemo(() => {
     if (!reportData || !activeGame || !selectedTeam) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalDecisionsCost: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0 };
+      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0 };
     }
     
     const investmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
@@ -223,8 +227,7 @@ export function AIReportForm() {
         return acc + (cActionsCostMap[actionId as keyof typeof cActionsCostMap] || 0);
     }, 0);
     
-    const decisionsCost = investmentCost + centerActionsCost;
-    const allCosts = reportData.kpis.personnelCost + decisionsCost;
+    const allCosts = reportData.kpis.personnelCost + investmentCost + centerActionsCost;
     
     const gameData = getGameById(activeGame.id);
     const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
@@ -235,7 +238,6 @@ export function AIReportForm() {
     return { 
         totalInvestmentCost: investmentCost, 
         finalCash: cash, 
-        totalDecisionsCost: decisionsCost, 
         totalCosts: allCosts,
         centerActionsCostMap: cActionsCostMap,
         totalCenterActionsCost: centerActionsCost
@@ -286,7 +288,7 @@ export function AIReportForm() {
             </TabsList>
             <TabsContent value="analysis">
                  {hasReport && reportData ? (
-                    <Accordion type="multiple" defaultValue={['item-1', 'item-kpi-summary', 'item-kpi-analysis', 'item-market-analysis', 'item-6']} className="w-full space-y-4 pt-4">
+                    <Accordion type="multiple" defaultValue={['item-1', 'item-kpi-summary', 'item-financial-details', 'item-kpi-analysis', 'item-market-analysis', 'item-6']} className="w-full space-y-4 pt-4">
                         
                         <AccordionItem value="item-1" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
@@ -297,6 +299,36 @@ export function AIReportForm() {
                             </AccordionContent>
                         </AccordionItem>
                         
+                         <AccordionItem value="item-financial-details" className="border rounded-lg">
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
+                            <AccordionContent className="px-4 space-y-4">
+                                <div className="p-3 bg-muted/50 rounded-lg border">
+                                    <h4 className="font-semibold">Cálculos Clave</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
+                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
+                                    <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                                </div>
+                                <div className="p-3 bg-muted/50 rounded-lg border">
+                                    <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
+                                    <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
+                                        {(reportData.decisions.selectedInvestments || []).map((inv: any, index: number) => (
+                                            <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
+                                        ))}
+                                        {(reportData.decisions.selectedCenterActions || []).map((actionId: string, index: number) => {
+                                          const actionInfo = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
+                                          if (actionInfo !== undefined) {
+                                              const costText = actionInfo > 0 ? formatCurrency(actionInfo) : `(coste salarial)`;
+                                              const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
+                                              return <li key={`${actionId}-${index}`}>{name}: {costText}</li>
+                                          }
+                                          return null;
+                                        })}
+                                        {((reportData.decisions.selectedInvestments || []).length === 0) && ((reportData.decisions.selectedCenterActions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                    </ul>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+
                          <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
                             <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">

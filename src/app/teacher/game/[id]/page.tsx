@@ -44,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { simulateRound } from "@/lib/game-logic/round-simulation";
 import { Separator } from "@/components/ui/separator";
 import { investments as fullInvestmentsList } from "@/app/teacher/catalog/investment-data";
+import { crises as fullCrisesList } from "@/app/teacher/catalog/crises-data";
 
 
 export default function GameDetailsPage() {

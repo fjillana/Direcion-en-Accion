@@ -30,9 +30,12 @@ export interface TeamDecision {
 export interface TeamPerformanceData {
   name: string;
   type: 'H' | 'IA';
-  finances: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
-  reputation: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
-  morale: { peb: number; xp: number; pebBreakdown: string[], xpBonus: number };
+  finances: { peb: number; xp: number; pebBreakdown: string[] };
+  reputation: { peb: number; xp: number; pebBreakdown: string[] };
+  morale: { peb: number; xp: number; pebBreakdown: string[] };
+  xpFinancesBonus: number;
+  xpReputationBonus: number;
+  xpMoraleBonus: number;
   totalXp: number;
   decisions: TeamDecision;
   kpis: TeamKPIs;

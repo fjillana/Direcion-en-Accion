@@ -167,24 +167,24 @@ export default function GameDetailsPage() {
     return game.decisions?.[parseInt(currentRoundTab)]?.[selectedTeam.name] || selectedTeam.decisions;
   }, [selectedTeam, game, currentRoundTab]);
   
-  const getBonusSourceName = (area: 'finances' | 'reputation' | 'morale'): string => {
-    if (!selectedTeam || !selectedTeam.decisions?.actions) return "(Bonus)";
-
-    const areaInvestments = (selectedTeam.decisions.actions)
-      .map(actionId => allInvestments.find(inv => inv.id === actionId))
-      .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
-
-    if (areaInvestments.length === 0) return "(Bonus)";
-
-    // Find the investment that contributes the most to the bonus
-    const mainContributor = areaInvestments.reduce((max, current) => {
-        const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
-        const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
-        return currentBonusValue > maxBonusValue ? current : max;
-    });
-
-    return `(${mainContributor.name})`;
-};
+  const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
+      if (!team || !team.decisions?.actions) return "(Bonus)";
+  
+      const areaInvestments = (team.decisions.actions)
+        .map(actionId => allInvestments.find(inv => inv.id === actionId))
+        .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
+  
+      if (areaInvestments.length === 0) return "";
+  
+      // Find the investment that contributes the most to the bonus
+      const mainContributor = areaInvestments.reduce((max, current) => {
+          const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
+          const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
+          return currentBonusValue > maxBonusValue ? current : max;
+      });
+  
+      return `(${mainContributor.name})`;
+  };
 
 
   if (!game) {
@@ -332,7 +332,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.finances.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpFinancesBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -347,7 +347,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.reputation.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpReputationBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -362,7 +362,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.morale.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpMoraleBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
               </div>

@@ -210,9 +210,16 @@ export function AIReportForm() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
- const { totalInvestmentCost, finalCash, totalCosts, centerActionsCostMap, totalCenterActionsCost } = useMemo(() => {
+ const { 
+    totalInvestmentCost, 
+    finalCash, 
+    totalCosts,
+    centerActionsCostMap,
+    totalCenterActionsCost,
+    initialCashForRound
+ } = useMemo(() => {
     if (!reportData || !activeGame || !selectedTeam) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0 };
+      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0, initialCashForRound: 0 };
     }
     
     const investmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
@@ -232,15 +239,16 @@ export function AIReportForm() {
     const gameData = getGameById(activeGame.id);
     const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
     const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
-    const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
-    const cash = initialCashForRound + reportData.kpis.income - allCosts;
+    const cashAtStart = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
+    const cash = cashAtStart + reportData.kpis.income - allCosts;
 
     return { 
         totalInvestmentCost: investmentCost, 
         finalCash: cash, 
         totalCosts: allCosts,
         centerActionsCostMap: cActionsCostMap,
-        totalCenterActionsCost: centerActionsCost
+        totalCenterActionsCost: centerActionsCost,
+        initialCashForRound: cashAtStart
     };
   }, [reportData, activeGame, getGameById, selectedTeam]);
 
@@ -292,10 +300,18 @@ export function AIReportForm() {
                         
                         <AccordionItem value="item-1" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
-                            <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
-                                <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(totalCosts)}</span></Badge>
-                                <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(finalCash)}</span></Badge>
+                            <AccordionContent className="px-4 space-y-2">
+                               <div className="p-3 bg-muted/50 rounded-lg border text-sm space-y-1">
+                                    <div className="flex justify-between"><span>Tesorería Inicial:</span> <span className="font-mono">{formatCurrency(initialCashForRound)}</span></div>
+                                    <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
+                                    <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
+                                    <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
+                                    <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
+                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
+                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Inversiones:</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
+                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Acciones:</span> <span className="font-mono">{formatCurrency(totalCenterActionsCost)}</span></div>
+                                    <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
+                               </div>
                             </AccordionContent>
                         </AccordionItem>
                         

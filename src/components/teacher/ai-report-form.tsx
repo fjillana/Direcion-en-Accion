@@ -232,15 +232,19 @@ export function AIReportForm() {
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
   
   const formatNumber = (valueStr: string) => {
-    const number = parseFloat(valueStr.replace('%', '').replace('CC', '').replace(',', '.'));
+    if (typeof valueStr !== 'string') return valueStr;
+    const cleanedString = valueStr.replace(/[^0-9,-]/g, '').replace(',', '.');
+    const number = parseFloat(cleanedString);
     if (isNaN(number)) return valueStr;
-    if (Math.floor(number) === number && number > 1000) {
-      return new Intl.NumberFormat('es-ES').format(number);
+
+    // Check if it's a large integer or has decimals based on original string
+    if (!valueStr.includes(',') && !valueStr.includes('.') && number > 1000) {
+         return new Intl.NumberFormat('es-ES').format(number);
     }
-    if (Math.floor(number) !== number) {
-      return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(number);
+    if (valueStr.includes(',') || valueStr.includes('.')) {
+        return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(number);
     }
-    return valueStr;
+    return new Intl.NumberFormat('es-ES').format(number);
   };
 
   const { 

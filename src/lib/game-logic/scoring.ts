@@ -39,25 +39,17 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
 }
 
 function calculateFinancialDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
-    let peb = 80; // Base PEB
-    let breakdown = "Decisiones Financieras: 80.00 PEB (Base)";
-    const justifications: string[] = [];
-
+    let peb = 80; // Base PEB for decisions
     const financialInvestments = ['F1', 'F2', 'F3'];
-    const madeFinancialInvestment = (decisions.investments || []).some(inv => financialInvestments.includes(inv.id));
+    const madeFinancialInvestment = (decisions?.investments || []).some(inv => financialInvestments.includes(inv.id));
 
     if (madeFinancialInvestment) {
-        peb += 20; // Bonus for making a smart financial investment
-        justifications.push('+20 por inversión financiera estratégica');
+        peb = 110; 
+        return { peb, breakdown: `Decisiones Financieras: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
     }
     
-    if (justifications.length > 0) {
-        breakdown = `Decisiones Financieras: ${peb.toFixed(2)} PEB (${justifications.join(', ')})`;
-    }
-
-    return { peb, breakdown };
+    return { peb, breakdown: `Decisiones Financieras: ${peb.toFixed(2)} PEB (Base)` };
 }
-
 
 // --- Reputation PEB Calculation (Sección 10.2) ---
 function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
@@ -87,6 +79,19 @@ function calculateMarketSharePeb(currentStudents: number, initialStudents: numbe
         peb = 50;
     }
     return { peb, breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
+}
+
+function calculateReputationDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
+    let peb = 80; // Base PEB for decisions
+    const reputationInvestments = ['R1', 'R2', 'R3', 'R4', 'R5'];
+    const madeReputationInvestment = (decisions?.investments || []).some(inv => reputationInvestments.includes(inv.id));
+    
+    if (madeReputationInvestment) {
+        peb = 110;
+        return { peb, breakdown: `Decisiones de Reputación: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
+    }
+    
+    return { peb, breakdown: `Decisiones de Reputación: ${peb.toFixed(2)} PEB (Base)` };
 }
 
 
@@ -123,6 +128,19 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
     return { peb, breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
 
+function calculateMoraleDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
+    let peb = 80; // Base PEB for decisions
+    const moraleInvestments = ['P1', 'P3', 'P4', 'P5'];
+    const madeMoraleInvestment = (decisions?.investments || []).some(inv => moraleInvestments.includes(inv.id));
+    
+    if (madeMoraleInvestment) {
+        peb = 110;
+        return { peb, breakdown: `Decisiones de Personal: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
+    }
+    
+    return { peb, breakdown: `Decisiones de Personal: ${peb.toFixed(2)} PEB (Base)` };
+}
+
 
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean) {
     const { kpis, decisions } = teamState;
@@ -137,7 +155,8 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     // Reputation
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
-    const pebReputationBase = (nma.peb + marketShare.peb) / 2;
+    const decisionsReputation = calculateReputationDecisionsPeb(decisions);
+    const pebReputationBase = (nma.peb + marketShare.peb + decisionsReputation.peb) / 3;
     // Manual: -10 PEB de Reputación por sobrecarga
     const pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase; 
     const xpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
@@ -145,7 +164,8 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     // Morale
     const staffMorale = calculateStaffMoralePeb(kpis.morale);
     const studentTeacherRatio = calculateStudentTeacherRatioPeb(kpis.studentTeacherRatio);
-    const pebMoral = (staffMorale.peb + studentTeacherRatio.peb) / 2;
+    const decisionsMorale = calculateMoraleDecisionsPeb(decisions);
+    const pebMoral = (staffMorale.peb + studentTeacherRatio.peb + decisionsMorale.peb) / 3;
     const xpMoral = pebMoral * XP_CONVERSION_FACTOR;
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;
@@ -159,12 +179,12 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         reputation: {
             peb: pebReputacion,
             xp: xpReputacion,
-            pebBreakdown: [nma.breakdown, marketShare.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`]
+            pebBreakdown: [nma.breakdown, marketShare.breakdown, decisionsReputation.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`]
         },
         morale: {
             peb: pebMoral,
             xp: xpMoral,
-            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown]
+            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown, decisionsMorale.breakdown]
         },
         totalXp: totalXp
     };

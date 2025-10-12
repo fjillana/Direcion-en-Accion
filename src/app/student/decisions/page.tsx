@@ -10,6 +10,7 @@ import { useGames } from "@/hooks/use-games";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import { investments as allInvestments } from "@/app/teacher/catalog/investment-data";
+import type { Investment } from "@/components/teacher/catalog-editor";
 
 export default function DecisionsPage() {
   const { studentGame, setRoundDecisions, saveStudentDecisions } = useStudentGame();
@@ -26,14 +27,14 @@ export default function DecisionsPage() {
 
     if (!roundSettings || currentRound === undefined) return [];
     
-    // The settings might not be defined for the current round yet
-    const settingsForRound = roundSettings[currentRound];
-    if (!settingsForRound) return [];
+    // Correctly access round settings from the object
+    const settingsForRound = roundSettings;
+    if (!settingsForRound || !settingsForRound.investments) return [];
 
-    return settingsForRound.investments.map(inv => {
-      // Find the full investment data from the catalog
-      return allInvestments.find(invData => invData.id === inv.id);
-    }).filter(Boolean) as typeof allInvestments;
+    return settingsForRound.investments.map(invSummary => {
+      // Find the full investment data from the catalog using the id from the summary
+      return allInvestments.find(invData => invData.id === invSummary.id);
+    }).filter(Boolean) as Investment[];
 
   }, [studentGame?.round, studentGame?.roundSettings]);
 

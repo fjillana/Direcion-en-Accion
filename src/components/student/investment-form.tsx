@@ -51,7 +51,8 @@ export function InvestmentForm({
         if (inv.cost.type === 'fixed') {
             actionCosts[inv.id] = inv.cost.value as number;
         } else {
-            actionCosts[inv.id] = inv.cost.value[1]; // Default to max cost for range investments
+            // For ranged investments, we can default to max cost, but this should be dynamic if sliders are used
+            actionCosts[inv.id] = inv.cost.value[1]; 
         }
     });
     return actionCosts;
@@ -59,9 +60,22 @@ export function InvestmentForm({
 
   const totalCost = useMemo(() => {
     return selectedActions.reduce((acc, id) => {
-      return acc + (allActionsWithCosts[id] || 0);
+      // Find the investment in the full list to get its cost details
+      const investment = allInvestments.find(inv => inv.id === id);
+      if (investment) {
+          if (investment.cost.type === 'fixed') {
+              return acc + (investment.cost.value as number);
+          }
+          // For now, assume max cost for range. This would need to be more dynamic with sliders.
+          return acc + (investment.cost.value[1]);
+      }
+      // Check for other actions
+      if (id === 'P2' || id === 'P7') return acc + 7500;
+      if (id === 'F5') return acc + 50000;
+      
+      return acc;
     }, 0);
-  }, [selectedActions, allActionsWithCosts]);
+  }, [selectedActions]);
 
 
   const remainingCash = teamCash - totalCost;
@@ -119,7 +133,7 @@ export function InvestmentForm({
                         </div>
                         {isRange && isSelected && (
                             <div className="mt-4 pl-8 pr-2 space-y-2">
-                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Coste actual: {(allActionsWithCosts[inv.id] || maxCost).toLocaleString('es-ES')} CC)</Label>
+                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Coste actual: {maxCost.toLocaleString('es-ES')} CC)</Label>
                                 <Slider
                                     defaultValue={[maxCost]}
                                     min={minCost}

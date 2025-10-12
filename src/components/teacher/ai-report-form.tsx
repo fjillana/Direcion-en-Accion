@@ -138,7 +138,7 @@ export function AIReportForm() {
         marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
       };
       
-      console.log(`[GPS] 7. Generating AI Report for ${selectedTeam}. Payload:`, reportPayload);
+      console.log(`[GPS] 6. Generating AI Report for ${selectedTeam}. Payload:`, reportPayload);
 
       const result = await generateRoundReport(reportPayload);
       
@@ -227,7 +227,7 @@ export function AIReportForm() {
     const decisions = reportData.decisions || {};
     const kpis = reportData.kpis || {};
     
-    const actionCosts = decisions.actions.reduce((acc: number, actionId: string) => {
+    const actionCosts = (decisions.actions || []).reduce((acc: number, actionId: string) => {
         const investment = allInvestments.find(inv => inv.id === actionId);
         if (investment) {
             if (investment.cost.type === 'fixed') {

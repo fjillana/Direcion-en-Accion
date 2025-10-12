@@ -102,7 +102,18 @@ export default function StudentDashboard() {
       }
   }
 
-  const currentCrisisId = studentGame?.roundSettings?.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
+  const currentCrisisId = useMemo(() => {
+    if (!studentGame || !studentGame.roundSettings || studentGame.round === undefined) {
+      return undefined;
+    }
+    const roundKey = studentGame.round.toString();
+    const settingsForRound = studentGame.roundSettings[roundKey];
+    if (!settingsForRound || !settingsForRound.teamCrises) {
+      return undefined;
+    }
+    return settingsForRound.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
+  }, [studentGame]);
+
   const currentCrisis = currentCrisisId ? mockCrises[currentCrisisId] : undefined;
   
   const isRoundZero = round === 0;
@@ -287,8 +298,8 @@ export default function StudentDashboard() {
         
         <CenterDataForm 
           disabled={roundConfirmed} 
-          selectedActions={decisions?.selectedCenterActions || []}
-          onActionChange={(actions) => setRoundDecisions({ selectedCenterActions: actions })}
+          selectedActions={decisions?.actions || []}
+          onActionChange={(actions) => setRoundDecisions({ actions })}
           tuitionPrice={decisions?.tuitionPrice || 120}
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
           numStudents={kpis?.numStudents || 0}

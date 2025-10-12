@@ -237,9 +237,16 @@ export function AIReportForm() {
     const allCosts = reportData.kpis.personnelCost + investmentCost + centerActionsCost;
     
     const gameData = getGameById(activeGame.id);
-    const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
-    const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
-    const cashAtStart = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
+    let cashAtStart = 0;
+
+    if (reportData.round === 0) {
+      cashAtStart = gameData?.initialFunds || 0;
+    } else {
+      const prevRoundIndex = reportData.round - 1;
+      const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
+      cashAtStart = prevRoundPerformance ? prevRoundPerformance.kpis.cash : (gameData?.initialFunds || 0);
+    }
+    
     const cash = cashAtStart + reportData.kpis.income - allCosts;
 
     return { 

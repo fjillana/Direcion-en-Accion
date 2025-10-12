@@ -105,11 +105,11 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 // --- XP Bonus Calculation from Decisions ---
 function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
-    if (!decisions.actions) return bonus;
+    const actions = decisions.actions || [];
 
     console.log(`[GPS] 5c. Calculating XP Bonus. Decisions received:`, decisions);
 
-    for (const actionId of decisions.actions) {
+    for (const actionId of actions) {
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;
         
@@ -163,7 +163,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const xpBonus = getXpBonusFromDecisions(decisions);
 
     const xpFinanzas = baseXpFinanzas + xpBonus.finances;
-    const xpReputacion = baseXpReputacion + xpBonus.reputation;
+    const xpReputacion = baseX.pReputacion + xpBonus.reputation;
     const xpMoral = baseXpMoral + xpBonus.morale;
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;

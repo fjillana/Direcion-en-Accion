@@ -31,14 +31,16 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   let updatedNumTeachers = currentKpis.numTeachers;
   let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
 
+  const actions = decisions.actions || [];
+
   // --- Apply decisions ---
-  if (decisions.actions.includes('P2')) { // Contratar
+  if (actions.includes('P2')) { // Contratar
     updatedNumTeachers += 1;
   }
-  if (decisions.actions.includes('P7')) { // Despedir
+  if (actions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
   }
-  if (decisions.actions.includes('F5')) { // Ampliación Aulas
+  if (actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
   }
 
@@ -53,7 +55,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const income = privateIncome + PUBLIC_INCOME;
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
   
-  const investmentCost = decisions.actions.reduce((sum, actionId) => {
+  const investmentCost = actions.reduce((sum, actionId) => {
       const investmentInfo = allInvestments.find(inv => inv.id === actionId);
       if (!investmentInfo) return sum;
 
@@ -68,7 +70,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       return sum;
   }, 0);
   
-  const centerActionsCost = decisions.actions.reduce((sum, actionId) => {
+  const centerActionsCost = actions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
       return sum;
@@ -88,11 +90,11 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
 
   // Impacto de inversiones
-  if (decisions.actions.includes('R2')) { // Inversión en TIC
+  if (actions.includes('R2')) { // Inversión en TIC
       updatedNma += 0.2;
       updatedMorale += 5;
   }
-  if (decisions.actions.includes('P1')) { // Formación docente
+  if (actions.includes('P1')) { // Formación docente
       updatedNma += 0.1;
       updatedMorale += 10;
   }
@@ -104,10 +106,10 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   }
   
   // Impacto de acciones de personal
-  if(decisions.actions.includes('P7')) { // Despedir
+  if(actions.includes('P7')) { // Despedir
       updatedMorale -= 25;
   }
-  if(decisions.actions.includes('P2')) { // Contratar
+  if(actions.includes('P2')) { // Contratar
       updatedMorale += 15;
   }
 

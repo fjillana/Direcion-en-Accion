@@ -29,7 +29,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
   // IAM = (NMA * 10) + (Precio medio / Precio del equipo * 30) + (Inversión en Marketing / 1000)
   for (const team of teams) {
     // a. Componente de Calidad (50%): Se multiplica la NMA por 10 para escalarla.
-    const nmaPoints = team.kpis.nma * 10;
+    const nmaPoints = (team.kpis.nma || 0) * 10;
 
     // b. Componente de Precio (30%): Se calcula la competitividad del precio en relación a la media del mercado.
     const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
@@ -47,25 +47,34 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
         }
     }
 
+    // Sanitize values to ensure they are numbers, defaulting to 0.
+    const sanitizedNmaPoints = isNaN(nmaPoints) ? 0 : nmaPoints;
+    const sanitizedPricePoints = isNaN(pricePoints) ? 0 : pricePoints;
+    const sanitizedMarketingPoints = isNaN(marketingPoints) ? 0 : marketingPoints;
+
     // Fórmula completa del IAM
-    const iam = nmaPoints + pricePoints + marketingPoints;
+    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints;
     const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
 
     teamIamResults[team.name] = {
         iam: finalIam,
-        points: { nma: nmaPoints, price: pricePoints, marketing: marketingPoints }
+        points: { 
+          nma: sanitizedNmaPoints, 
+          price: sanitizedPricePoints, 
+          marketing: sanitizedMarketingPoints 
+        }
     };
     totalIamPoints += finalIam;
   }
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
-  const finalResults: Record<string, { iam: number; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
+  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
   if (totalIamPoints > 0) {
     for (const team of teams) {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;
         const newStudents = Math.round(iamShare * NEW_STUDENTS_POOL);
         finalResults[team.name] = {
-            iam: teamIamResults[team.name].iam,
+            ...teamIamResults[team.name],
             newStudents: newStudents,
             name: team.name,
             type: team.type
@@ -76,7 +85,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const newStudentsPerTeam = Math.floor(NEW_STUDENTS_POOL / teams.length);
     for (const team of teams) {
         finalResults[team.name] = {
-            iam: 0,
+            ...teamIamResults[team.name],
             newStudents: newStudentsPerTeam,
             name: team.name,
             type: team.type

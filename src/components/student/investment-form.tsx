@@ -96,6 +96,10 @@ export function InvestmentForm({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 {availableInvestments.length > 0 ? availableInvestments.map((inv) => {
+                  // Defensive check for the old data structure
+                  if (!inv.cost || typeof inv.cost !== 'object') {
+                    return null; // Or render a fallback for invalid data
+                  }
                   const isSelected = selectedInvestments.some(si => si.id === inv.id);
                   const selectedValue = selectedInvestments.find(si => si.id === inv.id)?.cost;
                   const isRange = inv.cost.type === 'range';

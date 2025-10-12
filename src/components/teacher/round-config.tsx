@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Investment, Crisis } from "./catalog-editor";
-import { investments as fullInvestmentsList } from "@/app/teacher/catalog/investment-data";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useGame } from "@/hooks/use-game-context";
@@ -38,11 +37,13 @@ type TeamName = string;
 
 interface RoundConfigProps {
   allTeams: TeamName[];
+  fullInvestments: Investment[];
   fullCrises: Crisis[];
 }
 
 export function RoundConfig({
   allTeams,
+  fullInvestments,
   fullCrises,
 }: RoundConfigProps) {
   const { toast } = useToast();
@@ -76,7 +77,7 @@ export function RoundConfig({
   >([]);
 
   const handleAddInvestments = () => {
-    const investmentsToAdd = fullInvestmentsList
+    const investmentsToAdd = fullInvestments
       .filter((inv) => selectedCatalogInvestments.includes(inv.id))
       .filter(
         (invToAdd) =>
@@ -274,7 +275,7 @@ export function RoundConfig({
           </DialogHeader>
           <ScrollArea className="h-96">
             <div className="space-y-4 p-4">
-              {fullInvestmentsList.map((item) => {
+              {fullInvestments.map((item) => {
                 const isInRound = roundInvestments.some(
                   (roundItem) => roundItem.id === item.id
                 );

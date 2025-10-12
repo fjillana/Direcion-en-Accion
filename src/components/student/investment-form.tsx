@@ -31,6 +31,12 @@ interface InvestmentFormProps {
   teamCash: number;
 }
 
+const centerActionsCostMap: Record<string, number> = {
+    'P2': 0, // Contratar no tiene coste de inversión, es gasto recurrente
+    'P7': 7500, // Despedir tiene coste de indemnización
+    'F5': 50000, // Ampliación de aulas
+};
+
 
 export function InvestmentForm({ 
   disabled = false, 
@@ -44,31 +50,26 @@ export function InvestmentForm({
   teamCash 
 }: InvestmentFormProps) {
 
-  // Initialize costs on component mount if not already set
-  useEffect(() => {
-    const costsToUpdate: Record<string, number> = {};
-    availableInvestments.forEach(inv => {
-      if (investmentCosts[inv.id] === undefined) {
-         if (inv.cost.type === 'fixed') {
-            costsToUpdate[inv.id] = inv.cost.value as number;
-        } else {
-            // Default ranged investments to their max cost
-            costsToUpdate[inv.id] = inv.cost.value[1];
-        }
-      }
-    });
-
-    if (Object.keys(costsToUpdate).length > 0) {
-      onCostChange("init", 0); // This is a bit of a hack to pass multiple costs
-      Object.entries(costsToUpdate).forEach(([id, cost]) => onCostChange(id, cost));
-    }
-  }, [availableInvestments]);
-
   const totalCost = useMemo(() => {
-    return selectedActions.reduce((acc, id) => {
-      return acc + (investmentCosts[id] || 0);
+    // Sum costs from variable investments (sliders)
+    const variableCost = selectedActions.reduce((acc, id) => {
+      // Only sum if it's a variable investment, not a center action
+      if (availableInvestments.some(inv => inv.id === id)) {
+        return acc + (investmentCosts[id] || 0);
+      }
+      return acc;
     }, 0);
-  }, [selectedActions, investmentCosts]);
+
+    // Sum costs from fixed center actions (checkboxes on dashboard)
+    const fixedCost = selectedActions.reduce((acc, id) => {
+      if (id in centerActionsCostMap) {
+        return acc + centerActionsCostMap[id];
+      }
+      return acc;
+    }, 0);
+
+    return variableCost + fixedCost;
+  }, [selectedActions, investmentCosts, availableInvestments]);
 
 
   const remainingCash = teamCash - totalCost;

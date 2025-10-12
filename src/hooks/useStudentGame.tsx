@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, TeamDecision } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
@@ -11,6 +11,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import type { TeamDecision } from "@/hooks/use-games";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -36,12 +37,13 @@ export interface RoundDecisions {
       option: string;
   } | null;
   roundConfirmed: boolean;
+  selectedCenterActions?: string[];
 }
 
 interface FullStudentState extends StudentGameState {
   round?: number;
   decisions: RoundDecisions;
-  roundSettings?: RoundSettings;
+  roundSettings?: Record<string, RoundSettings>;
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
   kpis?: TeamKPIs;
@@ -83,6 +85,7 @@ const initialRoundDecisions: RoundDecisions = {
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
+  selectedCenterActions: [],
 };
 
 
@@ -220,7 +223,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       ...studentGameState,
       round: serverRound,
       decisions: currentDecisions,
-      roundSettings: gameData.roundSettings?.[serverRound],
+      roundSettings: gameData.roundSettings,
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGameState.teamName || m.from === studentGameState.teamName),
       performanceHistory,
       kpis: currentKpis
@@ -290,10 +293,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setFullStudentState(prev => {
         if (!prev) return null;
         
+        const currentActions = prev.decisions.actions || [];
+        const newActions = newDecisions.actions || [];
+
+        const updatedActions = [...new Set([...currentActions, ...newActions])].filter(action => {
+            if (newDecisions.actions !== undefined) {
+                // If newDecisions.actions is provided, we check if the action is in the new array
+                // This handles both adding and removing
+                return newActions.includes(action);
+            }
+            return true; // keep old actions if newDecisions.actions is not provided
+        });
+
         const updatedDecisions: RoundDecisions = {
             ...prev.decisions,
             ...newDecisions,
-            actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
+            actions: updatedActions,
         };
 
         if (newDecisions.roundConfirmed) {
@@ -342,7 +357,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     saveStudentDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading]);
+  }), [fullStudentState, isLoading, isAuthLoading, gamesLoading, requestToJoinGame, abandonGame, setRoundDecisions, saveStudentDecisions, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>

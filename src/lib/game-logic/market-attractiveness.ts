@@ -2,6 +2,7 @@
 
 import type { Game } from "@/hooks/use-games";
 import type { TeamState } from "./types";
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 /**
  * Calcula el índice de atractividad de mercado (IAM) para cada equipo y distribuye los nuevos alumnos.
@@ -34,8 +35,17 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
     
     // c. Componente de Marketing (20%): Se calcula en base a la inversión en la campaña "R1".
-    const marketingInvestment = (team.decisions?.investments ?? []).find(inv => inv.id === 'R1');
-    const marketingPoints = marketingInvestment ? marketingInvestment.cost / 1000 : 0;
+    const marketingActionId = (team.decisions?.actions || []).find(id => id === 'R1');
+    let marketingPoints = 0;
+    if (marketingActionId) {
+        const investmentInfo = allInvestments.find(inv => inv.id === 'R1');
+        if (investmentInfo) {
+            // Asumimos el coste máximo para inversiones de rango por ahora.
+            // Para una simulación más precisa, el coste exacto debería guardarse en el objeto de decisión.
+            const cost = investmentInfo.cost.type === 'range' ? investmentInfo.cost.value[1] : investmentInfo.cost.value as number;
+            marketingPoints = cost / 1000;
+        }
+    }
 
     // Fórmula completa del IAM
     const iam = nmaPoints + pricePoints + marketingPoints;

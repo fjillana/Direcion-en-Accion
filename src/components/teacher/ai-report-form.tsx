@@ -231,20 +231,29 @@ export function AIReportForm() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
   
-  const formatNumber = (valueStr: string) => {
+  const formatKpiValue = (valueStr: string, key: string): string => {
     if (typeof valueStr !== 'string') return valueStr;
-    const cleanedString = valueStr.replace(/[^0-9,-]/g, '').replace(',', '.');
-    const number = parseFloat(cleanedString);
-    if (isNaN(number)) return valueStr;
 
-    // Check if it's a large integer or has decimals based on original string
-    if (!valueStr.includes(',') && !valueStr.includes('.') && number > 1000) {
-         return new Intl.NumberFormat('es-ES').format(number);
+    // Handle percentage values first
+    if (valueStr.includes('%') || key === 'cuotaDeMercado' || key === 'moral') {
+        const numericValue = parseFloat(valueStr.replace(/[^0-9,-]/g, '').replace(',', '.'));
+        if (isNaN(numericValue)) return valueStr;
+        return `${numericValue.toFixed(2).replace('.', ',')}%`;
     }
-    if (valueStr.includes(',') || valueStr.includes('.')) {
-        return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(number);
+
+    // Handle decimal values like NMA or Ratio
+    if (key === 'nma' || key === 'ratioAlumnosProfesor') {
+        const numericValue = parseFloat(valueStr.replace(/[^0-9,-]/g, '').replace(',', '.'));
+        if (isNaN(numericValue)) return valueStr;
+        const decimalPlaces = key === 'nma' ? 1 : 2;
+        return numericValue.toFixed(decimalPlaces).replace('.', ',');
     }
-    return new Intl.NumberFormat('es-ES').format(number);
+
+    // Handle large integer values like Tesoreria or Coste
+    const numericValue = parseInt(valueStr.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(numericValue)) return valueStr;
+    
+    return new Intl.NumberFormat('es-ES').format(numericValue);
   };
 
   const { 
@@ -408,7 +417,11 @@ export function AIReportForm() {
                                 {reportData.kpiAnalysis && Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
                                     <div key={key} className="p-3 bg-muted/50 rounded-lg border">
                                         <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap"><span className="font-bold text-foreground">Valor: {formatNumber(value.value)}</span> - {value.analysis}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                                            <span className="font-bold text-foreground">Valor: {formatKpiValue(value.value, key)}</span>
+                                            {' - '}
+                                            {value.analysis}
+                                        </p>
                                     </div>
                                 ))}
                             </AccordionContent>

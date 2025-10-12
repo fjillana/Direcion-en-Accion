@@ -61,11 +61,18 @@ const prompt = ai.definePrompt({
   3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda (ej: ¿sacrificar rentabilidad por cuota de mercado?, ¿cómo una crisis impactó su plan?).
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
   5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para cada uno de los KPIs. Tu análisis DEBE explicar el porqué del valor de forma cuantitativa, basándote en los datos de entrada.
-      - **Identifica la Causa Principal:** Para cada KPI, encuentra la causa más importante de su valor (positiva o negativa). Por ejemplo, si la moral bajó, verifica si el ratio de alumnos/profesor superó 26.0 (causando una penalización de -15 puntos). Si el NMA bajó, comprueba si el ratio superó 26.0 (penalización de -0.3).
-      - **Describe el Cálculo:** En palabras, describe cómo se llegó al valor. Menciona explícitamente las decisiones (inversiones, contrataciones) del JSON de entrada que aplicaron bonus o penalizaciones.
-      - **Usa el Valor Correcto:** Asegúrate de usar el valor final del KPI que se encuentra en el objeto \`kpis\` dentro de \`teamPerformanceData\`. Por ejemplo, para la tesorería, usa \`teamPerformanceData.kpis.cash\`.
-      - **NO ALUCINES:** No menciones inversiones o decisiones que no aparezcan en el JSON \`teamPerformanceData.decisions.actions\`. Si el equipo no invirtió en algo relevante, explícalo. Ejemplo para NMA: "El NMA bajó a 7.2 principalmente por la penalización de -0.3 por sobrecarga de profesorado, al tener un ratio de 26.1. No se realizaron inversiones en formación (P1) o TIC (R2) que pudieran haber compensado esta caída."
-      - **Ejemplo para Moral:** "La moral cayó a 65% debido a la fuerte penalización de -15 puntos por un ratio de alumnos/profesor superior a 26. La falta de inversión en formación (P1) o actividades sociales (P5) impidió mejorarla."
+      - **Usa el Valor Correcto:** Asegúrate de usar el valor final del KPI que se encuentra en el objeto \`kpis\` dentro de \`teamPerformanceData\`. No inventes valores.
+      - **Formato de Valores:** Al escribir el valor en el campo 'value' del JSON de salida, usa este formato exacto:
+        - **tesoreria:** Un número entero sin decimales (ej: "122890").
+        - **costePersonal:** Un número entero sin decimales (ej: "255000").
+        - **nma:** Un número con un decimal, usando coma (ej: "7,2").
+        - **cuotaDeMercado:** Un número con dos decimales, usando coma, y el símbolo % (ej: "51,52%").
+        - **moral:** Un número entero y el símbolo % (ej: "65%").
+        - **ratioAlumnosProfesor:** Un número con dos decimales, usando coma (ej: "26,09").
+      - **Describe el Cálculo:** En el campo 'analysis', describe en palabras cómo se llegó al valor. Menciona explícitamente las decisiones (inversiones, contrataciones) del JSON de entrada que aplicaron bonus o penalizaciones.
+      - **NO ALUCINES:** No menciones inversiones o decisiones que no aparezcan en el JSON \`teamPerformanceData.decisions.actions\`. Si el equipo no invirtió en algo relevante, explícalo.
+      - **Ejemplo de Análisis para NMA:** "El NMA bajó a 7,2 principalmente por la penalización de -0.3 por sobrecarga de profesorado, al tener un ratio de 26.1. No se realizaron inversiones en formación (P1) o TIC (R2) que pudieran haber compensado esta caída."
+      - **Ejemplo de Análisis para Moral:** "La moral cayó a 65% debido a la fuerte penalización de -15 puntos por un ratio de alumnos/profesor superior a 26. La falta de inversión en formación (P1) o actividades sociales (P5) impidió mejorarla."
 
   **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,
 });

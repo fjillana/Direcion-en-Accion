@@ -37,7 +37,6 @@ export function StudentReport() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
-
   if (isLoading) {
     return (
       <Card>
@@ -67,27 +66,27 @@ export function StudentReport() {
     );
   }
   
+  const gameData = getGameById(studentGame!.gameId!);
+  const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
+  
+  let initialCashForRound = 0;
+  if(reportData.round === 0) {
+      initialCashForRound = gameData?.initialFunds || 0;
+  } else {
+      const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === studentGame!.teamName);
+      initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
+  }
+
   const totalInvestmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
   
-  const centerActionsCostMap: Record<string, number> = {
-    'F5': 50000, // Ampliación de Aulas
-    'P7': 7500, // Despedir Docente
-    'P2': 7500, // Contratar docente
-  };
+  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 };
   
   const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
       return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
   }, 0);
   
   const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
-  
-  const gameData = getGameById(studentGame!.gameId!);
-  const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
-  const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === studentGame!.teamName);
-  
-  const initialCashForRound = prevRoundPerformance ? prevRoundPerformance.kpis.cash : gameData?.initialFunds || 0;
-  
-  const correctlyCalculatedCash = initialCashForRound + reportData.kpis.income - totalCosts;
+  const finalCash = initialCashForRound + reportData.kpis.income - totalCosts;
 
   return (
      <Card>
@@ -102,40 +101,44 @@ export function StudentReport() {
             </div>
         </CardHeader>
         <CardContent>
-            <Accordion type="multiple" defaultValue={['item-1', 'item-kpi-summary', 'item-kpi-analysis', 'item-market-analysis', 'item-6', 'item-financial-details', 'item-7']} className="w-full space-y-4 pt-4">
+            <Accordion type="multiple" defaultValue={['item-1', 'item-kpi-summary', 'item-financial-details', 'item-kpi-analysis', 'item-market-analysis', 'item-6', 'item-7']} className="w-full space-y-4 pt-4">
                 
                 <AccordionItem value="item-1" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen Financiero</h3></AccordionTrigger>
-                    <AccordionContent className="px-4 grid md:grid-cols-2 gap-4">
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Ingresos Totales:</span> <span>{formatCurrency(reportData.kpis.income)}</span></Badge>
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Costes Totales:</span> <span className="text-destructive">{formatCurrency(totalCosts)}</span></Badge>
-                        <Badge variant="outline" className="md:col-span-2 flex justify-between p-3 text-sm font-bold"><span>Tesorería Final:</span> <span>{formatCurrency(correctlyCalculatedCash)}</span></Badge>
+                    <AccordionContent className="px-4 space-y-2">
+                       <div className="p-3 bg-muted/50 rounded-lg border text-sm space-y-1">
+                            <div className="flex justify-between"><span>Tesorería Inicial:</span> <span className="font-mono">{formatCurrency(initialCashForRound)}</span></div>
+                            <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
+                            <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
+                            <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
+                            <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
+                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
+                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Inversiones:</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
+                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Acciones:</span> <span className="font-mono">{formatCurrency(totalCenterActionsCost)}</span></div>
+                            <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
+                       </div>
                     </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="item-financial-details" className="border rounded-lg">
-                    <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
+                    <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle de Decisiones</h3></AccordionTrigger>
                     <AccordionContent className="px-4 space-y-4">
                         <div className="p-3 bg-muted/50 rounded-lg border">
-                            <h4 className="font-semibold">Cálculos Clave</h4>
-                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
-                            <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
-                            <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                            <h4 className="font-semibold">Cálculos Clave de Ingresos y Gastos</h4>
+                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
+                            <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
+                            <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
                             <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
                                 {(reportData.decisions.selectedInvestments || []).map((inv: any, index: number) => (
-                                    <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
+                                    <li key={`inv-${index}`}>{inv.name}: {formatCurrency(inv.cost)}</li>
                                 ))}
                                 {(reportData.decisions.selectedCenterActions || []).map((actionId: string, index: number) => {
-                                  const actionInfo = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
-                                  if (actionInfo !== undefined) {
-                                      const costText = actionInfo > 0 ? formatCurrency(actionInfo) : `(coste salarial)`;
-                                      const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
-                                      return <li key={`${actionId}-${index}`}>{name}: {costText}</li>
-                                  }
-                                  return null;
+                                  const cost = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0;
+                                  const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
+                                  return <li key={`act-${index}`}>{name}: {formatCurrency(cost)}</li>
                                 })}
                                 {((reportData.decisions.selectedInvestments || []).length === 0) && ((reportData.decisions.selectedCenterActions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
@@ -146,7 +149,7 @@ export function StudentReport() {
                  <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
                     <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(correctlyCalculatedCash)}</span></Badge>
+                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(finalCash)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal / Ingresos:</span> <span className="font-bold">{reportData.kpis.income ? ((reportData.kpis.personnelCost / reportData.kpis.income) * 100).toFixed(1) : '0.0'}%</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Nota Media Alumnado:</span> <span className="font-bold">{reportData.kpis.nma.toFixed(1)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Cuota de Mercado:</span> <span className="font-bold">{reportData.kpis.marketShare.toFixed(1)}%</span></Badge>

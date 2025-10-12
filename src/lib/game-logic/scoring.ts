@@ -38,19 +38,6 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
     return { peb, breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 
-function calculateFinancialDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
-    let peb = 80; // Base PEB for decisions
-    const financialInvestments = ['F1', 'F2', 'F3'];
-    const madeFinancialInvestment = (decisions?.investments || []).some(inv => financialInvestments.includes(inv.id));
-
-    if (madeFinancialInvestment) {
-        peb = 110; 
-        return { peb, breakdown: `Decisiones Financieras: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
-    }
-    
-    return { peb, breakdown: `Decisiones Financieras: ${peb.toFixed(2)} PEB (Base)` };
-}
-
 // --- Reputation PEB Calculation (Sección 10.2) ---
 function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
     let peb = 0;
@@ -80,20 +67,6 @@ function calculateMarketSharePeb(currentStudents: number, initialStudents: numbe
     }
     return { peb, breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
-
-function calculateReputationDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
-    let peb = 80; // Base PEB for decisions
-    const reputationInvestments = ['R1', 'R2', 'R3', 'R4', 'R5'];
-    const madeReputationInvestment = (decisions?.investments || []).some(inv => reputationInvestments.includes(inv.id));
-    
-    if (madeReputationInvestment) {
-        peb = 110;
-        return { peb, breakdown: `Decisiones de Reputación: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
-    }
-    
-    return { peb, breakdown: `Decisiones de Reputación: ${peb.toFixed(2)} PEB (Base)` };
-}
-
 
 // --- Morale PEB Calculation (Sección 10.3) ---
 function calculateStaffMoralePeb(morale: number): { peb: number, breakdown: string } {
@@ -128,45 +101,58 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
     return { peb, breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
 
-function calculateMoraleDecisionsPeb(decisions: TeamDecision): { peb: number, breakdown: string } {
-    let peb = 80; // Base PEB for decisions
-    const moraleInvestments = ['P1', 'P3', 'P4', 'P5'];
-    const madeMoraleInvestment = (decisions?.investments || []).some(inv => moraleInvestments.includes(inv.id));
-    
-    if (madeMoraleInvestment) {
-        peb = 110;
-        return { peb, breakdown: `Decisiones de Personal: ${peb.toFixed(2)} PEB (+ por inversión estratégica)` };
-    }
-    
-    return { peb, breakdown: `Decisiones de Personal: ${peb.toFixed(2)} PEB (Base)` };
-}
+// --- XP Bonus Calculation from Decisions ---
+function getXpBonusFromDecisions(decisions: TeamDecision): { finance: number; reputation: number; morale: number } {
+    const bonus = { finance: 0, reputation: 0, morale: 0 };
+    if (!decisions.investments) return bonus;
 
+    for (const investment of decisions.investments) {
+        // This is a simplified parsing of the effect string. It's brittle.
+        const xpMatch = investment.effect.match(/(\+\d+)\s*a\s*\+(\d+)\s*XP\s*(\w+)/);
+        if (xpMatch) {
+            const maxXP = parseInt(xpMatch[2], 10);
+            const area = xpMatch[3].toLowerCase();
+            
+            if (area.includes('finanza')) {
+                bonus.finance += maxXP;
+            } else if (area.includes('reputaci')) {
+                bonus.reputation += maxXP;
+            } else if (area.includes('personal')) {
+                bonus.morale += maxXP;
+            }
+        }
+    }
+    return bonus;
+}
 
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean) {
     const { kpis, decisions } = teamState;
 
-    // Finance
+    // --- PEB Calculation ---
     const treasury = calculateTreasuryPeb(kpis.cash, kpis.income);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
-    const decisionsFinances = calculateFinancialDecisionsPeb(decisions);
-    const pebFinanzas = (treasury.peb + personnelCost.peb + decisionsFinances.peb) / 3;
-    const xpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
+    const pebFinanzas = (treasury.peb + personnelCost.peb) / 2;
 
-    // Reputation
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
-    const decisionsReputation = calculateReputationDecisionsPeb(decisions);
-    const pebReputationBase = (nma.peb + marketShare.peb + decisionsReputation.peb) / 3;
-    // Manual: -10 PEB de Reputación por sobrecarga
+    const pebReputationBase = (nma.peb + marketShare.peb) / 2;
     const pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase; 
-    const xpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
 
-    // Morale
     const staffMorale = calculateStaffMoralePeb(kpis.morale);
     const studentTeacherRatio = calculateStudentTeacherRatioPeb(kpis.studentTeacherRatio);
-    const decisionsMorale = calculateMoraleDecisionsPeb(decisions);
-    const pebMoral = (staffMorale.peb + studentTeacherRatio.peb + decisionsMorale.peb) / 3;
-    const xpMoral = pebMoral * XP_CONVERSION_FACTOR;
+    const pebMoral = (staffMorale.peb + studentTeacherRatio.peb) / 2;
+
+    // --- XP Calculation ---
+    const baseXpFinanzas = pebFinanzas * XP_CONVERSION_FACTOR;
+    const baseXpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
+    const baseXpMoral = pebMoral * XP_CONVERSION_FACTOR;
+    
+    // Get direct XP bonus from investments
+    const xpBonus = getXpBonusFromDecisions(decisions);
+
+    const xpFinanzas = baseXpFinanzas + xpBonus.finance;
+    const xpReputacion = baseXpReputacion + xpBonus.reputation;
+    const xpMoral = baseXpMoral + xpBonus.morale;
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;
 
@@ -174,17 +160,17 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         finances: {
             peb: pebFinanzas,
             xp: xpFinanzas,
-            pebBreakdown: [treasury.breakdown, personnelCost.breakdown, decisionsFinances.breakdown]
+            pebBreakdown: [treasury.breakdown, personnelCost.breakdown]
         },
         reputation: {
             peb: pebReputacion,
             xp: xpReputacion,
-            pebBreakdown: [nma.breakdown, marketShare.breakdown, decisionsReputation.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`]
+            pebBreakdown: [nma.breakdown, marketShare.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`]
         },
         morale: {
             peb: pebMoral,
             xp: xpMoral,
-            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown, decisionsMorale.breakdown]
+            pebBreakdown: [staffMorale.breakdown, studentTeacherRatio.breakdown]
         },
         totalXp: totalXp
     };

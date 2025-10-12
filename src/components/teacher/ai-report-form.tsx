@@ -22,6 +22,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -77,6 +85,15 @@ export function AIReportForm() {
   const [hasReport, setHasReport] = useState(false);
   
   const [reportData, setReportData] = useState<any>(null);
+
+  const [marketAnalysis, setMarketAnalysis] = useState<ReturnType<typeof calculateMarketAttractiveness>>({});
+
+  useEffect(() => {
+    if (activeGame && teamsData.length > 0) {
+        const fullMarketAnalysis = calculateMarketAttractiveness(teamsData.map(t => ({...t, kpis: t.kpis, decisions: t.decisions})), activeGame);
+        setMarketAnalysis(fullMarketAnalysis);
+    }
+  }, [activeGame, teamsData]);
 
   useEffect(() => {
     if (activeGame && selectedTeam) {
@@ -142,8 +159,7 @@ export function AIReportForm() {
 
       const result = await generateRoundReport(reportPayload);
       
-      const marketResults = calculateMarketAttractiveness(teamsData.map(t => ({...t, kpis: t.kpis, decisions: t.decisions})), activeGame);
-      const teamMarketResult = marketResults[selectedTeam];
+      const teamMarketResult = marketAnalysis[selectedTeam];
 
       const newReportData = {
           round: reportableRound,
@@ -383,22 +399,42 @@ export function AIReportForm() {
                         
                         <AccordionItem value="item-market-analysis" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de Mercado (IAM)</h3></AccordionTrigger>
-                            <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
-                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
-                                 <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
+                            <AccordionContent className="px-4 space-y-4">
+                               <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                        <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
+                                        <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
+                                    </div>
+                                    <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                        <p className="text-sm font-semibold text-muted-foreground">Nuevos Alumnos Captados</p>
+                                        <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsCaptured}</p>
+                                    </div>
+                                    <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                        <p className="text-sm font-semibold text-muted-foreground">Alumnos en Mercado</p>
+                                        <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsInMarket}</p>
+                                    </div>
                                </div>
-                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
-                                 <p className="text-sm font-semibold text-muted-foreground">Nuevos Alumnos Captados</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsCaptured}</p>
-                               </div>
-                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
-                                 <p className="text-sm font-semibold text-muted-foreground">Alumnos en Mercado</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsInMarket}</p>
-                               </div>
-                               <div className="p-3 bg-muted/50 rounded-lg border text-center">
-                                 <p className="text-sm font-semibold text-muted-foreground">Capacidad / Alumnos Finales</p>
-                                 <p className="text-2xl font-bold">{reportData.marketAnalysis.capacity} / {reportData.kpis.numStudents}</p>
+                               <div className="rounded-lg border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Equipo</TableHead>
+                                            <TableHead className="text-center">Tipo</TableHead>
+                                            <TableHead className="text-right">IAM</TableHead>
+                                            <TableHead className="text-right">Alumnos Captados</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.values(marketAnalysis).map((teamMarketData: any) => (
+                                            <TableRow key={teamMarketData.name}>
+                                                <TableCell className="font-medium">{teamMarketData.name}</TableCell>
+                                                <TableCell className="text-center font-mono text-xs">{teamMarketData.type}</TableCell>
+                                                <TableCell className="text-right font-mono">{teamMarketData.iam.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-mono">{teamMarketData.newStudents}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                                </div>
                             </AccordionContent>
                         </AccordionItem>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, ServerCrash } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 export function StudentReport() {
   const { studentGame } = useStudentGame();
@@ -77,11 +78,20 @@ export function StudentReport() {
       initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
   }
 
-  const totalInvestmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
+    const totalInvestmentCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
+        const investment = allInvestments.find(inv => inv.id === actionId);
+        if (investment) {
+            if (investment.cost.type === 'fixed') {
+                return acc + (investment.cost.value as number);
+            }
+            return acc + (investment.cost.value[1]);
+        }
+        return acc;
+    }, 0);
   
-  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 };
+  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 0 }; //P2 cost is recurrent salary
   
-  const totalCenterActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
+  const totalCenterActionsCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
       return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
   }, 0);
   
@@ -132,15 +142,23 @@ export function StudentReport() {
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
                             <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                {(reportData.decisions.selectedInvestments || []).map((inv: any, index: number) => (
-                                    <li key={`inv-${index}`}>{inv.name}: {formatCurrency(inv.cost)}</li>
-                                ))}
-                                {(reportData.decisions.selectedCenterActions || []).map((actionId: string, index: number) => {
-                                  const cost = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0;
-                                  const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
-                                  return <li key={`act-${index}`}>{name}: {formatCurrency(cost)}</li>
+                                {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
+                                  const investment = allInvestments.find(inv => inv.id === actionId);
+                                  if (investment) {
+                                      const cost = investment.cost.type === 'fixed' ? investment.cost.value : `~${(investment.cost.value as number[])[1]}`;
+                                      const costString = typeof cost === 'number' ? formatCurrency(cost) : cost;
+                                      return <li key={`inv-${index}`}>{investment.name}: {costString}</li>;
+                                  }
+                                  
+                                  const centerActionCost = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
+                                  if (centerActionCost !== undefined) {
+                                      const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
+                                      const costString = actionId === 'P2' ? 'Coste salarial recurrente' : formatCurrency(centerActionCost);
+                                      return <li key={`act-${index}`}>{name}: {costString}</li>;
+                                  }
+                                  return null;
                                 })}
-                                {((reportData.decisions.selectedInvestments || []).length === 0) && ((reportData.decisions.selectedCenterActions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                {((reportData.decisions.actions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
                             </ul>
                         </div>
                     </AccordionContent>

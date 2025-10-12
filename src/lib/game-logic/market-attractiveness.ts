@@ -59,14 +59,16 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
   }
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
-  const finalResults: Record<string, { iam: number; newStudents: number }> = {};
+  const finalResults: Record<string, { iam: number; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
   if (totalIamPoints > 0) {
     for (const team of teams) {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;
         const newStudents = Math.round(iamShare * NEW_STUDENTS_POOL);
         finalResults[team.name] = {
             iam: teamIamResults[team.name].iam,
-            newStudents: newStudents
+            newStudents: newStudents,
+            name: team.name,
+            type: team.type
         };
     }
   } else {
@@ -75,7 +77,9 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     for (const team of teams) {
         finalResults[team.name] = {
             iam: 0,
-            newStudents: newStudentsPerTeam
+            newStudents: newStudentsPerTeam,
+            name: team.name,
+            type: team.type
         };
     }
   }

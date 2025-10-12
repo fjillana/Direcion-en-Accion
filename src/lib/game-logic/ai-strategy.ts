@@ -22,9 +22,8 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
 
     const availableInvestments = roundSettings?.[round]?.investments || [];
     const decisions: TeamDecisions = {
-        selectedInvestments: [],
+        actions: [],
         tuitionPrice: 120,
-        selectedCenterActions: [],
         crisisResponse: null,
         roundConfirmed: true,
     };
@@ -85,7 +84,7 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
                 : maxCost;
 
             if (budget >= investmentAmount) {
-                decisions.selectedInvestments.push({ id: investment.id, name: investment.name, cost: investmentAmount });
+                decisions.actions.push(investment.id);
                 budget -= investmentAmount;
             }
         }
@@ -96,15 +95,13 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
     if (kpis.studentTeacherRatio > 26.0 && (archetype === 'QUALITY_FOCUSED' || archetype === 'BALANCED')) {
         const hireChance = rationality * 0.8;
         if (Math.random() < hireChance && budget > 7500) {
-            decisions.selectedCenterActions.push('P2');
+            decisions.actions.push('P2');
         }
     }
     // Fire teacher (only if finances are dire and AI is rational enough)
     else if (kpis.cash < game.initialFunds * 0.1 && kpis.studentTeacherRatio < 24.0 && rationality > 0.7) {
-        decisions.selectedCenterActions.push('P7');
+        decisions.actions.push('P7');
     }
 
     return decisions;
 }
-
-    

@@ -12,12 +12,6 @@ import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/type
 import { useAuth } from "./use-auth";
 import { getAuth } from "firebase/auth";
 
-export interface InvestmentDecision {
-  id: string;
-  name: string;
-  cost: number;
-}
-
 export interface CrisisDecision {
   crisisId: string;
   crisisName: string;
@@ -42,6 +36,7 @@ export interface TeamPerformanceData {
   totalXp: number;
   decisions: TeamDecision;
   kpis: TeamKPIs;
+  round: number;
   archetype?: AIArchetype;
 }
 

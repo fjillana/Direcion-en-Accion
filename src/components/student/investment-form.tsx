@@ -41,33 +41,27 @@ export function InvestmentForm({
   teamCash 
 }: InvestmentFormProps) {
 
-  // This local state is now just for the slider values
-  const [investmentCosts, setInvestmentCosts] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    const initialCosts: Record<string, number> = {};
-    availableInvestments.forEach(inv => {
-        if (inv.cost.type === 'range') {
-            initialCosts[inv.id] = inv.cost.value[1]; // Default to max cost
+  const allActionsWithCosts = useMemo(() => {
+    const actionCosts: Record<string, number> = {
+      'P2': 7500,
+      'P7': 7500,
+      'F5': 50000,
+    };
+    allInvestments.forEach(inv => {
+        if (inv.cost.type === 'fixed') {
+            actionCosts[inv.id] = inv.cost.value as number;
         } else {
-            initialCosts[inv.id] = inv.cost.value;
+            actionCosts[inv.id] = inv.cost.value[1]; // Default to max cost for range investments
         }
     });
-    setInvestmentCosts(initialCosts);
-  }, [availableInvestments]);
-
-
-  const handleSliderChange = (investmentId: string, value: number[]) => {
-    if (disabled) return;
-    setInvestmentCosts(prev => ({...prev, [investmentId]: value[0]}));
-  };
+    return actionCosts;
+  }, []);
 
   const totalCost = useMemo(() => {
     return selectedActions.reduce((acc, id) => {
-        const cost = investmentCosts[id] || 0;
-        return acc + cost;
+      return acc + (allActionsWithCosts[id] || 0);
     }, 0);
-  }, [selectedActions, investmentCosts]);
+  }, [selectedActions, allActionsWithCosts]);
 
 
   const remainingCash = teamCash - totalCost;
@@ -119,19 +113,18 @@ export function InvestmentForm({
                             </div>
                             <div className="font-mono text-right text-sm">
                                 {isRange 
-                                  ? `${(investmentCosts[inv.id] || maxCost).toLocaleString('es-ES')} CC` 
+                                  ? `${minCost.toLocaleString('es-ES')} - ${maxCost.toLocaleString('es-ES')} CC`
                                   : `${minCost.toLocaleString('es-ES')} CC`}
                             </div>
                         </div>
                         {isRange && isSelected && (
                             <div className="mt-4 pl-8 pr-2 space-y-2">
-                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Mín: {minCost.toLocaleString('es-ES')} CC)</Label>
+                                <Label className="text-xs text-muted-foreground">Ajustar Inversión (Coste actual: {(allActionsWithCosts[inv.id] || maxCost).toLocaleString('es-ES')} CC)</Label>
                                 <Slider
-                                    value={[investmentCosts[inv.id] || maxCost]}
-                                    onValueChange={(value) => handleSliderChange(inv.id, value)}
+                                    defaultValue={[maxCost]}
                                     min={minCost}
                                     max={maxCost}
-                                    step={(maxCost - minCost) / 10} // 10 steps
+                                    step={(maxCost - minCost) / 10}
                                 />
                             </div>
                         )}
@@ -167,7 +160,7 @@ export function InvestmentForm({
             </div>
           </CardContent>
           <CardFooter className="group-disabled:opacity-50">
-             <Button onClick={onSave} disabled={isSaving || disabled}>
+             <Button onClick={onSave} disabled={isSaving || disabled || !canAfford}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSaving ? 'Guardando...' : 'Guardar Decisiones'}
              </Button>

@@ -32,14 +32,13 @@ const capacityActions = [
     { id: 'F5', name: 'Ampliación de Aulas', cost: 50000, effect: '+10 XP Finanzas' },
 ];
 
-export function CenterDataForm({ disabled = false, selectedActions: initialSelectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
+export function CenterDataForm({ disabled = false, selectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
   
-  const selectedActions = Array.isArray(initialSelectedActions) ? initialSelectedActions : [];
-
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
-    onActionChange(
-      checked ? [...selectedActions, actionId] : selectedActions.filter(id => id !== actionId)
-    );
+    const newActions = checked 
+      ? [...selectedActions, actionId]
+      : selectedActions.filter(id => id !== actionId);
+    onActionChange(newActions);
   };
   
   return (

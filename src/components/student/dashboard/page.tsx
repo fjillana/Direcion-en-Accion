@@ -63,7 +63,6 @@ export default function StudentDashboard() {
 
     const confirmedDecisions = { ...decisions, roundConfirmed: true };
     setRoundDecisions(confirmedDecisions);
-    confirmStudentDecisions(studentGame.gameId, studentGame.teamName, studentGame.round, confirmedDecisions);
   }
 
   const kpiHistoryData = useMemo(() => {
@@ -288,7 +287,7 @@ export default function StudentDashboard() {
         <CenterDataForm 
           disabled={roundConfirmed} 
           selectedActions={decisions?.actions || []}
-          onActionChange={(actions) => setRoundDecisions({ actions: actions })}
+          onActionChange={(actions) => setRoundDecisions({ actions })}
           tuitionPrice={decisions?.tuitionPrice || 120}
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
           numStudents={kpis?.numStudents || 0}

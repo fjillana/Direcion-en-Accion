@@ -1,3 +1,4 @@
+
 "use client";
 
 import { InvestmentForm } from "@/components/student/investment-form";
@@ -19,43 +20,24 @@ export default function DecisionsPage() {
   const gameData = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
   const initialFunds = gameData?.initialFunds || 0;
 
-  const availableInvestments = studentGame?.roundSettings?.investments || [];
+  const availableInvestments = useMemo(() => {
+    const roundSettings = studentGame?.roundSettings;
+    const currentRound = studentGame?.round;
+    if (!roundSettings || currentRound === undefined) return [];
+    
+    const settingsForRound = roundSettings[currentRound];
+    if (!settingsForRound) return [];
+
+    return settingsForRound.investments.map(invId => {
+      return investments.find(invData => invData.id === invId.id);
+    }).filter(Boolean) as typeof investments;
+
+  }, [studentGame?.round, studentGame?.roundSettings]);
+
   const selectedActions = studentGame?.decisions?.actions || [];
   
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
   const teamCash = studentGame?.round === 0 ? initialFunds : studentGame?.kpis?.cash || 0;
-
-
-  const allActionsWithCosts = useMemo(() => {
-    const actionCosts: Record<string, number> = {
-      'P2': 7500, // Contratar Docente
-      'P7': 7500, // Despedir Docente
-      'F5': 50000, // Ampliación de Aulas
-    };
-    investments.forEach(inv => {
-        if (inv.cost.type === 'fixed') {
-            actionCosts[inv.id] = inv.cost.value as number;
-        } else {
-            // For range, we need the user's selected cost, which is not available here.
-            // This will be handled inside the InvestmentForm.
-            // For now, we can use a default or max value for estimation if needed, but the form handles the true cost.
-        }
-    });
-    return actionCosts;
-  }, []);
-
-  const totalCost = useMemo(() => {
-    return selectedActions.reduce((acc, id) => {
-      const investment = investments.find(inv => inv.id === id);
-      if (investment && investment.cost.type === 'range') {
-        // Since we unified decisions, we need a way to store the selected cost.
-        // For now, this logic is simplified. A better approach would be to store cost with the action.
-        // Let's assume the form handles the actual cost calculation.
-        // This total cost is now primarily a display concern on this page.
-      }
-      return acc + (allActionsWithCosts[id] || 0);
-    }, 0);
-  }, [selectedActions, allActionsWithCosts]);
 
 
   const handleSave = async () => {

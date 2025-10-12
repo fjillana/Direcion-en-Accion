@@ -163,7 +163,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const xpBonus = getXpBonusFromDecisions(decisions);
 
     const xpFinanzas = baseXpFinanzas + xpBonus.finances;
-    const xpReputacion = baseX.pReputacion + xpBonus.reputation;
+    const xpReputacion = baseXpReputacion + xpBonus.reputation;
     const xpMoral = baseXpMoral + xpBonus.morale;
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;

@@ -37,7 +37,6 @@ export interface RoundDecisions {
       option: string;
   } | null;
   roundConfirmed: boolean;
-  selectedCenterActions?: string[];
 }
 
 interface FullStudentState extends StudentGameState {
@@ -85,7 +84,6 @@ const initialRoundDecisions: RoundDecisions = {
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
-  selectedCenterActions: [],
 };
 
 
@@ -293,25 +291,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setFullStudentState(prev => {
         if (!prev) return null;
         
-        const currentActions = prev.decisions.actions || [];
-        const newActions = newDecisions.actions || [];
-
-        const updatedActions = [...new Set([...currentActions, ...newActions])].filter(action => {
-            if (newDecisions.actions !== undefined) {
-                // If newDecisions.actions is provided, we check if the action is in the new array
-                // This handles both adding and removing
-                return newActions.includes(action);
-            }
-            return true; // keep old actions if newDecisions.actions is not provided
-        });
-
         const updatedDecisions: RoundDecisions = {
             ...prev.decisions,
             ...newDecisions,
-            actions: updatedActions,
+            actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
         };
 
         if (newDecisions.roundConfirmed) {
+          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, updatedDecisions);
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, updatedDecisions);
         }
 
@@ -323,6 +310,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
+    console.log(`[GPS] 1. Saving Decisions for ${fullStudentState.teamName} in Round ${fullStudentState.round}. Data:`, fullStudentState.decisions);
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     const updateData = {
       [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: fullStudentState.decisions

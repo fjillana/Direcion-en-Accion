@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateRoundReport } from "@/ai/flows/generate-round-report";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiveness";
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 type TeamName = string;
 
@@ -124,19 +125,22 @@ export function AIReportForm() {
 
     setIsGenerating(true);
     try {
-      const result = await generateRoundReport({
+      const reportPayload = {
         gameId: activeGame.id,
         roundNumber: reportableRound,
         teamPerformanceData: JSON.stringify({
           ...teamPerformance,
           decisions: {
             ...teamPerformance.decisions,
-            selectedInvestments: teamPerformance.decisions?.selectedInvestments || [],
-            selectedCenterActions: teamPerformance.decisions?.selectedCenterActions || [],
+            actions: teamPerformance.decisions?.actions || [],
           }
         }, null, 2),
         marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
-      });
+      };
+      
+      console.log(`[GPS] 7. Generating AI Report for ${selectedTeam}. Payload:`, reportPayload);
+
+      const result = await generateRoundReport(reportPayload);
       
       const marketResults = calculateMarketAttractiveness(teamsData.map(t => ({...t, kpis: t.kpis, decisions: t.decisions})), activeGame);
       const teamMarketResult = marketResults[selectedTeam];
@@ -210,51 +214,54 @@ export function AIReportForm() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 
- const { 
+  const { 
     totalInvestmentCost, 
     finalCash, 
     totalCosts,
-    centerActionsCostMap,
-    totalCenterActionsCost,
     initialCashForRound
- } = useMemo(() => {
+  } = useMemo(() => {
     if (!reportData || !activeGame || !selectedTeam) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, centerActionsCostMap: {}, totalCenterActionsCost: 0, initialCashForRound: 0 };
+      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, initialCashForRound: 0 };
     }
     
-    const investmentCost = (reportData.decisions?.selectedInvestments || []).reduce((acc: number, inv: any) => acc + inv.cost, 0);
+    const decisions = reportData.decisions || {};
+    const kpis = reportData.kpis || {};
     
-    const cActionsCostMap: Record<string, number> = {
-      'F5': 50000,
-      'P7': 7500,
-      'P2': 7500,
-    };
-    
-    const centerActionsCost = (reportData.decisions?.selectedCenterActions || []).reduce((acc: number, actionId: string) => {
-        return acc + (cActionsCostMap[actionId as keyof typeof cActionsCostMap] || 0);
+    const actionCosts = decisions.actions.reduce((acc: number, actionId: string) => {
+        const investment = allInvestments.find(inv => inv.id === actionId);
+        if (investment) {
+            if (investment.cost.type === 'fixed') {
+                return acc + (investment.cost.value as number);
+            } else {
+                // Placeholder for ranged investments, assuming max for now.
+                return acc + (investment.cost.value[1]);
+            }
+        }
+        if (actionId === 'P2') return acc; // Salary is in personnelCost
+        if (actionId === 'P7') return acc + 7500; // Severance
+        if (actionId === 'F5') return acc + 50000;
+        return acc;
     }, 0);
     
-    const allCosts = reportData.kpis.personnelCost + investmentCost + centerActionsCost;
-    
-    const gameData = getGameById(activeGame.id);
-    let cashAtStart = 0;
+    const allCosts = (kpis.personnelCost || 0) + actionCosts;
 
-    if (reportData.round === 0) {
-      cashAtStart = gameData?.initialFunds || 0;
-    } else {
-      const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
+    const gameData = getGameById(activeGame.id);
+    let cashAtStart = gameData?.initialFunds || 0;
+
+    if (reportData.round > 0) {
+      const prevRoundIndex = reportData.round - 1;
       const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
-      cashAtStart = prevRoundPerformance ? prevRoundPerformance.kpis.cash : (gameData?.initialFunds || 0);
+      if (prevRoundPerformance) {
+        cashAtStart = prevRoundPerformance.kpis.cash;
+      }
     }
     
-    const cash = cashAtStart + reportData.kpis.income - allCosts;
+    const cash = cashAtStart + (kpis.income || 0) - allCosts;
 
     return { 
-        totalInvestmentCost: investmentCost, 
+        totalInvestmentCost: actionCosts, // Unified cost
         finalCash: cash, 
         totalCosts: allCosts,
-        centerActionsCostMap: cActionsCostMap,
-        totalCenterActionsCost: centerActionsCost,
         initialCashForRound: cashAtStart
     };
   }, [reportData, activeGame, getGameById, selectedTeam]);
@@ -315,38 +322,36 @@ export function AIReportForm() {
                                     <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
                                     <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                                     <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
-                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Inversiones:</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
-                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Acciones:</span> <span className="font-mono">{formatCurrency(totalCenterActionsCost)}</span></div>
+                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones (Acciones + Inversiones):</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
                                     <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                                </div>
                             </AccordionContent>
                         </AccordionItem>
                         
                          <AccordionItem value="item-financial-details" className="border rounded-lg">
-                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Inversiones</h3></AccordionTrigger>
+                            <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Detalle Financiero y de Decisiones</h3></AccordionTrigger>
                             <AccordionContent className="px-4 space-y-4">
                                 <div className="p-3 bg-muted/50 rounded-lg border">
-                                    <h4 className="font-semibold">Cálculos Clave</h4>
+                                    <h4 className="font-semibold">Cálculos Clave de Ingresos y Gastos</h4>
                                     <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
                                     <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
                                     <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
                                 </div>
                                 <div className="p-3 bg-muted/50 rounded-lg border">
-                                    <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
+                                    <h4 className="font-semibold">Decisiones Realizadas</h4>
                                     <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                        {(reportData.decisions.selectedInvestments || []).map((inv: any, index: number) => (
-                                            <li key={index}>{inv.name}: {formatCurrency(inv.cost)}</li>
-                                        ))}
-                                        {(reportData.decisions.selectedCenterActions || []).map((actionId: string, index: number) => {
-                                          const actionInfo = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
-                                          if (actionInfo !== undefined) {
-                                              const costText = actionInfo > 0 ? formatCurrency(actionInfo) : `(coste salarial)`;
-                                              const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
-                                              return <li key={`${actionId}-${index}`}>{name}: {costText}</li>
+                                        {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
+                                          const investment = allInvestments.find(inv => inv.id === actionId);
+                                          if (investment) {
+                                            const cost = investment.cost.type === 'fixed' ? investment.cost.value : investment.cost.value[1];
+                                            return <li key={`${actionId}-${index}`}>{investment.name}: {formatCurrency(cost as number)}</li>
                                           }
+                                          if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente (Coste salarial recurrente)</li>
+                                          if (actionId === 'P7') return <li key={`${actionId}-${index}`}>Despedir Docente: {formatCurrency(7500)}</li>
+                                          if (actionId === 'F5') return <li key={`${actionId}-${index}`}>Ampliación de Aulas: {formatCurrency(50000)}</li>
                                           return null;
                                         })}
-                                        {((reportData.decisions.selectedInvestments || []).length === 0) && ((reportData.decisions.selectedCenterActions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                        {(reportData.decisions.actions || []).length === 0 && <li>No se realizaron decisiones esta ronda.</li>}
                                     </ul>
                                 </div>
                             </AccordionContent>

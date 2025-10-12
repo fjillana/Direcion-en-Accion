@@ -1,8 +1,7 @@
 
 
 import type { TeamState } from './types';
-import type { TeamDecision, InvestmentDecision } from '@/hooks/use-games';
-import type { Investment } from '@/components/teacher/catalog-editor';
+import type { TeamDecision } from '@/hooks/use-games';
 import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
 
 // Constantes según el Manual Técnico
@@ -106,10 +105,12 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 // --- XP Bonus Calculation from Decisions ---
 function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
-    if (!decisions.selectedInvestments) return bonus;
+    if (!decisions.actions) return bonus;
 
-    for (const investmentDecision of decisions.selectedInvestments) {
-        const investmentInfo = fullInvestmentsList.find(inv => inv.id === investmentDecision.id);
+    console.log(`[GPS] 5c. Calculating XP Bonus. Decisions received:`, decisions);
+
+    for (const actionId of decisions.actions) {
+        const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;
         
         const area = investmentInfo.bonus.area;
@@ -121,13 +122,19 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
             const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
             const [minBonus, maxBonus] = investmentInfo.bonus.value as [number, number];
             
-            if (investmentDecision.cost >= minCost) {
-                const investmentRatio = (investmentDecision.cost - minCost) / (maxCost - minCost);
+            // This part is tricky as the actual cost isn't stored per action.
+            // For now, we'll assume max investment for bonus calculation.
+            // This should be improved by storing cost with the action.
+            const investmentCost = maxCost; 
+            
+            if (investmentCost >= minCost) {
+                const investmentRatio = (investmentCost - minCost) / (maxCost - minCost);
                 const scaledBonus = minBonus + investmentRatio * (maxBonus - minBonus);
                 bonus[area] += scaledBonus;
             }
         }
     }
+    console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;
 }
 
@@ -180,5 +187,3 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         totalXp: totalXp
     };
 }
-
-    

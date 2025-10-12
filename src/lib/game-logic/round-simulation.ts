@@ -12,26 +12,28 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
+    console.log(`[GPS] 3a. Retrieving decisions for ${teamName} in Round ${game.round}. Found:`, teamDecision);
+
     // Fallback if no decisions are found
     const fallbackDecisions: TeamDecision = {
-        investments: [],
+        actions: [],
         tuitionPrice: 120, // Default price
         crisisResponse: null,
-        selectedCenterActions: [],
         roundConfirmed: false,
     };
     
     if (teamDecision) {
-        const decisionsToReturn = {
-            investments: teamDecision.investments || [],
+        const decisionsToReturn: TeamDecision = {
+            actions: teamDecision.actions || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
             crisisResponse: teamDecision.crisisResponse || null,
-            selectedCenterActions: teamDecision.selectedCenterActions || [],
             roundConfirmed: teamDecision.roundConfirmed || false,
         };
+        console.log(`[GPS] 3b. Parsed decisions for ${teamName}:`, decisionsToReturn);
         return decisionsToReturn;
     }
     
+    console.log(`[GPS] 3b. No decisions found for ${teamName}. Using fallback.`);
     return fallbackDecisions;
 }
 
@@ -40,6 +42,8 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 
 export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
   
+  console.log(`[GPS] 3. Starting round simulation for Game "${game.name}", Round ${game.round}`);
+
   const numHumanTeams = game.teamNames.length;
   const numIaTeams = numHumanTeams > 0 ? numHumanTeams : 0; // 1 AI for each Human team
   const totalTeams = numHumanTeams + numIaTeams;
@@ -56,6 +60,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     studentTeacherRatio: 25.0,
     numStudents: 800,
     numTeachers: 32,
+    capacity: 810,
   });
 
   const previousRound = game.round > 0 ? game.round -1 : 0;
@@ -92,9 +97,10 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     });
   }
   
+  console.log('[GPS] 4. Initial team states for this round:', currentTeamsState);
+
   // --- For ALL Rounds (including Round 0) ---
   const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
-
 
   const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;
@@ -122,6 +128,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     const result: TeamPerformanceData = {
       name: teamState.name,
       type: teamState.type,
+      round: game.round,
       ...performance,
       decisions: teamState.decisions,
       kpis: teamState.kpis,
@@ -135,6 +142,8 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   });
 
   const newMessages: GameMessage[] = [];
+  
+  console.log('[GPS] 6. Final performance results for the round:', performanceResults);
 
   return { performanceData: performanceResults, newMessages };
 }

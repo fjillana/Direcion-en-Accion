@@ -1,6 +1,7 @@
 
 
 import type { TeamState, TeamKPIs } from "./types";
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
@@ -23,6 +24,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const currentKpis: TeamKPIs = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
 
+  console.log(`[GPS] 5a. Updating KPIs for ${teamState.name}. Decisions received:`, decisions);
 
   // --- Pre-calculation state ---
   let updatedNumStudents = currentKpis.numStudents;
@@ -30,13 +32,13 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
 
   // --- Apply decisions ---
-  if (decisions.selectedCenterActions.includes('P2')) { // Contratar
+  if (decisions.actions.includes('P2')) { // Contratar
     updatedNumTeachers += 1;
   }
-  if (decisions.selectedCenterActions.includes('P7')) { // Despedir
+  if (decisions.actions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
   }
-  if (decisions.selectedCenterActions.includes('F5')) { // Ampliación Aulas
+  if (decisions.actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
   }
 
@@ -51,18 +53,31 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const income = privateIncome + PUBLIC_INCOME;
   const personnelCost = updatedNumTeachers * TEACHER_SALARY;
   
-  const investmentCost = (decisions.investments || []).reduce((sum, inv) => sum + inv.cost, 0);
+  const investmentCost = decisions.actions.reduce((sum, actionId) => {
+      const investmentInfo = allInvestments.find(inv => inv.id === actionId);
+      if (!investmentInfo) return sum;
+
+      if(investmentInfo.cost.type === 'fixed') {
+        return sum + (investmentInfo.cost.value as number);
+      }
+      if(investmentInfo.cost.type === 'range') {
+        // For now, assume max cost for range investments made by AI.
+        // For humans, a slider would set the specific cost. This needs to be stored in the decision object.
+        return sum + (investmentInfo.cost.value[1]);
+      }
+      return sum;
+  }, 0);
   
-  const centerActionsCost = decisions.selectedCenterActions.reduce((sum, actionId) => {
+  const centerActionsCost = decisions.actions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
-      // Note: Hiring cost (P2) is part of recurring personnelCost, not a one-off investment here.
       return sum;
   }, 0);
   
   const totalDecisionsCost = investmentCost + centerActionsCost;
   const totalExpenses = personnelCost + totalDecisionsCost;
   
+  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, totalExpenses=${totalExpenses}`);
 
   const cashAtStartOfRound = teamState.kpis.cash;
   const updatedCash = cashAtStartOfRound + income - totalExpenses;
@@ -73,11 +88,11 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
 
   // Impacto de inversiones
-  if ((decisions.investments || []).some(inv => inv.id === 'R2')) { // Inversión en TIC
+  if (decisions.actions.includes('R2')) { // Inversión en TIC
       updatedNma += 0.2;
       updatedMorale += 5;
   }
-  if ((decisions.investments || []).some(inv => inv.id === 'P1')) { // Formación docente
+  if (decisions.actions.includes('P1')) { // Formación docente
       updatedNma += 0.1;
       updatedMorale += 10;
   }
@@ -89,10 +104,10 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   }
   
   // Impacto de acciones de personal
-  if(decisions.selectedCenterActions.includes('P7')) { // Despedir
+  if(decisions.actions.includes('P7')) { // Despedir
       updatedMorale -= 25;
   }
-  if(decisions.selectedCenterActions.includes('P2')) { // Contratar
+  if(decisions.actions.includes('P2')) { // Contratar
       updatedMorale += 15;
   }
 

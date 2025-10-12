@@ -43,7 +43,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { simulateRound } from "@/lib/game-logic/round-simulation";
 import { Separator } from "@/components/ui/separator";
-import { investments as fullInvestmentsList } from "@/app/teacher/catalog/investment-data";
+import { investments as allInvestments } from "@/app/teacher/catalog/investment-data";
 import { crises as fullCrisesList } from "@/app/teacher/catalog/crises-data";
 
 
@@ -167,6 +167,26 @@ export default function GameDetailsPage() {
     return game.decisions?.[parseInt(currentRoundTab)]?.[selectedTeam.name] || selectedTeam.decisions;
   }, [selectedTeam, game, currentRoundTab]);
   
+  const getBonusSourceName = (area: 'finances' | 'reputation' | 'morale'): string => {
+    if (!selectedTeam || !selectedTeam.decisions?.actions) return "(Bonus)";
+
+    const areaInvestments = (selectedTeam.decisions.actions)
+      .map(actionId => allInvestments.find(inv => inv.id === actionId))
+      .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
+
+    if (areaInvestments.length === 0) return "(Bonus)";
+
+    // Find the investment that contributes the most to the bonus
+    const mainContributor = areaInvestments.reduce((max, current) => {
+        const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
+        const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
+        return currentBonusValue > maxBonusValue ? current : max;
+    });
+
+    return `(${mainContributor.name})`;
+};
+
+
   if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
@@ -282,7 +302,7 @@ export default function GameDetailsPage() {
           <TabsContent value="config">
              <RoundConfig
               allTeams={game.teamNames.concat(Array.from({ length: (game.teamNames.length > 0 ? game.teamNames.length : 0) }, (_, i) => `IA Rival ${i + 1}`))}
-              fullInvestments={fullInvestmentsList}
+              fullInvestments={allInvestments}
               fullCrises={fullCrisesList}
             />
           </TabsContent>
@@ -312,7 +332,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.finances.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.finances.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -327,7 +347,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.reputation.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.reputation.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -342,7 +362,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.morale.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.morale.xpBonus ?? 0).toFixed(2)} XP ${getBonusSourceName('morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
               </div>
@@ -380,14 +400,14 @@ export default function GameDetailsPage() {
                                     <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No se realizaron inversiones ni acciones.</TableCell></TableRow>
                                 ) : (
                                     (fullDecisionsForDialog.actions || []).map(actionId => {
-                                        const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
+                                        const investmentInfo = allInvestments.find(inv => inv.id === actionId);
                                         const centerActionInfo = centerActionsMap[actionId];
                                         
                                         const name = investmentInfo?.name || centerActionInfo?.name || actionId;
                                         let cost: number | string = '--';
 
                                         if (investmentInfo) {
-                                            cost = investmentInfo.cost.type === 'fixed' ? investmentInfo.cost.value as number : investmentInfo.cost.value[1];
+                                            cost = investmentInfo.cost.type === 'fixed' ? investmentInfo.cost.value as number : `~${(investmentInfo.cost.value[1]).toLocaleString('es-ES')}`;
                                         } else if (centerActionInfo) {
                                             cost = centerActionInfo.cost;
                                         }

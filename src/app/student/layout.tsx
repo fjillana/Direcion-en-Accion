@@ -24,6 +24,7 @@ import {
   Target,
   LogOut,
   FileText,
+  Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,9 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -147,10 +151,49 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
-          <SidebarTrigger className="md:hidden" />
-          <div className="hidden md:flex items-center gap-3">
-             <p className="text-sm font-medium">
-                {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 0}
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                    <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                </SheetHeader>
+                <nav className="grid gap-6 text-lg font-medium">
+                  <Link
+                    href="/student/dashboard"
+                    className="flex items-center gap-2 text-lg font-semibold"
+                  >
+                    <Briefcase className="h-6 w-6 text-primary" />
+                    <span>Dirección en acción</span>
+                  </Link>
+                  {menuItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn("hover:text-foreground relative",
+                        pathname.startsWith(item.href) ? 'text-foreground' : 'text-muted-foreground'
+                      )}
+                    >
+                      {item.label}
+                       {item.badgeCount && item.badgeCount > 0 && (
+                          <span className="absolute left-20 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                            {item.badgeCount}
+                          </span>
+                      )}
+                    </Link>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+
+            <div className="hidden md:flex items-center gap-3">
+              <p className="text-sm font-medium">
+                  {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 0}
               </p>
               <div className="flex items-center gap-1">
                 <TooltipProvider>
@@ -168,6 +211,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   ))}
                 </TooltipProvider>
               </div>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={handleLogout}>

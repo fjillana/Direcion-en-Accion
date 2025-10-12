@@ -24,18 +24,23 @@ export default function DecisionsPage() {
   const availableInvestments = useMemo(() => {
     const roundSettings = studentGame?.roundSettings;
     const currentRound = studentGame?.round;
-
-    if (!roundSettings || currentRound === undefined) return [];
-    
+  
+    if (!roundSettings || currentRound === undefined) {
+      return [];
+    }
+  
     const roundKey = currentRound.toString();
     const settingsForRound = roundSettings[roundKey as keyof typeof roundSettings];
-    if (!settingsForRound || !settingsForRound.investments) return [];
-
+    
+    if (!settingsForRound || !settingsForRound.investments) {
+      return [];
+    }
+  
     return settingsForRound.investments.map(invSummary => {
       // Find the full investment data from the catalog using the id from the summary
       return allInvestments.find(invData => invData.id === invSummary.id);
     }).filter(Boolean) as Investment[];
-
+  
   }, [studentGame?.round, studentGame?.roundSettings]);
 
   const selectedActions = studentGame?.decisions?.actions || [];

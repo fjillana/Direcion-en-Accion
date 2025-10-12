@@ -2,6 +2,8 @@
 
 import type { Game } from "@/hooks/use-games";
 import type { TeamState, TeamDecisions, InvestmentDecision } from "./types";
+import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
+
 
 /**
  * Generates decisions for an AI team based on its archetype and the game's difficulty level.
@@ -20,10 +22,11 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
 
     const availableInvestments = roundSettings?.[round]?.investments || [];
     const decisions: TeamDecisions = {
-        investments: [],
+        selectedInvestments: [],
         tuitionPrice: 120,
         selectedCenterActions: [],
         crisisResponse: null,
+        roundConfirmed: true,
     };
 
     // --- 1. Price Decision ---
@@ -67,22 +70,22 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
     });
 
     for (const investment of sortedInvestments) {
-        const costRange = investment.costRange.replace(/[^0-9-]/g, '').split('-').map(Number);
-        const maxCost = costRange.length > 1 ? costRange[1] : costRange[0];
+        const investmentInfo = fullInvestmentsList.find(i => i.id === investment.id);
+        if (!investmentInfo) continue;
 
-        if (budget < maxCost) continue;
+        const [minCost, maxCost] = investmentInfo.cost.type === 'range' ? investmentInfo.cost.value : [investmentInfo.cost.value, investmentInfo.cost.value];
+
+        if (budget < minCost) continue;
 
         const investmentChance = (investmentPriorities[investment.id] || 0.2) * rationality;
         
-        // Low rationality AI might still skip a good investment
         if (Math.random() < investmentChance) {
-             // More rational AI invests more optimally (closer to maxCost)
-            const investmentAmount = costRange.length > 1 
-                ? Math.round(costRange[0] + (maxCost - costRange[0]) * rationality)
+            const investmentAmount = investmentInfo.cost.type === 'range'
+                ? Math.round(minCost + (maxCost - minCost) * rationality)
                 : maxCost;
 
             if (budget >= investmentAmount) {
-                decisions.investments.push({ ...investment, cost: investmentAmount });
+                decisions.selectedInvestments.push({ id: investment.id, name: investment.name, cost: investmentAmount });
                 budget -= investmentAmount;
             }
         }
@@ -103,3 +106,5 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
 
     return decisions;
 }
+
+    

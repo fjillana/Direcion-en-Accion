@@ -44,9 +44,15 @@ export type Investment = {
   id: string;
   name: string;
   description: string;
-  costRange: string;
-  effect: string;
-  cost?: number;
+  cost: {
+    type: 'fixed' | 'range';
+    value: number | [number, number];
+  };
+  bonus: {
+    area: 'finances' | 'reputation' | 'morale';
+    type: 'fixed' | 'scaled';
+    value: number | [number, number];
+  };
 };
 
 type CrisisOption = {
@@ -60,7 +66,6 @@ export type Crisis = {
   name: string;
   description: string;
   options: CrisisOption[];
-  cost?: never; // Ensure crisis doesn't have a cost property
 };
 
 type CatalogItem = Investment | Crisis;
@@ -99,8 +104,15 @@ export function CatalogEditor({
   }
   
   const isInvestment = (item: CatalogItem): item is Investment => {
-    return 'costRange' in item;
+    return 'cost' in item && 'bonus' in item;
   }
+
+  const formatCost = (cost: Investment['cost']) => {
+    if (cost.type === 'fixed') {
+      return `${cost.value.toLocaleString('es-ES')} CC`;
+    }
+    return `${cost.value[0].toLocaleString('es-ES')} - ${cost.value[1].toLocaleString('es-ES')} CC`;
+  };
 
   const AddNewDialog = () => (
      <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -166,7 +178,7 @@ export function CatalogEditor({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableHead>Rango de Coste</TableHead>
+                  <TableHead>Coste</TableHead>
                 )}
                 <TableHead className="w-[50px]">
                   <span className="sr-only">Actions</span>
@@ -182,7 +194,7 @@ export function CatalogEditor({
                   </TableCell>
                   {type === "investment" && isInvestment(item) && (
                      <TableCell className="font-mono">
-                      {item.costRange}
+                      {formatCost(item.cost)}
                     </TableCell>
                   )}
                   <TableCell>
@@ -226,21 +238,18 @@ export function CatalogEditor({
               
               {isInvestment(selectedItem) && (
                 <div className="space-y-4 py-4">
-                   { 'cost' in selectedItem && selectedItem.cost !== undefined &&
-                    <div className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">Coste (CC)</p>
-                      <p className="text-sm text-muted-foreground mt-1">{new Intl.NumberFormat('es-ES').format(selectedItem.cost)}</p>
-                    </div>
-                  }
-                  { 'costRange' in selectedItem &&
-                    <div className="p-3 bg-muted/50 rounded-md">
-                      <p className="font-medium">Rango de Coste (CC)</p>
-                      <p className="text-sm text-muted-foreground mt-1">{selectedItem.costRange}</p>
-                    </div>
-                  }
                   <div className="p-3 bg-muted/50 rounded-md">
-                    <p className="font-medium">Efecto en XP / Moral</p>
-                    <p className="text-sm text-muted-foreground mt-1">{selectedItem.effect}</p>
+                    <p className="font-medium">Coste (CC)</p>
+                    <p className="text-sm text-muted-foreground mt-1">{formatCost(selectedItem.cost)}</p>
+                  </div>
+
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <p className="font-medium">Bonus de XP</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Área: <span className="capitalize">{selectedItem.bonus.area}</span>,
+                      Tipo: <span className="capitalize">{selectedItem.bonus.type}</span>,
+                      Valor: {Array.isArray(selectedItem.bonus.value) ? `${selectedItem.bonus.value[0]} a ${selectedItem.bonus.value[1]}` : selectedItem.bonus.value} XP
+                    </p>
                   </div>
                 </div>
               )}
@@ -271,3 +280,5 @@ export function CatalogEditor({
     </>
   );
 }
+
+    

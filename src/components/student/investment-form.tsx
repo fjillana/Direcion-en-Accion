@@ -30,13 +30,6 @@ interface InvestmentFormProps {
   teamCash: number;
 }
 
-const parseCostRange = (costRange: string): [number, number] | [number] => {
-  const numbers = costRange.replace(/[^0-9-]/g, '').split('-').map(Number);
-  if (numbers.length > 1) {
-    return [numbers[0], numbers[1]];
-  }
-  return [numbers[0]];
-};
 
 export function InvestmentForm({ 
   disabled = false, 
@@ -57,9 +50,8 @@ export function InvestmentForm({
     if (disabled) return;
     let newSelected = [...selectedInvestments];
     if (checked) {
-      const costRange = parseCostRange(investment.costRange);
-      const cost = costRange.length > 1 ? costRange[1] : costRange[0]; 
-      newSelected.push({ id: investment.id, name: investment.name, cost, effect: investment.effect });
+      const cost = investment.cost.type === 'range' ? investment.cost.value[1] : investment.cost.value;
+      newSelected.push({ id: investment.id, name: investment.name, cost });
     } else {
       newSelected = newSelected.filter(i => i.id !== investment.id);
     }
@@ -106,10 +98,8 @@ export function InvestmentForm({
                 {availableInvestments.length > 0 ? availableInvestments.map((inv) => {
                   const isSelected = selectedInvestments.some(si => si.id === inv.id);
                   const selectedValue = selectedInvestments.find(si => si.id === inv.id)?.cost;
-                  const costRange = parseCostRange(inv.costRange);
-                  const isRange = costRange.length > 1;
-                  const minCost = isRange ? costRange[0] : costRange[0];
-                  const maxCost = isRange ? costRange[1] : costRange[0];
+                  const isRange = inv.cost.type === 'range';
+                  const [minCost, maxCost] = isRange ? inv.cost.value as [number, number] : [inv.cost.value as number, inv.cost.value as number];
 
                   return (
                     <div key={inv.id} className={cn("rounded-md border p-4", disabled && 'bg-muted/50')}>
@@ -124,7 +114,7 @@ export function InvestmentForm({
                                 {inv.name}
                                 </label>
                                 <p className="text-sm text-muted-foreground">
-                                    {inv.effect}
+                                    {inv.description}
                                 </p>
                             </div>
                             <div className="font-mono text-right text-sm">
@@ -187,3 +177,5 @@ export function InvestmentForm({
     </>
   );
 }
+
+    

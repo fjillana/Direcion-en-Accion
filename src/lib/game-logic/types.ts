@@ -2,7 +2,6 @@ export interface InvestmentDecision {
   id: string;
   name: string;
   cost: number;
-  effect: string;
 }
 
 export interface CrisisDecision {
@@ -12,7 +11,7 @@ export interface CrisisDecision {
 }
 
 export interface TeamDecisions {
-  investments: InvestmentDecision[];
+  selectedInvestments: InvestmentDecision[];
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
   selectedCenterActions: string[];
@@ -55,3 +54,5 @@ export interface TeamState {
   decisions: TeamDecisions;
   archetype?: AIArchetype;
 }
+
+    

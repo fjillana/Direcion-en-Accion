@@ -7,7 +7,7 @@ import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUn
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
+import type { Investment } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
 import { getAuth } from "firebase/auth";
@@ -16,7 +16,6 @@ export interface InvestmentDecision {
   id: string;
   name: string;
   cost: number;
-  effect: string;
 }
 
 export interface CrisisDecision {
@@ -446,3 +445,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

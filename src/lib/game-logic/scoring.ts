@@ -1,7 +1,9 @@
 
 
-import type { TeamKPIs, TeamState } from './types';
-import type { TeamDecision } from '@/hooks/use-games';
+import type { TeamState } from './types';
+import type { TeamDecision, InvestmentDecision } from '@/hooks/use-games';
+import type { Investment } from '@/components/teacher/catalog-editor';
+import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
 
 // Constantes según el Manual Técnico
 const XP_CONVERSION_FACTOR = 26.67 / 100; // 100 PEB = 26.67 XP
@@ -102,44 +104,27 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 // --- XP Bonus Calculation from Decisions ---
-function getXpBonusFromDecisions(decisions: TeamDecision): { finance: number; reputation: number; morale: number } {
-    const bonus = { finance: 0, reputation: 0, morale: 0 };
-    if (!decisions.investments) return bonus;
+function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; reputation: number; morale: number } {
+    const bonus = { finances: 0, reputation: 0, morale: 0 };
+    if (!decisions.selectedInvestments) return bonus;
 
-    // This mapping should be maintained and is the source of truth for XP bonuses.
-    const xpBonusMap: Record<string, { area: keyof typeof bonus, xp: number }> = {
-        'F1': { area: 'finance', xp: 10 },
-        'F2': { area: 'finance', xp: 8 },
-        'F3': { area: 'finance', xp: 5 },
-        'F4': { area: 'finance', xp: 8 },
-        'F5': { area: 'finance', xp: 10 },
-        'R1': { area: 'reputation', xp: 10 },
-        'R2': { area: 'reputation', xp: 15 },
-        'R3': { area: 'reputation', xp: 12 },
-        'R4': { area: 'reputation', xp: 5 },
-        'R5': { area: 'reputation', xp: 4 },
-        'P1': { area: 'morale', xp: 5 },
-        'P2': { area: 'morale', xp: 10 },
-        'P3': { area: 'morale', xp: 15 },
-        'P4': { area: 'morale', xp: 15 },
-        'P5': { area: 'morale', xp: 8 },
-    };
+    for (const investmentDecision of decisions.selectedInvestments) {
+        const investmentInfo = fullInvestmentsList.find(inv => inv.id === investmentDecision.id);
+        if (!investmentInfo) continue;
+        
+        const area = investmentInfo.bonus.area;
 
-    for (const investment of decisions.investments) {
-        const bonusInfo = xpBonusMap[investment.id];
-        if (bonusInfo) {
-            // Logic to scale XP based on cost for variable investments
-            if (investment.id === 'R1') { // Campaña publicitaria
-                const maxCost = 20000;
-                const minCost = 5000;
-                const maxBonus = 10;
-                const minBonus = 2;
-                if (investment.cost >= minCost) {
-                    const scaledBonus = minBonus + ((investment.cost - minCost) / (maxCost - minCost)) * (maxBonus - minBonus);
-                    bonus[bonusInfo.area] += scaledBonus;
-                }
-            } else {
-                bonus[bonusInfo.area] += bonusInfo.xp;
+        if (investmentInfo.bonus.type === 'fixed') {
+            bonus[area] += investmentInfo.bonus.value as number;
+        } 
+        else if (investmentInfo.bonus.type === 'scaled') {
+            const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
+            const [minBonus, maxBonus] = investmentInfo.bonus.value as [number, number];
+            
+            if (investmentDecision.cost >= minCost) {
+                const investmentRatio = (investmentDecision.cost - minCost) / (maxCost - minCost);
+                const scaledBonus = minBonus + investmentRatio * (maxBonus - minBonus);
+                bonus[area] += scaledBonus;
             }
         }
     }
@@ -170,7 +155,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     
     const xpBonus = getXpBonusFromDecisions(decisions);
 
-    const xpFinanzas = baseXpFinanzas + xpBonus.finance;
+    const xpFinanzas = baseXpFinanzas + xpBonus.finances;
     const xpReputacion = baseXpReputacion + xpBonus.reputation;
     const xpMoral = baseXpMoral + xpBonus.morale;
 
@@ -195,3 +180,5 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         totalXp: totalXp
     };
 }
+
+    

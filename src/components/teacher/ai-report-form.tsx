@@ -230,6 +230,18 @@ export function AIReportForm() {
   }
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
+  
+  const formatNumber = (valueStr: string) => {
+    const number = parseFloat(valueStr.replace('%', '').replace('CC', '').replace(',', '.'));
+    if (isNaN(number)) return valueStr;
+    if (Math.floor(number) === number && number > 1000) {
+      return new Intl.NumberFormat('es-ES').format(number);
+    }
+    if (Math.floor(number) !== number) {
+      return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(number);
+    }
+    return valueStr;
+  };
 
   const { 
     totalInvestmentCost, 
@@ -392,7 +404,7 @@ export function AIReportForm() {
                                 {reportData.kpiAnalysis && Object.entries(reportData.kpiAnalysis).map(([key, value]: [string, any]) => (
                                     <div key={key} className="p-3 bg-muted/50 rounded-lg border">
                                         <h4 className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap"><span className="font-bold text-foreground">Valor: {value.value}</span> - {value.analysis}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap"><span className="font-bold text-foreground">Valor: {formatNumber(value.value)}</span> - {value.analysis}</p>
                                     </div>
                                 ))}
                             </AccordionContent>

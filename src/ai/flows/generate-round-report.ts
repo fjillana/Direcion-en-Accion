@@ -14,7 +14,7 @@ import {z} from 'genkit';
 const GenerateRoundReportInputSchema = z.object({
   gameId: z.string().describe('El ID de la partida.'),
   roundNumber: z.number().describe('El número de ronda para el cual generar el reporte.'),
-  teamPerformanceData: z.string().describe('Los datos de rendimiento del equipo en formato JSON.'),
+  teamPerformanceData: z.string().describe('Los datos de rendimiento del equipo en formato JSON. Incluye decisiones, KPIs finales y desglose del PEB.'),
   marketConditions: z.string().describe('Un resumen de las condiciones del mercado durante la ronda.'),
 });
 export type GenerateRoundReportInput = z.infer<typeof GenerateRoundReportInputSchema>;
@@ -63,6 +63,7 @@ const prompt = ai.definePrompt({
   5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para cada uno de los KPIs. Tu análisis DEBE explicar el porqué del valor de forma cuantitativa, basándote en los datos de entrada.
       - **Identifica la Causa Principal:** Para cada KPI, encuentra la causa más importante de su valor (positiva o negativa). Por ejemplo, si la moral bajó, verifica si el ratio de alumnos/profesor superó 26.0 (causando una penalización de -15 puntos). Si el NMA bajó, comprueba si el ratio superó 26.0 (penalización de -0.3).
       - **Describe el Cálculo:** En palabras, describe cómo se llegó al valor. Menciona explícitamente las decisiones (inversiones, contrataciones) del JSON de entrada que aplicaron bonus o penalizaciones.
+      - **Usa el Valor Correcto:** Asegúrate de usar el valor final del KPI que se encuentra en el objeto \`kpis\` dentro de \`teamPerformanceData\`. Por ejemplo, para la tesorería, usa \`teamPerformanceData.kpis.cash\`.
       - **NO ALUCINES:** No menciones inversiones o decisiones que no aparezcan en el JSON \`teamPerformanceData.decisions.actions\`. Si el equipo no invirtió en algo relevante, explícalo. Ejemplo para NMA: "El NMA bajó a 7.2 principalmente por la penalización de -0.3 por sobrecarga de profesorado, al tener un ratio de 26.1. No se realizaron inversiones en formación (P1) o TIC (R2) que pudieran haber compensado esta caída."
       - **Ejemplo para Moral:** "La moral cayó a 65% debido a la fuerte penalización de -15 puntos por un ratio de alumnos/profesor superior a 26. La falta de inversión en formación (P1) o actividades sociales (P5) impidió mejorarla."
 

@@ -98,6 +98,9 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedNma += 0.1;
       updatedMorale += 10;
   }
+  if (actions.includes('R4')) { // Desarrollo curricular
+      updatedNma += 0.3;
+  }
 
   // Bonificación por ratio bajo
   if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {

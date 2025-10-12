@@ -63,7 +63,7 @@ export const investments: Investment[] = [
     {
       id: 'R4',
       name: 'Desarrollo curricular innovador',
-      description: 'Introducir programas STEM, artes o idiomas mejora la NMA y la reputación.',
+      description: 'Introducir programas STEM, artes o idiomas. Aumenta la NMA en +0.3 y otorga XP de reputación.',
       cost: { type: 'range', value: [20000, 40000] },
       bonus: { area: 'reputation', type: 'fixed', value: 5 },
     },

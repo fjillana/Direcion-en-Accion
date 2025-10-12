@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -7,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { DollarSign, Shield, Heart, Info } from "lucide-react";
 import { Button } from "../ui/button";
-import type { TeamPerformanceData, Investment } from "@/hooks/use-games";
+import type { TeamPerformanceData } from "@/hooks/use-games";
 import { Alert, AlertTitle } from "../ui/alert";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
+import type { Investment } from "@/components/teacher/catalog-editor";
 
 
 type PebData = {
@@ -83,7 +83,7 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSourc
             <div>
                 <h4 className="font-semibold mb-1">3. Conversión de PEB a Puntos de Experiencia (XP)</h4>
                  <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
-                    ({peb.toFixed(2)} PEB * 26.67 / 100) + {bonusXp.toFixed(2)} XP {bonusSource} = <span className="font-bold">{xp.toFixed(2)} XP</span>
+                    ({peb.toFixed(2)} PEB * 26.67 / 100) + {(bonusXp ?? 0).toFixed(2)} XP {bonusSource} = <span className="font-bold">{xp.toFixed(2)} XP</span>
                  </div>
                  <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100, más bonus por decisiones.</p>
             </div>

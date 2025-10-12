@@ -168,6 +168,7 @@ export function AIReportForm() {
           kpiAnalysis: result.kpiAnalysis,
           marketAnalysis: {
             iam: teamMarketResult.iam,
+            iamBreakdown: teamMarketResult.points,
             newStudentsCaptured: teamMarketResult.newStudents,
             newStudentsInMarket: activeGame.newStudentsPerRound,
             capacity: teamPerformance.kpis.capacity || 810,
@@ -400,10 +401,15 @@ export function AIReportForm() {
                         <AccordionItem value="item-market-analysis" className="border rounded-lg">
                             <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de Mercado (IAM)</h3></AccordionTrigger>
                             <AccordionContent className="px-4 space-y-4">
-                               <div className="grid md:grid-cols-3 gap-4">
+                               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                         <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
                                         <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
+                                        {reportData.marketAnalysis.iamBreakdown && (
+                                          <p className="text-xs text-muted-foreground font-mono">
+                                            (NMA: {reportData.marketAnalysis.iamBreakdown.nma.toFixed(1)} + Precio: {reportData.marketAnalysis.iamBreakdown.price.toFixed(1)} + Mkt: {reportData.marketAnalysis.iamBreakdown.marketing.toFixed(1)})
+                                          </p>
+                                        )}
                                     </div>
                                     <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                         <p className="text-sm font-semibold text-muted-foreground">Nuevos Alumnos Captados</p>
@@ -412,6 +418,10 @@ export function AIReportForm() {
                                     <div className="p-3 bg-muted/50 rounded-lg border text-center">
                                         <p className="text-sm font-semibold text-muted-foreground">Alumnos en Mercado</p>
                                         <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsInMarket}</p>
+                                    </div>
+                                    <div className="p-3 bg-muted/50 rounded-lg border text-center">
+                                        <p className="text-sm font-semibold text-muted-foreground">Ocupación (Final / Capacidad)</p>
+                                        <p className="text-2xl font-bold">{reportData.kpis.numStudents} / {reportData.marketAnalysis.capacity}</p>
                                     </div>
                                </div>
                                <div className="rounded-lg border">

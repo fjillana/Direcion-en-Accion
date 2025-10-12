@@ -190,7 +190,7 @@ export function StudentReport() {
                 
                 <AccordionItem value="item-market-analysis" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de Mercado (IAM)</h3></AccordionTrigger>
-                    <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
+                    <AccordionContent className="px-4 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                        <div className="p-3 bg-muted/50 rounded-lg border text-center">
                          <p className="text-sm font-semibold text-muted-foreground">IAM (Índice Atractividad)</p>
                          <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
@@ -204,8 +204,8 @@ export function StudentReport() {
                          <p className="text-2xl font-bold">{reportData.marketAnalysis.newStudentsInMarket}</p>
                        </div>
                        <div className="p-3 bg-muted/50 rounded-lg border text-center">
-                         <p className="text-sm font-semibold text-muted-foreground">Capacidad / Alumnos Finales</p>
-                         <p className="text-2xl font-bold">{reportData.marketAnalysis.capacity} / {reportData.kpis.numStudents}</p>
+                         <p className="text-sm font-semibold text-muted-foreground">Ocupación (Final / Capacidad)</p>
+                         <p className="text-2xl font-bold">{reportData.kpis.numStudents} / {reportData.marketAnalysis.capacity}</p>
                        </div>
                     </AccordionContent>
                 </AccordionItem>

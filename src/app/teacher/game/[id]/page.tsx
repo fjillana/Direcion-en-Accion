@@ -280,7 +280,7 @@ export default function GameDetailsPage() {
           </TabsContent>
           <TabsContent value="config">
              <RoundConfig
-              allTeams={game.teamNames.concat(Array.from({ length: game.teams - game.teamNames.length }, (_, i) => `IA Rival ${i + 1}`))}
+              allTeams={game.teamNames.concat(Array.from({ length: (game.teamNames.length > 0 ? game.teamNames.length : 0) }, (_, i) => `IA Rival ${i + 1}`))}
               fullInvestments={fullInvestmentsList}
               fullCrises={fullCrisesList}
             />
@@ -375,26 +375,29 @@ export default function GameDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {((fullDecisionsForDialog.selectedInvestments || []).length === 0 && (fullDecisionsForDialog.selectedCenterActions || []).length === 0) ? (
+                                {(fullDecisionsForDialog.actions || []).length === 0 ? (
                                     <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No se realizaron inversiones ni acciones.</TableCell></TableRow>
                                 ) : (
-                                    <>
-                                        {(fullDecisionsForDialog.selectedInvestments || []).map(inv => (
-                                            <TableRow key={inv.id}>
-                                                <TableCell>{inv.name}</TableCell>
-                                                <TableCell className="text-right font-mono">{formatCurrency(inv.cost)} CC</TableCell>
+                                    (fullDecisionsForDialog.actions || []).map(actionId => {
+                                        const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
+                                        const centerActionInfo = centerActionsMap[actionId];
+                                        
+                                        const name = investmentInfo?.name || centerActionInfo?.name || actionId;
+                                        let cost: number | string = '--';
+
+                                        if (investmentInfo) {
+                                            cost = investmentInfo.cost.type === 'fixed' ? investmentInfo.cost.value as number : investmentInfo.cost.value[1];
+                                        } else if (centerActionInfo) {
+                                            cost = centerActionInfo.cost;
+                                        }
+
+                                        return (
+                                            <TableRow key={actionId}>
+                                                <TableCell>{name}</TableCell>
+                                                <TableCell className="text-right font-mono">{typeof cost === 'number' ? `${formatCurrency(cost)} CC` : cost}</TableCell>
                                             </TableRow>
-                                        ))}
-                                        {(fullDecisionsForDialog.selectedCenterActions || []).map(actionId => {
-                                            const actionInfo = centerActionsMap[actionId];
-                                            return (
-                                                <TableRow key={actionId}>
-                                                    <TableCell>{actionInfo ? actionInfo.name : actionId}</TableCell>
-                                                    <TableCell className="text-right font-mono">{actionInfo ? `${formatCurrency(actionInfo.cost)} CC` : '-- CC'}</TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>

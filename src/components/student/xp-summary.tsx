@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { DollarSign, Shield, Heart, Info } from "lucide-react";
 import { Button } from "../ui/button";
-import type { TeamPerformanceData } from "@/hooks/use-games";
+import type { TeamPerformanceData, Investment } from "@/hooks/use-games";
 import { Alert, AlertTitle } from "../ui/alert";
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 
 type PebData = {
@@ -38,9 +39,11 @@ interface XpCardProps {
   peb: number;
   pebBreakdown: string[];
   round: number;
+  bonusXp: number;
+  bonusSource: string;
 }
 
-function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
+function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSource }: XpCardProps) {
     const calculatedXp = (peb * (80 / 3) / 100);
     const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${pebBreakdown.length} = ${peb.toFixed(2)}`;
 
@@ -80,9 +83,9 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
             <div>
                 <h4 className="font-semibold mb-1">3. Conversión de PEB a Puntos de Experiencia (XP)</h4>
                  <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
-                    XP = {peb.toFixed(2)} PEB * (26.67 / 100) = <span className="font-bold">{calculatedXp.toFixed(2)} XP</span>
+                    ({peb.toFixed(2)} PEB * 26.67 / 100) + {bonusXp.toFixed(2)} XP {bonusSource} = <span className="font-bold">{xp.toFixed(2)} XP</span>
                  </div>
-                 <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100.</p>
+                 <p className="text-xs text-center text-muted-foreground mt-2">Nota: Se pueden obtener hasta 80 XP por ronda (26.67 por área) con un PEB de 100, más bonus por decisiones.</p>
             </div>
         </div>
         <DialogFooter>
@@ -94,6 +97,25 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round }: XpCardProps) {
     </Dialog>
   );
 }
+
+const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
+    if (!team || !team.decisions?.actions) return "(Bonus)";
+
+    const areaInvestments = (team.decisions.actions)
+      .map(actionId => allInvestments.find(inv => inv.id === actionId))
+      .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
+
+    if (areaInvestments.length === 0) return "";
+
+    const mainContributor = areaInvestments.reduce((max, current) => {
+        const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
+        const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
+        return currentBonusValue > maxBonusValue ? current : max;
+    });
+
+    return `(${mainContributor.name})`;
+};
+
 
 export function XpSummary({ performanceHistory }: XpSummaryProps) {
 
@@ -147,9 +169,36 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <XpCard title="Finanzas" xp={latestRoundData.finances.xp} icon={<DollarSign className="h-5 w-5 text-emerald-600" />} peb={latestRoundData.finances.peb} pebBreakdown={latestRoundData.finances.pebBreakdown} round={selectedRound} />
-            <XpCard title="Reputación" xp={latestRoundData.reputation.xp} icon={<Shield className="h-5 w-5 text-blue-600" />} peb={latestRoundData.reputation.peb} pebBreakdown={latestRoundData.reputation.pebBreakdown} round={selectedRound} />
-            <XpCard title="Moral" xp={latestRoundData.morale.xp} icon={<Heart className="h-5 w-5 text-red-600" />} peb={latestRoundData.morale.peb} pebBreakdown={latestRoundData.morale.pebBreakdown} round={selectedRound} />
+            <XpCard 
+              title="Finanzas" 
+              xp={latestRoundData.finances.xp} 
+              icon={<DollarSign className="h-5 w-5 text-emerald-600" />} 
+              peb={latestRoundData.finances.peb} 
+              pebBreakdown={latestRoundData.finances.pebBreakdown} 
+              round={selectedRound}
+              bonusXp={latestRoundData.xpFinancesBonus}
+              bonusSource={getBonusSourceName(latestRoundData, 'finances')}
+            />
+            <XpCard 
+              title="Reputación" 
+              xp={latestRoundData.reputation.xp} 
+              icon={<Shield className="h-5 w-5 text-blue-600" />} 
+              peb={latestRoundData.reputation.peb} 
+              pebBreakdown={latestRoundData.reputation.pebBreakdown} 
+              round={selectedRound}
+              bonusXp={latestRoundData.xpReputationBonus}
+              bonusSource={getBonusSourceName(latestRoundData, 'reputation')}
+            />
+            <XpCard 
+              title="Moral" 
+              xp={latestRoundData.morale.xp} 
+              icon={<Heart className="h-5 w-5 text-red-600" />} 
+              peb={latestRoundData.morale.peb} 
+              pebBreakdown={latestRoundData.morale.pebBreakdown} 
+              round={selectedRound}
+              bonusXp={latestRoundData.xpMoraleBonus}
+              bonusSource={getBonusSourceName(latestRoundData, 'morale')}
+            />
           </div>
         </div>
         <div className="flex items-center justify-center rounded-lg bg-muted/50 p-4">

@@ -312,7 +312,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.finances.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.finances.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.finances.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -327,7 +327,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.reputation.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.reputation.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.reputation.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -342,7 +342,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${selectedTeam.morale.xpBonus.toFixed(2)} (Bonus) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.morale.xpBonus ?? 0).toFixed(2)} (Bonus) = ${selectedTeam.morale.xp.toFixed(2)} XP`}</p>
                     </div>
                  </div>
               </div>

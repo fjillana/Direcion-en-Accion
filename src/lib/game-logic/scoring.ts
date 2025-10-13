@@ -142,19 +142,26 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         }
     }
     
+    // Crisis C1 Effects
+    if (decisions.crisisResponse?.crisisId === 'C1') {
+      if (decisions.crisisResponse.optionId === 'C1_op1') {
+        bonus.morale += 5;
+        bonus.finances -= 5;
+      }
+    }
+
     // Crisis C2 Effects
     if (decisions.crisisResponse?.crisisId === 'C2') {
-        if (decisions.crisisResponse.optionId === 'C2_op2') {
+        const optionId = decisions.crisisResponse.optionId;
+        if (optionId === 'C2_op2') {
             bonus.reputation -= 15;
-        }
-        if (decisions.crisisResponse.optionId === 'C2_op3') {
+        } else if (optionId === 'C2_op3') {
             if (negotiationSuccess) {
                 bonus.reputation += 5;
             } else {
                 bonus.finances -= 5;
             }
-        }
-        if (decisions.crisisResponse.optionId === 'C2_op5') {
+        } else if (optionId === 'C2_op5') {
             bonus.finances += 8;
             bonus.reputation -= 8;
         }

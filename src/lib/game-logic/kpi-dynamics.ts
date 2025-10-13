@@ -36,6 +36,7 @@ export function updateKpisForNextRound(
   let updatedNumStudents = currentKpis.numStudents;
   let updatedNumTeachers = currentKpis.numTeachers;
   let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
+  let updatedMorale = currentKpis.morale;
 
   const actions = decisions.actions || [];
 
@@ -50,13 +51,13 @@ export function updateKpisForNextRound(
   
   if (actions.includes('R3')) { // Mejora de instalaciones (aumento de NMA y Moral)
     currentKpis.nma += 0.3;
-    currentKpis.morale += 10;
+    updatedMorale += 10;
   }
   if (actions.includes('R4')) { // Desarrollo curricular innovador
       currentKpis.nma += 0.3;
   }
   if (actions.includes('P5')) { // Actividades sociales
-    currentKpis.morale += 10;
+    updatedMorale += 10;
   }
   
   if (actions.includes('F5')) { // Ampliación Aulas
@@ -78,21 +79,18 @@ export function updateKpisForNextRound(
   // The crisis effect is applied by default unless a specific option counteracts it.
   let crisisC2Active = !!decisions.crisisResponse && decisions.crisisResponse.crisisId === 'C2';
   if (crisisC2Active) {
-      if (decisions.crisisResponse!.optionId === 'C2_op1') { // Loan
+      const optionId = decisions.crisisResponse!.optionId;
+      if (optionId === 'C2_op1') { // Loan
           currentPublicIncome -= 25000;
           loanIncome = 25000;
-      } else if (decisions.crisisResponse!.optionId === 'C2_op2') { // Cut investments
+      } else if (optionId === 'C2_op2' || optionId === 'C2_op5') { // Cut investments or Delay payments
           // Subsidy loss is avoided. No change to currentPublicIncome.
-      } else if (decisions.crisisResponse!.optionId === 'C2_op3') { // Negotiate
+      } else if (optionId === 'C2_op3') { // Negotiate
           currentPublicIncome -= 25000; // Subsidy is lost initially.
           if (negotiationSuccess) {
               recoveredSubsidy = 15000; // 15k is recovered on success.
           }
-      } else if (decisions.crisisResponse!.optionId === 'C2_op5') { // Delay payments
-          // Subsidy loss is avoided. No change to currentPublicIncome.
-      }
-      else {
-          // Default effect for all other options (including 4 and 5)
+      } else { // Default effect for option 4 and any other
           currentPublicIncome -= 25000;
       }
   }
@@ -163,7 +161,7 @@ export function updateKpisForNextRound(
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedNma = currentKpis.nma;
-  let updatedMorale = currentKpis.morale;
+  
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
 
   // Impacto de inversiones
@@ -181,6 +179,13 @@ export function updateKpisForNextRound(
   }
   if (actions.includes('P5')) { // Actividades sociales
     updatedMorale += 10;
+  }
+
+  // --- Crisis C1 Effects ---
+  if (decisions.crisisResponse?.crisisId === 'C1') {
+    if (decisions.crisisResponse.optionId === 'C1_op1') {
+      updatedMorale += 30;
+    }
   }
 
   // Bonificación por ratio bajo

@@ -96,7 +96,8 @@ export function StudentReport() {
   }, 0);
   
   const totalDecisionsCost = totalInvestmentCost + totalCenterActionsCost;
-  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(reportData.decisions.crisisResponse?.cost || 0);
+  const crisisCost = Math.abs(reportData.decisions.crisisResponse?.cost || 0);
+  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + crisisCost;
   const finalCash = initialCashForRound + reportData.kpis.income - totalCosts;
 
   return (
@@ -126,7 +127,7 @@ export function StudentReport() {
                             <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
-                            {reportData.decisions.crisisResponse?.cost && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(Math.abs(reportData.decisions.crisisResponse.cost))}</span></div>}
+                            {crisisCost > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(crisisCost)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>

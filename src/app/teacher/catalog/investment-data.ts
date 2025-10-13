@@ -98,8 +98,8 @@ export const investments: Investment[] = [
     },
     {
       id: 'P4',
-      name: 'Incremento salarial global (5-10 %)',
-      description: 'Mejora la satisfacción, pero incrementa el coste de personal y puede comprometer la tesorería. Otorga entre 15 y 25 XP de Moral.',
+      name: 'Incremento salarial global',
+      description: 'Aumenta permanentemente en un 10% el coste salarial de todo el personal, mejorando la satisfacción. Otorga entre 15 y 25 XP de Moral.',
       cost: { type: 'range', value: [12000, 24000] },
       bonus: { area: 'morale', type: 'scaled', value: [15, 25] },
     },

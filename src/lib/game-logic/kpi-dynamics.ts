@@ -62,6 +62,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if (hasErp) {
     personnelCost *= 0.98; // Apply 2% reduction
   }
+
+  // Apply P4 salary increase permanently
+  const hasSalaryIncrease = performanceHistory.some(round => round.decisions.actions.includes('P4')) || actions.includes('P4');
+  if (hasSalaryIncrease) {
+    personnelCost *= 1.10; // Apply 10% permanent increase
+  }
   
   const investmentCost = actions.reduce((sum, actionId) => {
       const investmentInfo = allInvestments.find(inv => inv.id === actionId);

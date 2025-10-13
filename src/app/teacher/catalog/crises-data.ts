@@ -60,7 +60,7 @@ export const crises: Crisis[] = [
         { label: 'Subir temporalmente la matrícula a los alumnos solventes', costText: '0 CC', cost: 0, effect: 'Impacto: se compensa el déficit, +5 XP Finanzas, -5 XP Reputación' },
         { label: 'Solicitar un préstamo de emergencia', costText: 'Préstamo', cost: 0, effect: 'Suma 10.000 CC a tesorería pero genera deuda y una penalización de -20 PEB en Finanzas.' },
         { label: 'Recortar actividades extraescolares', costText: '0 CC', cost: 0, effect: 'Impacto: se compensa el déficit; +3 XP Finanzas, −4 XP Reputación; puede bajar la moral en 5 puntos' },
-        { label: 'Invertir en marketing para captar nuevos alumnos', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10.000 CC en marketing, +3 XP Reputación, +2 XP Finanzas; el efecto se nota en la siguiente ronda a través del IAM' },
+        { label: 'Invertir en marketing para captar nuevos alumnos', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10.000 CC en marketing, +10 puntos de IAM, +3 XP Reputación, +2 XP Finanzas.' },
       ]
     },
     {

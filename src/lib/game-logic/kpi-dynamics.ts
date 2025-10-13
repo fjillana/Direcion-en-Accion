@@ -154,6 +154,10 @@ export function updateKpisForNextRound(
     }
   }
   
+  if (crisisOption === 'C3_op5') { // Coste extra de la opción de marketing de C3
+    crisisCost -= 10000;
+  }
+
   // Calculate interest cost if loan was taken previously
   let interestCost = 0;
   const hasC2Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');

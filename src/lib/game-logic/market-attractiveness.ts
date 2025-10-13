@@ -44,10 +44,15 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
         if (investmentInfo) {
             // Asumimos el coste máximo para inversiones de rango por ahora.
             // Para una simulación más precisa, el coste exacto debería guardarse en el objeto de decisión.
-            const cost = investmentInfo.cost.type === 'range' ? investmentInfo.cost.value[1] : investmentInfo.cost.value as number;
+            const cost = team.decisions.investmentCosts?.['R1'] || (investmentInfo.cost.type === 'range' ? investmentInfo.cost.value[1] : investmentInfo.cost.value as number);
             marketingPoints = cost / 1000;
         }
     }
+    // Bonus de marketing por la crisis C3
+    if (team.decisions.crisisResponse?.optionId === 'C3_op5') {
+        marketingPoints += 10; // Bonus de 10 puntos de IAM
+    }
+
 
     // d. Componente de Instalaciones: Bonus fijo por la inversión 'R3'.
     const facilitiesPoints = (team.decisions?.actions || []).includes('R3') ? 5 : 0;

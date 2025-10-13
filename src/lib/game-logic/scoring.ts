@@ -108,7 +108,7 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 // --- XP Bonus Calculation from Decisions ---
-function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; reputation: number; morale: number } {
+function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
     const actions = decisions.actions || [];
 
@@ -143,15 +143,25 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
     }
     
     // Crisis C2 Option 2 Penalty
-    if (decisions.crisisResponse?.crisisId === 'C2' && decisions.crisisResponse.optionId === 'C2_op2') {
-        bonus.reputation -= 15;
+    if (decisions.crisisResponse?.crisisId === 'C2') {
+        if (decisions.crisisResponse.optionId === 'C2_op2') {
+            bonus.reputation -= 15;
+        }
+        if (decisions.crisisResponse.optionId === 'C2_op3') {
+            if (negotiationSuccess) {
+                bonus.reputation += 5;
+            } else {
+                bonus.finances -= 5;
+            }
+        }
     }
+
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;
 }
 
-export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean) {
+export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
     const { kpis, decisions } = teamState;
     const loanTakenThisRound = decisions.crisisResponse?.optionId === 'C2_op1';
 
@@ -175,7 +185,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const baseXpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
     const baseXpMoral = pebMoral * XP_CONVERSION_FACTOR;
     
-    const xpBonus = getXpBonusFromDecisions(decisions);
+    const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess);
 
     const xpFinanzas = Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances);
     const xpReputacion = Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation);

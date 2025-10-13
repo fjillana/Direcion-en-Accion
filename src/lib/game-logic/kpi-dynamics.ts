@@ -20,7 +20,12 @@ const BASE_CAPACITY = 810;
  * @param newStudents - El número de nuevos alumnos captados en esta ronda.
  * @returns El nuevo estado de los KPIs del equipo.
  */
-export function updateKpisForNextRound(teamState: TeamState, newStudents: number, performanceHistory: TeamPerformanceData[]) {
+export function updateKpisForNextRound(
+  teamState: TeamState,
+  newStudents: number,
+  performanceHistory: TeamPerformanceData[],
+  negotiationSuccess?: boolean
+) {
   
   const currentKpis: TeamKPIs = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
@@ -67,23 +72,32 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   // 2. Calcular Ingresos y Costes
   let currentPublicIncome = PUBLIC_INCOME;
   let loanIncome = 0;
+  let recoveredSubsidy = 0;
 
   // --- Crisis C2 Effect ---
-  if (decisions.crisisResponse?.crisisId === 'C2') {
-      if (decisions.crisisResponse.optionId === 'C2_op1') {
-          // Main effect of crisis happens, but is offset by loan
+  // The crisis effect is applied by default unless a specific option counteracts it.
+  let crisisC2Active = !!decisions.crisisResponse && decisions.crisisResponse.crisisId === 'C2';
+  if (crisisC2Active) {
+      if (decisions.crisisResponse!.optionId === 'C2_op1') { // Loan
           currentPublicIncome -= 25000;
           loanIncome = 25000;
-      } else if (decisions.crisisResponse.optionId === 'C2_op2') {
-          // The cut is avoided completely
-      } else {
-          // Default effect for all other options
+      } else if (decisions.crisisResponse!.optionId === 'C2_op2') { // Cut investments
+          // Subsidy loss is avoided. No change to currentPublicIncome.
+      } else if (decisions.crisisResponse!.optionId === 'C2_op3') { // Negotiate
+          currentPublicIncome -= 25000; // Subsidy is lost initially.
+          if (negotiationSuccess) {
+              recoveredSubsidy = 15000; // 15k is recovered on success.
+          }
+      }
+      else {
+          // Default effect for all other options (including 4 and 5)
           currentPublicIncome -= 25000;
       }
   }
 
+
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;
-  const income = privateIncome + currentPublicIncome + loanIncome;
+  const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');

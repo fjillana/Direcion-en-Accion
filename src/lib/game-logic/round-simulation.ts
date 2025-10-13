@@ -141,10 +141,19 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   // --- For ALL Rounds (including Round 0) ---
   const marketResults = calculateMarketAttractiveness(teamsAfterPoaching, game);
+  
+  const negotiationOutcomes: Record<string, boolean> = {};
+  teamsAfterPoaching.forEach(team => {
+    if (team.decisions.crisisResponse?.optionId === 'C2_op3') {
+      negotiationOutcomes[team.name] = Math.random() < 0.5; // 50% chance
+    }
+  });
+
 
   const teamsWithUpdatedKpis: TeamState[] = teamsAfterPoaching.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;
-      const updatedKpis = updateKpisForNextRound(team, newStudents, team.performanceHistory);
+      const negotiationSuccess = negotiationOutcomes[team.name];
+      const updatedKpis = updateKpisForNextRound(team, newStudents, team.performanceHistory, negotiationSuccess);
       return {
           ...team,
           kpis: updatedKpis,
@@ -163,7 +172,8 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
-    const performance = calculateTeamPerformance(teamState, isOverloaded);
+    const negotiationSuccess = negotiationOutcomes[teamState.name];
+    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess);
 
     const result: TeamPerformanceData = {
       name: teamState.name,

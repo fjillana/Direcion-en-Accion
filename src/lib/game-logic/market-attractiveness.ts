@@ -64,6 +64,16 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     // e. Componente de Sostenibilidad: Bonus fijo por la inversión 'R5'.
     const sustainabilityPoints = (team.decisions?.actions || []).includes('R5') ? 5 : 0;
 
+    // f. Componente de Crisis C7 (Ciberbullying)
+    let crisisC7IamEffect = 0;
+    if (team.decisions.crisisResponse?.crisisId === 'C7') {
+      if (team.decisions.crisisResponse.optionId === 'C7_op1') { // Minimizar
+        crisisC7IamEffect = -20;
+      } else if (team.decisions.crisisResponse.optionId === 'C7_op3') { // Programa anti-bullying
+        crisisC7IamEffect = 10;
+      }
+    }
+
 
     // Sanitize values to ensure they are numbers, defaulting to 0.
     const sanitizedNmaPoints = isNaN(nmaPoints) ? 0 : nmaPoints;
@@ -71,7 +81,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const sanitizedMarketingPoints = isNaN(marketingPoints) ? 0 : marketingPoints;
 
     // Fórmula completa del IAM
-    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints + sustainabilityPoints;
+    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints + sustainabilityPoints + crisisC7IamEffect;
     const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
 
     teamIamResults[team.name] = {

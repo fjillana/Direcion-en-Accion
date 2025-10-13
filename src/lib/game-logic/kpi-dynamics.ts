@@ -146,6 +146,14 @@ export function updateKpisForNextRound(
     }
   }
 
+  if(crisisId === 'C7') { // Ciberbullying
+      if (crisisOption === 'C7_op1') { // Minimizar caso
+          updatedMorale -= 5;
+      } else if (crisisOption === 'C7_op2') { // Investigar
+          updatedMorale += 5;
+      }
+  }
+
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy + otherIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
@@ -203,6 +211,9 @@ export function updateKpisForNextRound(
   }
   if (crisisOption === 'C6_op2') {
     crisisCost -= 4000;
+  }
+  if (crisisOption === 'C7_op3') {
+    crisisCost -= 5000;
   }
 
   // Calculate interest cost if loan was taken previously

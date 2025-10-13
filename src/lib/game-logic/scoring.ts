@@ -254,6 +254,20 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         }
     }
 
+    // Crisis C7 Effects
+    if (decisions.crisisResponse?.crisisId === 'C7') {
+      const optionId = decisions.crisisResponse.optionId;
+      if (optionId === 'C7_op1') { // Minimizar
+        bonus.reputation -= 8;
+      } else if (optionId === 'C7_op2') { // Investigar
+        bonus.reputation -= 4;
+        bonus.morale += 3;
+      } else if (optionId === 'C7_op3') { // Programa anti-bullying
+        bonus.reputation += 5;
+        bonus.morale += 3;
+      }
+    }
+
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;

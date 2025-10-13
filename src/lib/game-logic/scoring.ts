@@ -200,10 +200,11 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
 
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
     const { kpis, decisions } = teamState;
-    const loanTakenThisRound = decisions.crisisResponse?.optionId === 'C2_op1';
+    
+    const hasLoan = decisions.crisisResponse?.optionId === 'C2_op1' || decisions.crisisResponse?.optionId === 'C3_op3';
 
     // --- PEB Calculation ---
-    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, loanTakenThisRound);
+    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, hasLoan);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
     const pebFinanzas = Math.min(110, (treasury.peb + personnelCost.peb) / 2);
 

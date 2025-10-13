@@ -103,6 +103,8 @@ export function updateKpisForNextRound(
       privateIncome += 8000; // Recupera el 80%
     } else if (crisisOption === 'C3_op2') { // Subir matrícula
         privateIncome += 10000; // Compensa el déficit con ingresos extra
+    } else if (crisisOption === 'C3_op3') { // Solicitar préstamo
+        loanIncome += 10000;
     }
   }
 
@@ -151,10 +153,16 @@ export function updateKpisForNextRound(
   
   // Calculate interest cost if loan was taken previously
   let interestCost = 0;
-  const hasLoan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
-  if (hasLoan) {
-    interestCost = 25000 * 0.10; // 10% interest on 25k loan
+  const hasC2Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
+  const hasC3Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C3_op3') || decisions.crisisResponse?.optionId === 'C3_op3';
+  
+  if (hasC2Loan) {
+    interestCost += 25000 * 0.10; // 10% interest on 25k loan
   }
+  if (hasC3Loan) {
+    interestCost += 10000 * 0.10; // 10% interest on 10k loan
+  }
+
 
   const totalDecisionsCost = investmentCost + centerActionsCost + Math.abs(crisisCost) + interestCost;
   const totalExpenses = personnelCost + totalDecisionsCost;

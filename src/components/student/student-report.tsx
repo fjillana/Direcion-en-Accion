@@ -128,7 +128,7 @@ export function StudentReport() {
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
                             {crisisCost > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(crisisCost)}</span></div>}
-                            {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
+                            {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>
                     </AccordionContent>

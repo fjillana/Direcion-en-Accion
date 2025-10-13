@@ -20,7 +20,7 @@ export const investments: Investment[] = [
     {
       id: 'F3',
       name: 'Seguro de responsabilidad civil',
-      description: 'Cubre sanciones legales en eventos negativos, reduciendo penalizaciones económicas.',
+      description: 'Reduce en un 10% el impacto económico de las respuestas a las crisis. Es una protección permanente.',
       cost: { type: 'fixed', value: 10000 },
       bonus: { area: 'finances', type: 'fixed', value: 5 },
     },

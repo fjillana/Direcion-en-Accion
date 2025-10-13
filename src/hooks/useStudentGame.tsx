@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -310,31 +309,43 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
-    
+  
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
-    // This is an "upsert" operation. It first reads the document.
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) {
+    try {
+      // READ: Get the current game document
+      const gameDoc = await getDoc(gameRef);
+      if (!gameDoc.exists()) {
         throw new Error("Game document not found, cannot save decisions.");
-    }
-
-    const gameData = gameDoc.data();
-    const round = fullStudentState.round;
-    const teamName = fullStudentState.teamName;
-
-    // Create the nested structure if it doesn't exist.
-    const newDecisions = {
-        ...(gameData.decisions || {}),
+      }
+      const gameData = gameDoc.data();
+      const round = fullStudentState.round;
+      const teamName = fullStudentState.teamName;
+  
+      // MODIFY: Create the new, merged decisions object in memory
+      const newDecisions = {
+        ...(gameData.decisions || {}), // Start with existing decisions object
         [round]: {
-            ...(gameData.decisions?.[round] || {}),
-            [teamName]: fullStudentState.decisions,
+          ...(gameData.decisions?.[round] || {}), // Keep other teams' decisions for the round
+          [teamName]: fullStudentState.decisions, // Overwrite or add this team's decisions
         }
-    };
-    
-    const updateData = { decisions: newDecisions };
-
-    await updateDoc(gameRef, updateData);
+      };
+      
+      const updateData = { decisions: newDecisions };
+  
+      // WRITE: Update the document with the complete, merged decisions object
+      await updateDoc(gameRef, updateData);
+    } catch (error) {
+        // This will now properly catch permission errors if they occur
+        const permissionError = new FirestorePermissionError({
+            path: gameRef.path,
+            operation: 'update',
+            requestResourceData: { decisions: '...' }, // Can't send the full object, but can provide context
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        console.error("Error saving student decisions:", error);
+        throw error; // Re-throw the error to be caught by the component's try/catch
+    }
   }
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
@@ -380,3 +391,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

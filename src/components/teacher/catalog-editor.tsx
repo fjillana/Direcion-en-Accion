@@ -57,7 +57,8 @@ export type Investment = {
 
 type CrisisOption = {
   label: string;
-  cost: string;
+  costText: string;
+  cost: number;
   effect: string;
 };
 
@@ -279,7 +280,7 @@ export function CatalogEditor({
                       <div key={index} className="p-3 bg-muted/50 rounded-md">
                         <div className="flex justify-between items-center">
                           <p className="font-medium">{index + 1}. {option.label}</p>
-                          <p className="font-mono text-sm">{option.cost}</p>
+                          <p className="font-mono text-sm">{option.costText}</p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
                       </div>

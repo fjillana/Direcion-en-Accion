@@ -3,6 +3,7 @@
 import type { TeamState, TeamKPIs } from "./types";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
+import { crises as allCrises } from '@/app/teacher/catalog/crises-data';
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
 const OVERLOAD_RATIO = 26.0;
@@ -56,7 +57,6 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   const income = privateIncome + PUBLIC_INCOME;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
-  // Check if ERP (F1) was ever purchased
   const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
   if (hasErp) {
     personnelCost *= 0.98; // Apply 2% reduction
@@ -70,8 +70,6 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
         return sum + (investmentInfo.cost.value as number);
       }
       if(investmentInfo.cost.type === 'range') {
-        // For now, assume max cost for range investments made by AI.
-        // For humans, a slider would set the specific cost. This needs to be stored in the decision object.
         return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
       }
       return sum;
@@ -83,10 +81,20 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       return sum;
   }, 0);
   
-  const totalDecisionsCost = investmentCost + centerActionsCost;
+  // Calculate crisis cost with potential insurance reduction
+  let crisisCost = 0;
+  const hasInsurance = performanceHistory.some(round => round.decisions.actions.includes('F3')) || actions.includes('F3');
+  if (decisions.crisisResponse && decisions.crisisResponse.cost) {
+    crisisCost = decisions.crisisResponse.cost;
+    if (hasInsurance && crisisCost < 0) {
+      crisisCost *= 0.9; // Apply 10% reduction to negative costs
+    }
+  }
+  
+  const totalDecisionsCost = investmentCost + centerActionsCost + Math.abs(crisisCost);
   const totalExpenses = personnelCost + totalDecisionsCost;
   
-  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, totalExpenses=${totalExpenses}`);
+  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, totalExpenses=${totalExpenses}`);
 
   const cashAtStartOfRound = teamState.kpis.cash;
   const updatedCash = cashAtStartOfRound + income - totalExpenses;

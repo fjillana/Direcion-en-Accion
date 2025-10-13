@@ -11,7 +11,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import type { TeamDecision } from "@/hooks/use-games";
+import type { TeamDecision, CrisisDecision } from "@/hooks/use-games";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -26,18 +26,8 @@ export interface StudentGameState {
   strategicPlan?: StrategicPlan;
 }
 
-export interface RoundDecisions {
-  actions: string[];
-  investmentCosts: Record<string, number>;
-  tuitionPrice: number;
-  crisisResponse: {
-      crisisId: string;
-      optionId: string;
-      justification: string;
-      crisisName: string;
-      option: string;
-  } | null;
-  roundConfirmed: boolean;
+export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
+    crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -301,8 +291,12 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         };
 
         if (newDecisions.roundConfirmed) {
-          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, updatedDecisions);
-          confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, updatedDecisions);
+          const finalDecisions: TeamDecision = {
+            ...updatedDecisions,
+            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
+          };
+          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, finalDecisions);
+          confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
 
         return { ...prev, decisions: updatedDecisions };

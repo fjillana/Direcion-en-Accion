@@ -1,4 +1,5 @@
 
+
 "use client";
 import {
   Card,
@@ -16,7 +17,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 type CrisisOption = {
   id: string;
   label: string;
-  cost: string;
+  costText: string;
+  cost: number;
 };
 
 export interface CrisisProps {
@@ -28,20 +30,22 @@ export interface CrisisProps {
 }
 
 interface FullCrisisFormProps extends CrisisProps {
-    onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; }) => void;
-    currentResponse: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; } | null;
+    onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; }) => void;
+    currentResponse: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; } | null;
 }
 
 export function CrisisForm({ id, title, description, options, disabled = false, onResponseChange, currentResponse }: FullCrisisFormProps) {
   
   const handleOptionChange = (optionId: string) => {
     const selectedOption = options.find(o => o.id === optionId);
+    if (!selectedOption) return;
     onResponseChange({
       crisisId: id,
       optionId: optionId,
       justification: currentResponse?.justification || "",
       crisisName: title,
-      option: selectedOption?.label || ""
+      option: selectedOption.label,
+      cost: selectedOption.cost
     });
   };
 
@@ -52,7 +56,8 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
       optionId: currentResponse?.optionId || "",
       justification: e.target.value,
       crisisName: title,
-      option: selectedOption?.label || currentResponse?.option || ""
+      option: selectedOption?.label || currentResponse?.option || "",
+      cost: selectedOption?.cost || currentResponse?.cost || 0
     });
   };
 
@@ -80,7 +85,7 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
                     <span className="font-semibold block">{option.label}</span>
                   </Label>
                 </div>
-                <div className="font-mono text-sm">{option.cost}</div>
+                <div className="font-mono text-sm">{option.costText}</div>
               </div>
             ))}
           </RadioGroup>

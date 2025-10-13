@@ -106,7 +106,7 @@ export const investments: Investment[] = [
     {
       id: 'P5',
       name: 'Actividades sociales internas',
-      description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral. Otorga 8 XP de Moral.',
+      description: 'Viajes de incentivo, reducción de jornada, flexibilidad horaria. Mejora el clima laboral (+10 Moral). Otorga 8 XP de Moral.',
       cost: { type: 'range', value: [2000, 8000] },
       bonus: { area: 'morale', type: 'fixed', value: 8 },
     },

@@ -43,6 +43,11 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   }
   // Poaching is handled in round-simulation as it affects other teams
   
+  if (actions.includes('R3')) { // Mejora de instalaciones (aumento de NMA y Moral)
+    currentKpis.nma += 0.3;
+    currentKpis.morale += 10;
+  }
+  
   if (actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
   }
@@ -54,8 +59,14 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   
 
   // 2. Calcular Ingresos y Costes
+  let currentPublicIncome = PUBLIC_INCOME;
+  // --- Crisis C2 Effect ---
+  if (decisions.crisisResponse?.crisisId === 'C2') {
+    currentPublicIncome -= 25000; // Main effect of the crisis
+  }
+
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;
-  const income = privateIncome + PUBLIC_INCOME;
+  const income = privateIncome + currentPublicIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
@@ -120,10 +131,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       updatedNma += 0.2;
       updatedMorale += 5;
   }
-  if (actions.includes('R3')) { // Mejora de instalaciones
-    updatedNma += 0.3;
-    updatedMorale += 10;
-  }
+  
   if (actions.includes('P1')) { // Formación docente
       updatedNma += 0.1;
       updatedMorale += 10;
@@ -172,7 +180,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,
       privateIncome,
-      publicIncome: PUBLIC_INCOME
+      publicIncome: currentPublicIncome
   };
   
   return finalKPIs;

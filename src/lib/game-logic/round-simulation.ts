@@ -21,6 +21,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
         crisisResponse: null,
         roundConfirmed: false,
         investmentCosts: {},
+        poachingTarget: undefined,
     };
     
     if (teamDecision) {
@@ -30,6 +31,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
             crisisResponse: teamDecision.crisisResponse || null,
             roundConfirmed: teamDecision.roundConfirmed || false,
             investmentCosts: teamDecision.investmentCosts || {},
+            poachingTarget: teamDecision.poachingTarget,
         };
         console.log(`[GPS] 3b. Parsed decisions for ${teamName}:`, decisionsToReturn);
         return decisionsToReturn;
@@ -103,10 +105,44 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   
   console.log('[GPS] 4. Initial team states for this round:', currentTeamsState);
 
-  // --- For ALL Rounds (including Round 0) ---
-  const marketResults = calculateMarketAttractiveness(currentTeamsState, game);
+  // --- Handle poaching logic ---
+  const poachingEffects: Record<string, { teacherChange: number, moraleChange: number }> = {};
+  currentTeamsState.forEach(team => {
+      poachingEffects[team.name] = { teacherChange: 0, moraleChange: 0 };
+  });
 
-  const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
+  currentTeamsState.forEach(poachingTeam => {
+      if (poachingTeam.decisions.actions.includes('P3') && poachingTeam.decisions.poachingTarget) {
+          const targetTeamName = poachingTeam.decisions.poachingTarget;
+          const targetTeamState = currentTeamsState.find(t => t.name === targetTeamName);
+          
+          if (targetTeamState && targetTeamState.kpis.morale < 70) {
+              // Successful poach
+              poachingEffects[poachingTeam.name].teacherChange += 1;
+              poachingEffects[targetTeamName].teacherChange -= 1;
+              poachingEffects[targetTeamName].moraleChange -= 10;
+          }
+      }
+  });
+  
+  // Apply poaching effects before main KPI update
+  const teamsAfterPoaching = currentTeamsState.map(team => {
+      const effects = poachingEffects[team.name];
+      return {
+          ...team,
+          kpis: {
+              ...team.kpis,
+              numTeachers: team.kpis.numTeachers + effects.teacherChange,
+              morale: Math.max(0, team.kpis.morale + effects.moraleChange),
+          }
+      };
+  });
+
+
+  // --- For ALL Rounds (including Round 0) ---
+  const marketResults = calculateMarketAttractiveness(teamsAfterPoaching, game);
+
+  const teamsWithUpdatedKpis: TeamState[] = teamsAfterPoaching.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;
       const updatedKpis = updateKpisForNextRound(team, newStudents, team.performanceHistory);
       return {

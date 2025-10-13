@@ -27,6 +27,7 @@ export interface TeamDecision {
   actions: string[];
   roundConfirmed: boolean;
   investmentCosts?: Record<string, number>;
+  poachingTarget?: string;
 }
 
 export interface TeamPerformanceData {

@@ -29,7 +29,7 @@ export const investments: Investment[] = [
       name: 'Negociación agresiva de cuentas por pagar',
       description: 'Retrasar el pago a proveedores genera liquidez inmediata (+50.000 CC) pero daña la imagen del centro. Otorga 8 XP de Finanzas y una penalización de -8 XP de Reputación.',
       cost: { type: 'fixed', value: 0 },
-      bonus: { area: 'finances', type: 'fixed', value: 8 }, // Note: This has a negative reputational impact not captured here
+      bonus: { area: 'finances', type: 'fixed', value: 8 },
     },
     {
       id: 'F5',
@@ -92,7 +92,7 @@ export const investments: Investment[] = [
     {
       id: 'P3',
       name: 'Poaching de profesor de la competencia',
-      description: 'Contratar a un profesor estrella de otro centro. Requiere que el rival tenga moral <70. Otorga 15 XP de Moral.',
+      description: 'Roba un profesor de un equipo rival si su moral es inferior a 70. Ganas 1 profesor y el rival lo pierde. El rival sufre una penalización de -10 en su moral. Otorga 15 XP de Moral.',
       cost: { type: 'fixed', value: 17500 },
       bonus: { area: 'morale', type: 'fixed', value: 15 },
     },

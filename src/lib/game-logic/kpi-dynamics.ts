@@ -41,6 +41,8 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if (actions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
   }
+  // Poaching is handled in round-simulation as it affects other teams
+  
   if (actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
   }
@@ -137,6 +139,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if(actions.includes('P2')) { // Contratar
       updatedMorale += 15;
   }
+  // Poaching morale effects are handled in round simulation
 
   // Impacto de sobrecarga (PENALTY)
   if (updatedStudentTeacherRatio > OVERLOAD_RATIO) {

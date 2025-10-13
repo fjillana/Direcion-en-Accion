@@ -28,6 +28,7 @@ export interface StudentGameState {
 
 export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
     crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
+    poachingTarget?: string;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -76,6 +77,7 @@ const initialRoundDecisions: RoundDecisions = {
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
+  poachingTarget: undefined,
 };
 
 

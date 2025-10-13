@@ -18,14 +18,19 @@ import type { Investment } from "@/components/teacher/catalog-editor";
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useGames } from '@/hooks/use-games';
+import { useStudentGame } from '@/hooks/useStudentGame';
 
 interface InvestmentFormProps {
   disabled?: boolean;
   availableInvestments: Investment[];
   selectedActions: string[];
   investmentCosts: Record<string, number>;
+  poachingTarget?: string;
   onActionChange: (actionId: string, selected: boolean) => void;
   onCostChange: (investmentId: string, cost: number) => void;
+  onPoachingTargetChange: (teamName?: string) => void;
   onSave: () => void;
   isSaving: boolean;
   teamCash: number;
@@ -43,12 +48,24 @@ export function InvestmentForm({
   availableInvestments, 
   selectedActions, 
   investmentCosts,
+  poachingTarget,
   onActionChange, 
   onCostChange,
+  onPoachingTargetChange,
   onSave,
   isSaving,
   teamCash 
 }: InvestmentFormProps) {
+    const { studentGame } = useStudentGame();
+    const { games } = useGames();
+    
+    const rivalTeams = useMemo(() => {
+        if (!studentGame?.gameId) return [];
+        const game = games.find(g => g.id === studentGame.gameId);
+        if (!game) return [];
+        // Rival teams are all human teams except the current one
+        return game.teamNames.filter(name => name !== studentGame.teamName);
+    }, [games, studentGame]);
 
   const totalCost = useMemo(() => {
     // Sum costs from variable investments (sliders)
@@ -103,6 +120,7 @@ export function InvestmentForm({
                   const isRange = inv.cost.type === 'range';
                   const [minCost, maxCost] = isRange ? inv.cost.value as [number, number] : [inv.cost.value as number, inv.cost.value as number];
                   const currentCost = investmentCosts[inv.id] || maxCost;
+                  const isPoaching = inv.id === 'P3';
 
                   return (
                     <div key={inv.id} className={cn("rounded-md border p-4", disabled && 'bg-muted/50')}>
@@ -136,6 +154,25 @@ export function InvestmentForm({
                                     step={(maxCost - minCost) / 10 || 1}
                                     onValueChange={(value) => onCostChange(inv.id, value[0])}
                                 />
+                            </div>
+                        )}
+                        {isPoaching && isSelected && (
+                            <div className="mt-4 pl-8 pr-2 space-y-2">
+                                <Label className="text-xs text-muted-foreground">Selecciona el equipo rival</Label>
+                                <Select value={poachingTarget} onValueChange={onPoachingTargetChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Elige un equipo para robarle el profesor..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {rivalTeams.length > 0 ? (
+                                            rivalTeams.map(teamName => (
+                                                <SelectItem key={teamName} value={teamName}>{teamName}</SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="px-2 py-1.5 text-sm text-muted-foreground">No hay equipos rivales.</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </div>

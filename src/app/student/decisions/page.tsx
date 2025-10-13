@@ -45,6 +45,7 @@ export default function DecisionsPage() {
 
   const selectedActions = studentGame?.decisions?.actions || [];
   const investmentCosts = studentGame?.decisions?.investmentCosts || {};
+  const poachingTarget = studentGame?.decisions?.poachingTarget;
   
   const roundConfirmed = studentGame?.decisions?.roundConfirmed || false;
   const teamCash = studentGame?.round === 0 ? initialFunds : studentGame?.kpis?.cash || 0;
@@ -92,6 +93,10 @@ export default function DecisionsPage() {
         newActions = currentActions.filter(id => id !== actionId);
         // Remove cost when unselected
         delete newCosts[actionId];
+        // If unselecting poaching, clear the target
+        if (actionId === 'P3') {
+            setRoundDecisions({ poachingTarget: undefined });
+        }
     }
     
     setRoundDecisions({ actions: newActions, investmentCosts: newCosts });
@@ -105,6 +110,10 @@ export default function DecisionsPage() {
       } 
     });
   };
+
+  const handlePoachingTargetChange = (teamName?: string) => {
+      setRoundDecisions({ poachingTarget: teamName });
+  }
 
   return (
     <StudentGate>
@@ -133,8 +142,10 @@ export default function DecisionsPage() {
           availableInvestments={availableInvestments}
           selectedActions={selectedActions}
           investmentCosts={investmentCosts}
+          poachingTarget={poachingTarget}
           onActionChange={handleActionChange}
           onCostChange={handleCostChange}
+          onPoachingTargetChange={handlePoachingTargetChange}
           onSave={handleSave}
           isSaving={isSaving}
           teamCash={teamCash}

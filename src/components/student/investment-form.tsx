@@ -56,13 +56,21 @@ const getInvestmentEffectSummary = (investment: Investment): string => {
         effects.push(`KPIs: ${kpiEffects.join(', ')}`);
     }
 
-    const xpAreas: string[] = [];
-    if (investment.xpBonus.finances) xpAreas.push('Finanzas');
-    if (investment.xpBonus.reputation) xpAreas.push('Reputación');
-    if (investment.xpBonus.morale) xpAreas.push('Moral');
+    const xpEffects: string[] = [];
+    (['finances', 'reputation', 'morale'] as const).forEach(area => {
+        const bonus = investment.xpBonus[area];
+        if (bonus) {
+            const areaName = area.charAt(0).toUpperCase() + area.slice(1);
+            if (Array.isArray(bonus)) {
+                xpEffects.push(`${areaName} (de ${bonus[0]} a ${bonus[1]})`);
+            } else {
+                xpEffects.push(`${areaName} (+${bonus})`);
+            }
+        }
+    });
 
-    if (xpAreas.length > 0) {
-        effects.push(`XP: ${xpAreas.join(', ')}`);
+    if (xpEffects.length > 0) {
+        effects.push(`XP: ${xpEffects.join(', ')}`);
     }
     
     return effects.join(' | ');

@@ -106,7 +106,7 @@ interface GamesContextType {
   removeGame: (gameId: string) => Promise<void>;
   updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'id'>>) => Promise<void>;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => Promise<void>;
-  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => Promise<void>;
+  updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => Promise<void>;
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => Promise<void>;
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => Promise<void>;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => Promise<void>;
@@ -281,13 +281,34 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     await updateDoc(gameRef, updateData);
   };
 
-  const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[]) => {
+  const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
 
+    // Get current game data to merge round settings
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+    const gameData = gameDoc.data();
+    
+    const nextRound = round + 1;
+    const existingSettings = gameData.roundSettings || {};
+    const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
+
+    automaticCrises.forEach(autoCrisis => {
+        const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
+        if (teamCrisisIndex > -1) {
+            const existingIds = existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds;
+            const newIds = [...new Set([...existingIds, ...autoCrisis.crisisIds])];
+            existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds = newIds;
+        } else {
+            existingNextRoundSettings.teamCrises.push(autoCrisis);
+        }
+    });
+
     const updateData = {
         [`performance.${round}`]: performanceData,
-        messages: arrayUnion(...newMessages)
+        messages: arrayUnion(...newMessages),
+        [`roundSettings.${nextRound}`]: existingNextRoundSettings
     };
     
     const findUndefined = (obj: any, path = ''): string[] => {
@@ -330,7 +351,23 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const gameData = gameDoc.data();
     const newSettingsState = { ...(gameData.roundSettings || {}) };
-    newSettingsState[round] = settings;
+    
+    // Merge new settings with existing automatic crises for the round
+    const existingCrises = newSettingsState[round]?.teamCrises || [];
+    const manualCrises = settings.teamCrises;
+    const mergedCrises = [...existingCrises];
+
+    manualCrises.forEach(manualCrisis => {
+      const existingIndex = mergedCrises.findIndex(c => c.teamName === manualCrisis.teamName);
+      if (existingIndex > -1) {
+        const combinedIds = [...new Set([...mergedCrises[existingIndex].crisisIds, ...manualCrisis.crisisIds])];
+        mergedCrises[existingIndex].crisisIds = combinedIds;
+      } else {
+        mergedCrises.push(manualCrisis);
+      }
+    });
+
+    newSettingsState[round] = { ...settings, teamCrises: mergedCrises };
 
     let newMessages: GameMessage[] = [];
     settings.teamCrises.forEach(newTeamCrisis => {

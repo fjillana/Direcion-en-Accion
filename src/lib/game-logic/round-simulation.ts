@@ -44,7 +44,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
 const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
 
 
-export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[] } {
+export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[]}[] } {
   
   console.log(`[GPS] 3. Starting round simulation for Game "${game.name}", Round ${game.round}`);
 
@@ -192,8 +192,42 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   });
 
   const newMessages: GameMessage[] = [];
+  const automaticCrises: { teamName: string, crisisIds: string[] }[] = [];
+
+  // --- Automatic Crisis Trigger Check ---
+  performanceResults.forEach(teamPerformance => {
+    // Check for Teacher Strike
+    if (teamPerformance.kpis.morale < 50) {
+      automaticCrises.push({ teamName: teamPerformance.name, crisisIds: ['C1'] });
+
+      // Message for the student
+      newMessages.push({
+        id: `msg-strike-student-${Date.now()}-${teamPerformance.name}`,
+        from: 'system',
+        to: teamPerformance.name,
+        title: '¡HUELGA DOCENTE!',
+        content: 'La moral de tu personal ha caído por debajo del 50%. Se ha convocado una huelga que paraliza el centro. Debes tomar una decisión en la siguiente ronda.',
+        type: 'crisis',
+        timestamp: Date.now(),
+        readBy: [],
+      });
+
+      // Message for the teacher
+       newMessages.push({
+        id: `msg-strike-teacher-${Date.now()}-${teamPerformance.name}`,
+        from: 'system',
+        to: 'teacher',
+        title: `Huelga en Equipo: ${teamPerformance.name}`,
+        content: `El equipo "${teamPerformance.name}" ha sufrido una huelga docente automática por tener una moral inferior a 50%.`,
+        type: 'message',
+        timestamp: Date.now(),
+        readBy: [],
+      });
+    }
+  });
+
   
   console.log('[GPS] 6. Final performance results for the round:', performanceResults);
 
-  return { performanceData: performanceResults, newMessages };
+  return { performanceData: performanceResults, newMessages, automaticCrises };
 }

@@ -91,10 +91,10 @@ export default function GameDetailsPage() {
       const studentGames = await getStudentGamesByGameId(game.id);
 
       console.log(`[GPS] 2. Processing Round ${game.round} for Game "${game.name}"`);
-      const { performanceData, newMessages } = simulateRound(game, studentGames);
+      const { performanceData, newMessages, automaticCrises } = simulateRound(game, studentGames);
       const nextRound = game.round + 1;
 
-      await updateTeamPerformance(game.id, game.round, performanceData, newMessages);
+      await updateTeamPerformance(game.id, game.round, performanceData, newMessages, automaticCrises);
 
       if (nextRound > game.numRounds) {
         await updateGame(game.id, { status: "Finalizado" });

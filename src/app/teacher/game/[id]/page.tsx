@@ -125,8 +125,6 @@ export default function GameDetailsPage() {
     if (!game || game.teamNames.length === 0) {
       return false;
     }
-    
-    if (game.round === 0) return true;
 
     const roundDecisions = game.decisions?.[game.round];
     if (!roundDecisions) return false;
@@ -135,7 +133,7 @@ export default function GameDetailsPage() {
         const teamDecision = roundDecisions[teamName];
         return teamDecision?.roundConfirmed === true;
     });
-}, [game]);
+  }, [game]);
 
 
   const getButtonText = () => {
@@ -149,7 +147,7 @@ export default function GameDetailsPage() {
   const isButtonDisabled = () => {
       if (isProcessing) return true;
       if (!game || game.status === 'Finalizado') return true;
-      if (game.round > 0 && !allTeamsConfirmed) return true; // Disable if not all teams have confirmed
+      if (!allTeamsConfirmed) return true; // Disable if not all teams have confirmed, even for round 0
       if (game.round > game.numRounds) return true; // Game is effectively over
       return false;
   }
@@ -168,22 +166,25 @@ export default function GameDetailsPage() {
   }, [selectedTeam, game, currentRoundTab]);
   
   const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
-      if (!team || !team.decisions?.actions) return "(Bonus)";
-  
-      const areaInvestments = (team.decisions.actions)
+    if (!team || !team.decisions?.actions) return "(Bonus)";
+
+    const areaInvestments = (team.decisions.actions)
         .map(actionId => allInvestments.find(inv => inv.id === actionId))
-        .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
-  
-      if (areaInvestments.length === 0) return "";
-  
-      // Find the investment that contributes the most to the bonus
-      const mainContributor = areaInvestments.reduce((max, current) => {
-          const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
-          const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
-          return currentBonusValue > maxBonusValue ? current : max;
-      });
-  
-      return `(${mainContributor.name})`;
+        .filter((inv): inv is Investment => !!inv && !!inv.xpBonus[area]);
+
+    if (areaInvestments.length === 0) return "";
+
+    const mainContributor = areaInvestments.reduce((max, current) => {
+        const maxBonusConfig = max.xpBonus[area];
+        const currentBonusConfig = current.xpBonus[area];
+        
+        const maxBonusValue = Array.isArray(maxBonusConfig) ? maxBonusConfig[1] : maxBonusConfig;
+        const currentBonusValue = Array.isArray(currentBonusConfig) ? currentBonusConfig[1] : currentBonusConfig;
+        
+        return (currentBonusValue ?? 0) > (maxBonusValue ?? 0) ? current : max;
+    });
+
+    return `(${mainContributor.name})`;
   };
 
 
@@ -470,3 +471,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

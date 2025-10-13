@@ -415,10 +415,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     if (!firestore) return;
-    console.log(`[GPS] 2a. Confirming decisions in useGames hook for ${teamName}. Data:`, decisions);
     const gameRef = doc(firestore, "games", gameId);
-    const updateData = { [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true } };
-
+    
+    // Using dot notation to safely set a nested property
+    const updateData = {
+      [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true }
+    };
+  
     await updateDoc(gameRef, updateData);
   };
 
@@ -483,3 +486,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

@@ -155,6 +155,8 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         bonus.finances -= 15;
         bonus.reputation -= 15;
         bonus.morale -= 15;
+      } else if (decisions.crisisResponse.optionId === 'C1_op4') {
+        bonus.morale += 2;
       }
     }
 

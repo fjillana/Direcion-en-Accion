@@ -101,6 +101,8 @@ export function updateKpisForNextRound(
     privateIncome -= 10000; // Se aplica el déficit inicial de la crisis.
     if(crisisOption === 'C3_op1') { // Ofrecer plan de pagos
       privateIncome += 8000; // Recupera el 80%
+    } else if (crisisOption === 'C3_op2') { // Subir matrícula
+        privateIncome += 10000; // Compensa el déficit con ingresos extra
     }
   }
 
@@ -197,7 +199,7 @@ export function updateKpisForNextRound(
     } else if (decisions.crisisResponse.optionId === 'C1_op3') {
       updatedMorale = 40;
     } else if (decisions.crisisResponse.optionId === 'C1_op4') {
-      updatedMorale += 15;
+        updatedMorale += 15;
     } else if (decisions.crisisResponse.optionId === 'C1_op5') {
         updatedMorale -= 30;
     }

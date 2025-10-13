@@ -145,19 +145,20 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     
     // Crisis C1 Effects
     if (decisions.crisisResponse?.crisisId === 'C1') {
-      if (decisions.crisisResponse.optionId === 'C1_op1') {
+      const optionId = decisions.crisisResponse.optionId;
+      if (optionId === 'C1_op1') {
         bonus.morale += 5;
         bonus.finances -= 5;
-      } else if (decisions.crisisResponse.optionId === 'C1_op2') {
+      } else if (optionId === 'C1_op2') {
         bonus.morale += 3;
         bonus.finances -= 3;
-      } else if (decisions.crisisResponse.optionId === 'C1_op3') {
+      } else if (optionId === 'C1_op3') {
         bonus.finances -= 15;
         bonus.reputation -= 15;
         bonus.morale -= 15;
-      } else if (decisions.crisisResponse.optionId === 'C1_op4') {
+      } else if (optionId === 'C1_op4') {
         bonus.morale += 2;
-      } else if (decisions.crisisResponse.optionId === 'C1_op5') {
+      } else if (optionId === 'C1_op5') {
         bonus.finances += 5;
         bonus.reputation -= 10;
       }
@@ -182,9 +183,13 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
 
     // Crisis C3 Effects
     if (decisions.crisisResponse?.crisisId === 'C3') {
-        if(decisions.crisisResponse.optionId === 'C3_op1') {
+        const optionId = decisions.crisisResponse.optionId;
+        if(optionId === 'C3_op1') {
             bonus.reputation += 2;
             bonus.finances -= 2;
+        } else if (optionId === 'C3_op2') {
+            bonus.finances += 5;
+            bonus.reputation -= 5;
         }
     }
 
@@ -204,13 +209,13 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
 
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
-    const pebReputationBase = (nma.peb + marketShare.peb) / 2;
-    let pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase;
+    let pebReputationBase = (nma.peb + marketShare.peb) / 2;
 
-    // Apply C1_op3 penalty
-    if (decisions.crisisResponse?.optionId === 'C1_op3') {
-        pebReputacion -= 40;
+    if(decisions.crisisResponse?.optionId === 'C1_op3') {
+        pebReputationBase -= 40;
     }
+    
+    let pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase;
     pebReputacion = Math.max(0, Math.min(110, pebReputacion));
 
 

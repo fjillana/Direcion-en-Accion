@@ -41,8 +41,8 @@ export const crises: Crisis[] = [
     },
     {
       id: 'C2',
-      name: 'Retraso en la subvención pública',
-      description: 'La consejería de educación retrasa la transferencia de 25.000 CC de la subvención pública este trimestre.',
+      name: 'Pérdida parcial de la subvención',
+      description: 'La consejería de educación recorta 25.000 CC de la subvención pública este trimestre por un error administrativo.',
       options: [
         { label: 'Solicitar un préstamo de emergencia', costText: 'Préstamo', cost: 0, effect: 'Suma 25.000 CC a tesorería. Penalización de -20 PEB en Finanzas. Activa un coste de 2.500 CC/ronda por intereses.' },
         { label: 'Recortar inversiones planificadas', costText: '0 CC', cost: 0, effect: 'Impacto: −5 XP Reputación si se cancela en reputación; no se activa préstamo; mantiene el remanente' },

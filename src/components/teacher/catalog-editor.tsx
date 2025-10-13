@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Badge } from "@/components/ui/badge";
 
 
 // NEW, DETAILED INVESTMENT TYPE

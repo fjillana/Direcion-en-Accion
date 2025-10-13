@@ -6,7 +6,7 @@ export const investments: Investment[] = [
     {
       id: 'F1',
       name: 'Implantación de ERP',
-      description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes administrativos un 2 %.',
+      description: 'Permite automatizar la contabilidad y controlar presupuestos. Reduce costes de personal un 2 %.',
       cost: { type: 'range', value: [15000, 30000] },
       bonus: { area: 'finances', type: 'scaled', value: [5, 10] },
     },

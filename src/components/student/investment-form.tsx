@@ -42,6 +42,32 @@ const centerActionsCostMap: Record<string, number> = {
     'F5': 50000, // Ampliación de aulas
 };
 
+const getInvestmentEffectSummary = (investment: Investment): string => {
+    const effects: string[] = [];
+    const kpiEffects: string[] = [];
+
+    if (investment.effects.nma) kpiEffects.push(`+${investment.effects.nma} NMA`);
+    if (investment.effects.morale) kpiEffects.push(`+${investment.effects.morale} Moral`);
+    if (investment.effects.iam) kpiEffects.push(`+${investment.effects.iam} IAM`);
+    if (investment.effects.personnelCostReduction) kpiEffects.push(`-${(investment.effects.personnelCostReduction * 100).toFixed(0)}% Coste Pers.`);
+    if (investment.effects.reputationPenalty) kpiEffects.push(`${investment.effects.reputationPenalty} XP Reput.`);
+    
+    if (kpiEffects.length > 0) {
+        effects.push(`KPIs: ${kpiEffects.join(', ')}`);
+    }
+
+    const xpAreas: string[] = [];
+    if (investment.xpBonus.finances) xpAreas.push('Finanzas');
+    if (investment.xpBonus.reputation) xpAreas.push('Reputación');
+    if (investment.xpBonus.morale) xpAreas.push('Moral');
+
+    if (xpAreas.length > 0) {
+        effects.push(`XP: ${xpAreas.join(', ')}`);
+    }
+    
+    return effects.join(' | ');
+}
+
 
 export function InvestmentForm({ 
   disabled = false, 
@@ -121,6 +147,7 @@ export function InvestmentForm({
                   const [minCost, maxCost] = isRange ? inv.cost.value as [number, number] : [inv.cost.value as number, inv.cost.value as number];
                   const currentCost = investmentCosts[inv.id] || maxCost;
                   const isPoaching = inv.id === 'P3';
+                  const effectSummary = getInvestmentEffectSummary(inv);
 
                   return (
                     <div key={inv.id} className={cn("rounded-md border p-4", disabled && 'bg-muted/50')}>
@@ -137,6 +164,11 @@ export function InvestmentForm({
                                 <p className="text-sm text-muted-foreground">
                                     {inv.description}
                                 </p>
+                                {effectSummary && (
+                                    <p className="text-xs text-primary dark:text-primary-foreground/80 mt-1 font-medium">
+                                        {effectSummary}
+                                    </p>
+                                )}
                             </div>
                             <div className="font-mono text-right text-sm">
                                 {isRange 

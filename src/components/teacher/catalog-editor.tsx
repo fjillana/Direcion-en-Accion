@@ -41,8 +41,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Badge } from "@/components/ui/badge";
 
-
-// NEW, DETAILED INVESTMENT TYPE
+// DETAILED INVESTMENT TYPE
 export type Investment = {
   id: string;
   name: string;
@@ -60,12 +59,12 @@ export type Investment = {
     reputationPenalty?: number; // For F4
   };
   xpBonus: {
-    area: 'finances' | 'reputation' | 'morale';
+    finances?: number | [number, number];
+    reputation?: number | [number, number];
+    morale?: number | [number, number];
     type: 'fixed' | 'scaled';
-    value: number | [number, number];
   };
 };
-
 
 type CrisisOption = {
   label: string;
@@ -96,7 +95,7 @@ const emptyInvestment: Investment = {
     description: "",
     cost: { type: 'fixed', value: 0 },
     effects: {},
-    xpBonus: { area: 'finances', type: 'fixed', value: 0 }
+    xpBonus: { type: 'fixed' }
 };
 
 interface InvestmentFormProps {
@@ -110,26 +109,33 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
     const [investment, setInvestment] = useState<Investment>(initialData || emptyInvestment);
     
     useEffect(() => {
-        setInvestment(initialData || { ...emptyInvestment, id: `inv_${Date.now()}` });
-    }, [initialData]);
+        setInvestment(initialData ? JSON.parse(JSON.stringify(initialData)) : { ...emptyInvestment, id: `inv_${Date.now()}` });
+    }, [initialData, isOpen]);
     
     const handleChange = (field: string, value: any) => {
         setInvestment(prev => {
             const keys = field.split('.');
-            // Deep copy to avoid mutation issues
             const newState = JSON.parse(JSON.stringify(prev));
             let current = newState;
             for (let i = 0; i < keys.length - 1; i++) {
                 current = current[keys[i]];
             }
-            current[keys[keys.length - 1]] = value;
             
-            // Handle specific logic, e.g., if cost type changes
+            const finalKey = keys[keys.length - 1];
+            
+            if (typeof current[finalKey] === 'number') {
+              current[finalKey] = value === '' ? undefined : Number(value);
+            } else {
+              current[finalKey] = value;
+            }
+            
             if(field === 'cost.type') {
                 newState.cost.value = value === 'fixed' ? 0 : [0, 0];
             }
             if(field === 'xpBonus.type') {
-                newState.xpBonus.value = value === 'fixed' ? 0 : [0, 0];
+                newState.xpBonus.finances = value === 'fixed' ? 0 : [0,0];
+                newState.xpBonus.reputation = value === 'fixed' ? 0 : [0,0];
+                newState.xpBonus.morale = value === 'fixed' ? 0 : [0,0];
             }
             return newState;
         });
@@ -139,6 +145,19 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
         onSave(investment);
         onOpenChange(false);
     };
+
+    const handleNumericChange = (field: string, value: string) => {
+      const numValue = value === '' ? undefined : Number(value);
+      handleChange(field, numValue);
+    };
+    
+    const getXpValue = (area: 'finances' | 'reputation' | 'morale'): number | [number, number] => {
+        return investment.xpBonus[area] ?? (investment.xpBonus.type === 'fixed' ? 0 : [0,0]);
+    }
+
+    const setXpValue = (area: 'finances' | 'reputation' | 'morale', value: any) => {
+        handleChange(`xpBonus.${area}`, value);
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -174,17 +193,17 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                         {investment.cost.type === 'fixed' ? (
                             <div>
                                 <Label htmlFor="cost-fixed">Coste Fijo (CC)</Label>
-                                <Input id="cost-fixed" type="number" value={investment.cost.value as number} onChange={e => handleChange('cost.value', Number(e.target.value))} />
+                                <Input id="cost-fixed" type="number" value={investment.cost.value || ''} onChange={e => handleChange('cost.value', Number(e.target.value))} />
                             </div>
                         ) : (
                             <div className="flex gap-4">
                                 <div>
                                     <Label htmlFor="cost-range-min">Mínimo</Label>
-                                    <Input id="cost-range-min" type="number" value={(investment.cost.value as [number, number])[0]} onChange={e => handleChange('cost.value', [Number(e.target.value), (investment.cost.value as [number, number])[1]])} />
+                                    <Input id="cost-range-min" type="number" value={(investment.cost.value as [number, number])?.[0] || ''} onChange={e => handleChange('cost.value', [Number(e.target.value), (investment.cost.value as [number, number])?.[1] || 0])} />
                                 </div>
                                  <div>
                                     <Label htmlFor="cost-range-max">Máximo</Label>
-                                    <Input id="cost-range-max" type="number" value={(investment.cost.value as [number, number])[1]} onChange={e => handleChange('cost.value', [(investment.cost.value as [number, number])[0], Number(e.target.value)])} />
+                                    <Input id="cost-range-max" type="number" value={(investment.cost.value as [number, number])?.[1] || ''} onChange={e => handleChange('cost.value', [(investment.cost.value as [number, number])?.[0] || 0, Number(e.target.value)])} />
                                 </div>
                             </div>
                         )}
@@ -195,33 +214,22 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                          <div className="grid grid-cols-2 gap-4">
                              <div>
                                 <Label htmlFor="effect-nma">Bonus NMA</Label>
-                                <Input id="effect-nma" type="number" step="0.1" value={investment.effects.nma || 0} onChange={e => handleChange('effects.nma', Number(e.target.value))} />
+                                <Input id="effect-nma" type="number" step="0.1" value={investment.effects.nma || ''} onChange={e => handleNumericChange('effects.nma', e.target.value)} />
                              </div>
                               <div>
                                 <Label htmlFor="effect-morale">Bonus Moral</Label>
-                                <Input id="effect-morale" type="number" step="1" value={investment.effects.morale || 0} onChange={e => handleChange('effects.morale', Number(e.target.value))} />
+                                <Input id="effect-morale" type="number" step="1" value={investment.effects.morale || ''} onChange={e => handleNumericChange('effects.morale', e.target.value)} />
                              </div>
                              <div>
                                 <Label htmlFor="effect-iam">Bonus IAM</Label>
-                                <Input id="effect-iam" type="number" step="1" value={investment.effects.iam || 0} onChange={e => handleChange('effects.iam', Number(e.target.value))} />
+                                <Input id="effect-iam" type="number" step="1" value={investment.effects.iam || ''} onChange={e => handleNumericChange('effects.iam', e.target.value)} />
                              </div>
                              <div>
                                 <Label htmlFor="effect-cost-reduc">Reducción Coste Personal (%)</Label>
-                                <Input id="effect-cost-reduc" type="number" step="0.01" value={(investment.effects.personnelCostReduction || 0) * 100} onChange={e => handleChange('effects.personnelCostReduction', Number(e.target.value) / 100)} />
+                                <Input id="effect-cost-reduc" type="number" step="1" value={(investment.effects.personnelCostReduction || 0) * 100} onChange={e => handleChange('effects.personnelCostReduction', Number(e.target.value) / 100)} />
                              </div>
                          </div>
                         <h3 className="font-semibold text-lg border-b pb-2 mt-4">Bonus de XP</h3>
-                        <div className="space-y-2">
-                          <Label>Área del Bonus</Label>
-                          <Select value={investment.xpBonus.area} onValueChange={value => handleChange('xpBonus.area', value)}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="finances">Finanzas</SelectItem>
-                                  <SelectItem value="reputation">Reputación</SelectItem>
-                                  <SelectItem value="morale">Moral</SelectItem>
-                              </SelectContent>
-                          </Select>
-                        </div>
                          <div className="space-y-2">
                           <Label>Tipo de Bonus</Label>
                           <Select value={investment.xpBonus.type} onValueChange={value => handleChange('xpBonus.type', value)}>
@@ -232,22 +240,28 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                               </SelectContent>
                           </Select>
                         </div>
+                        
                         {investment.xpBonus.type === 'fixed' ? (
-                            <div>
-                                <Label htmlFor="xp-fixed">XP Fijo</Label>
-                                <Input id="xp-fixed" type="number" value={investment.xpBonus.value as number} onChange={e => handleChange('xpBonus.value', Number(e.target.value))} />
+                            <div className="grid grid-cols-3 gap-2">
+                                <div><Label>XP Finanzas</Label><Input type="number" value={getXpValue('finances') as number || ''} onChange={e => setXpValue('finances', Number(e.target.value))} /></div>
+                                <div><Label>XP Reputación</Label><Input type="number" value={getXpValue('reputation') as number || ''} onChange={e => setXpValue('reputation', Number(e.target.value))} /></div>
+                                <div><Label>XP Moral</Label><Input type="number" value={getXpValue('morale') as number || ''} onChange={e => setXpValue('morale', Number(e.target.value))} /></div>
                             </div>
                         ) : (
-                            <div className="flex gap-4">
+                           <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="xp-range-min">Mínimo</Label>
-                                    <Input id="xp-range-min" type="number" value={(investment.xpBonus.value as [number, number])[0]} onChange={e => handleChange('xpBonus.value', [Number(e.target.value), (investment.xpBonus.value as [number, number])[1]])} />
+                                    <Label>XP Finanzas (Min-Max)</Label>
+                                    <div className="flex gap-2"><Input type="number" placeholder="Min" value={(getXpValue('finances') as [number,number])?.[0] || ''} onChange={e => setXpValue('finances', [Number(e.target.value), (getXpValue('finances') as [number,number])?.[1] || 0])} /><Input type="number" placeholder="Max" value={(getXpValue('finances') as [number,number])?.[1] || ''} onChange={e => setXpValue('finances', [(getXpValue('finances') as [number,number])?.[0] || 0, Number(e.target.value)])} /></div>
                                 </div>
                                  <div>
-                                    <Label htmlFor="xp-range-max">Máximo</Label>
-                                    <Input id="xp-range-max" type="number" value={(investment.xpBonus.value as [number, number])[1]} onChange={e => handleChange('xpBonus.value', [(investment.xpBonus.value as [number, number])[0], Number(e.target.value)])} />
+                                    <Label>XP Reputación (Min-Max)</Label>
+                                    <div className="flex gap-2"><Input type="number" placeholder="Min" value={(getXpValue('reputation') as [number,number])?.[0] || ''} onChange={e => setXpValue('reputation', [Number(e.target.value), (getXpValue('reputation') as [number,number])?.[1] || 0])} /><Input type="number" placeholder="Max" value={(getXpValue('reputation') as [number,number])?.[1] || ''} onChange={e => setXpValue('reputation', [(getXpValue('reputation') as [number,number])?.[0] || 0, Number(e.target.value)])} /></div>
                                 </div>
-                            </div>
+                                 <div>
+                                    <Label>XP Moral (Min-Max)</Label>
+                                    <div className="flex gap-2"><Input type="number" placeholder="Min" value={(getXpValue('morale') as [number,number])?.[0] || ''} onChange={e => setXpValue('morale', [Number(e.target.value), (getXpValue('morale') as [number,number])?.[1] || 0])} /><Input type="number" placeholder="Max" value={(getXpValue('morale') as [number,number])?.[1] || ''} onChange={e => setXpValue('morale', [(getXpValue('morale') as [number,number])?.[0] || 0, Number(e.target.value)])} /></div>
+                                </div>
+                           </div>
                         )}
                     </div>
                 </div>
@@ -304,7 +318,7 @@ export function CatalogEditor({
   }
   
   const isInvestment = (item: CatalogItem): item is Investment => {
-    return 'cost' in item && 'xpBonus' in item;
+    return 'xpBonus' in item;
   }
 
   const formatCost = (cost: Investment['cost']) => {
@@ -315,13 +329,12 @@ export function CatalogEditor({
     return `${min.toLocaleString('es-ES')} - ${max.toLocaleString('es-ES')} CC`;
   };
 
-  const formatArea = (area: 'finances' | 'reputation' | 'morale') => {
-    switch (area) {
-      case 'finances': return 'Finanzas';
-      case 'reputation': return 'Reputación';
-      case 'morale': return 'Moral';
-      default: return area;
-    }
+  const formatArea = (xpBonus: Investment['xpBonus']) => {
+    const areas = [];
+    if (xpBonus.finances) areas.push('Finanzas');
+    if (xpBonus.reputation) areas.push('Reputación');
+    if (xpBonus.morale) areas.push('Moral');
+    return areas.join(', ') || 'N/A';
   }
 
   return (
@@ -349,7 +362,7 @@ export function CatalogEditor({
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
                   <>
-                    <TableHead>Área</TableHead>
+                    <TableHead>Área(s)</TableHead>
                     <TableHead>Coste</TableHead>
                   </>
                 )}
@@ -368,7 +381,7 @@ export function CatalogEditor({
                   {type === "investment" && isInvestment(item) && (
                      <>
                         <TableCell>
-                            <Badge variant="outline">{formatArea(item.xpBonus.area)}</Badge>
+                            <Badge variant="outline">{formatArea(item.xpBonus)}</Badge>
                         </TableCell>
                         <TableCell className="font-mono">
                             {formatCost(item.cost)}
@@ -428,19 +441,42 @@ export function CatalogEditor({
               
               {isInvestment(selectedItem) && (
                 <div className="space-y-4 py-4">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <p className="font-medium">Coste (CC)</p>
+                        <p className="text-sm text-muted-foreground mt-1">{formatCost(selectedItem.cost)}</p>
+                      </div>
+                       <div className="p-3 bg-muted/50 rounded-md">
+                        <p className="font-medium">Bonus de XP</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Tipo: <span className="capitalize">{selectedItem.xpBonus.type}</span>
+                        </p>
+                      </div>
+                   </div>
+
                   <div className="p-3 bg-muted/50 rounded-md">
-                    <p className="font-medium">Coste (CC)</p>
-                    <p className="text-sm text-muted-foreground mt-1">{formatCost(selectedItem.cost)}</p>
+                    <p className="font-medium">Efectos Directos en KPIs</p>
+                    <ul className="text-sm text-muted-foreground mt-1 list-disc list-inside">
+                        {selectedItem.effects.nma ? <li>NMA: +{selectedItem.effects.nma}</li> : null}
+                        {selectedItem.effects.morale ? <li>Moral: +{selectedItem.effects.morale}</li> : null}
+                        {selectedItem.effects.iam ? <li>IAM: +{selectedItem.effects.iam}</li> : null}
+                        {selectedItem.effects.personnelCostReduction ? <li>Reducción Coste Personal: -{(selectedItem.effects.personnelCostReduction * 100).toFixed(0)}%</li> : null}
+                        {selectedItem.effects.cashInjection ? <li>Inyección de Tesorería: +{selectedItem.effects.cashInjection.toLocaleString('es-ES')} CC</li> : null}
+                        {selectedItem.effects.reputationPenalty ? <li>Penalización Reputación: {selectedItem.effects.reputationPenalty} XP</li> : null}
+                        {Object.keys(selectedItem.effects).length === 0 && <li className="list-none">Sin efectos directos.</li>}
+                    </ul>
                   </div>
 
                   <div className="p-3 bg-muted/50 rounded-md">
-                    <p className="font-medium">Bonus de XP</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Área: <span className="capitalize">{selectedItem.xpBonus.area}</span>,
-                      Tipo: <span className="capitalize">{selectedItem.xpBonus.type}</span>,
-                      Valor: {Array.isArray(selectedItem.xpBonus.value) ? `${selectedItem.xpBonus.value[0]} a ${selectedItem.xpBonus.value[1]}` : selectedItem.xpBonus.value} XP
-                    </p>
+                    <p className="font-medium">Valores de Bonus de XP</p>
+                     <ul className="text-sm text-muted-foreground mt-1 list-disc list-inside">
+                        {selectedItem.xpBonus.finances ? <li>Finanzas: {Array.isArray(selectedItem.xpBonus.finances) ? `de ${selectedItem.xpBonus.finances[0]} a ${selectedItem.xpBonus.finances[1]}` : selectedItem.xpBonus.finances} XP</li> : null}
+                        {selectedItem.xpBonus.reputation ? <li>Reputación: {Array.isArray(selectedItem.xpBonus.reputation) ? `de ${selectedItem.xpBonus.reputation[0]} a ${selectedItem.xpBonus.reputation[1]}` : selectedItem.xpBonus.reputation} XP</li> : null}
+                        {selectedItem.xpBonus.morale ? <li>Moral: {Array.isArray(selectedItem.xpBonus.morale) ? `de ${selectedItem.xpBonus.morale[0]} a ${selectedItem.xpBonus.morale[1]}` : selectedItem.xpBonus.morale} XP</li> : null}
+                        {!selectedItem.xpBonus.finances && !selectedItem.xpBonus.reputation && !selectedItem.xpBonus.morale && <li className="list-none">Sin bonus de XP.</li>}
+                     </ul>
                   </div>
+
                 </div>
               )}
 
@@ -470,3 +506,4 @@ export function CatalogEditor({
     </>
   );
 }
+

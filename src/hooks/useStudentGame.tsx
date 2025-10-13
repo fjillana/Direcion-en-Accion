@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -321,13 +322,21 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       const gameData = gameDoc.data();
       const round = fullStudentState.round;
       const teamName = fullStudentState.teamName;
+      
+      const decisionsToSave = { ...fullStudentState.decisions };
+
+      // Firestore does not support `undefined` values.
+      // If `poachingTarget` is not set, remove it from the object.
+      if (decisionsToSave.poachingTarget === undefined) {
+        delete decisionsToSave.poachingTarget;
+      }
   
       // MODIFY: Create the new, merged decisions object in memory
       const newDecisions = {
         ...(gameData.decisions || {}), // Start with existing decisions object
         [round]: {
           ...(gameData.decisions?.[round] || {}), // Keep other teams' decisions for the round
-          [teamName]: fullStudentState.decisions, // Overwrite or add this team's decisions
+          [teamName]: decisionsToSave, // Overwrite or add this team's decisions
         }
       };
       
@@ -335,7 +344,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
       // WRITE: Update the document with the complete, merged decisions object
       await updateDoc(gameRef, updateData);
-    } catch (error) {
+    } catch (error: any) {
         // This will now properly catch permission errors if they occur
         const permissionError = new FirestorePermissionError({
             path: gameRef.path,
@@ -391,5 +400,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

@@ -47,6 +47,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
     currentKpis.nma += 0.3;
     currentKpis.morale += 10;
   }
+  if (actions.includes('R4')) { // Desarrollo curricular innovador
+      currentKpis.nma += 0.3;
+  }
+  if (actions.includes('P5')) { // Actividades sociales
+    currentKpis.morale += 10;
+  }
   
   if (actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
@@ -60,13 +66,18 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
 
   // 2. Calcular Ingresos y Costes
   let currentPublicIncome = PUBLIC_INCOME;
+  let loanIncome = 0;
+
   // --- Crisis C2 Effect ---
   if (decisions.crisisResponse?.crisisId === 'C2') {
     currentPublicIncome -= 25000; // Main effect of the crisis
+    if (decisions.crisisResponse.optionId === 'C2_op1') {
+      loanIncome = 25000; // Loan received
+    }
   }
 
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;
-  const income = privateIncome + currentPublicIncome;
+  const income = privateIncome + currentPublicIncome + loanIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
@@ -109,10 +120,17 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
     }
   }
   
-  const totalDecisionsCost = investmentCost + centerActionsCost + Math.abs(crisisCost);
+  // Calculate interest cost if loan was taken previously
+  let interestCost = 0;
+  const hasLoan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
+  if (hasLoan) {
+    interestCost = 25000 * 0.10; // 10% interest on 25k loan
+  }
+
+  const totalDecisionsCost = investmentCost + centerActionsCost + Math.abs(crisisCost) + interestCost;
   const totalExpenses = personnelCost + totalDecisionsCost;
   
-  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, totalExpenses=${totalExpenses}`);
+  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
 
   let updatedCash = teamState.kpis.cash + income - totalExpenses;
   
@@ -180,7 +198,9 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,
       privateIncome,
-      publicIncome: currentPublicIncome
+      publicIncome: currentPublicIncome,
+      loanInterest: interestCost,
+      loanIncome: loanIncome
   };
   
   return finalKPIs;

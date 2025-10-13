@@ -84,7 +84,7 @@ export function StudentReport() {
             if (investment.cost.type === 'fixed') {
                 return acc + (investment.cost.value as number);
             }
-            return acc + (investment.cost.value[1]);
+            return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
         }
         return acc;
     }, 0);
@@ -95,7 +95,8 @@ export function StudentReport() {
       return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
   }, 0);
   
-  const totalCosts = reportData.kpis.personnelCost + totalInvestmentCost + totalCenterActionsCost;
+  const totalDecisionsCost = totalInvestmentCost + totalCenterActionsCost;
+  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(reportData.decisions.crisisResponse?.cost || 0);
   const finalCash = initialCashForRound + reportData.kpis.income - totalCosts;
 
   return (
@@ -121,10 +122,12 @@ export function StudentReport() {
                             <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
+                            {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
                             <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
-                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Inversiones:</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
-                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Acciones:</span> <span className="font-mono">{formatCurrency(totalCenterActionsCost)}</span></div>
+                            <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
+                            {reportData.decisions.crisisResponse?.cost && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(Math.abs(reportData.decisions.crisisResponse.cost))}</span></div>}
+                            {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>
                     </AccordionContent>
@@ -145,7 +148,7 @@ export function StudentReport() {
                                 {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
                                   const investment = allInvestments.find(inv => inv.id === actionId);
                                   if (investment) {
-                                      const cost = investment.cost.type === 'fixed' ? investment.cost.value : `~${(investment.cost.value as number[])[1]}`;
+                                      const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
                                       const costString = typeof cost === 'number' ? formatCurrency(cost) : cost;
                                       return <li key={`inv-${index}`}>{investment.name}: {costString}</li>;
                                   }

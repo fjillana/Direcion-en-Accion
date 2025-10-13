@@ -9,7 +9,7 @@ const XP_CONVERSION_FACTOR = 26.67 / 100; // 100 PEB = 26.67 XP
 const XP_AREA_MAX = 26.67 * 1.1; // 110% of base max XP
 
 // --- Finance PEB Calculation (Sección 10.1) ---
-function calculateTreasuryPeb(cash: number, income: number): { peb: number, breakdown: string } {
+function calculateTreasuryPeb(cash: number, income: number, hasLoan: boolean): { peb: number, breakdown: string } {
     if (income === 0 && cash <= 0) return { peb: 0, breakdown: 'Tesorería: 0 PEB (Sin ingresos y tesorería negativa o cero)'};
     const minRemanent = 16000;
     
@@ -19,9 +19,14 @@ function calculateTreasuryPeb(cash: number, income: number): { peb: number, brea
          return { peb, breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
     }
 
-    const peb = cash < 0 ? 0 : cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
+    let peb = cash < 0 ? 0 : cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
+    
+    // Apply loan penalty
+    if (hasLoan) {
+        peb -= 20; // -20 PEB penalty for taking the loan
+    }
 
-    return { peb: Math.min(110, peb), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.max(0, Math.min(110, peb)), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
 }
 
 function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb: number, breakdown: string } {
@@ -143,9 +148,10 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
 
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean) {
     const { kpis, decisions } = teamState;
+    const loanTakenThisRound = decisions.crisisResponse?.optionId === 'C2_op1';
 
     // --- PEB Calculation ---
-    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income);
+    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, loanTakenThisRound);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
     const pebFinanzas = Math.min(110, (treasury.peb + personnelCost.peb) / 2);
 

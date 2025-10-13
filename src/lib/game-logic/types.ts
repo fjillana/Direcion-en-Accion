@@ -33,6 +33,8 @@ export interface TeamKPIs {
     numStudents: number;
     numTeachers: number;
     capacity: number;
+    loanInterest?: number;
+    loanIncome?: number;
 }
 
 export type AIArchetype = 'BALANCED' | 'AGGRESSIVE_GROWTH' | 'FINANCE_CONSERVATIVE' | 'QUALITY_FOCUSED';

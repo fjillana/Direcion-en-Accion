@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Trash2, Eye, Edit } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
-import { Checkbox } from "../ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
 
 // NEW, DETAILED INVESTMENT TYPE
 export type Investment = {
@@ -88,6 +89,16 @@ interface CatalogEditorProps {
   type: "investment" | "crisis";
 }
 
+const emptyInvestment: Investment = {
+    id: `inv_${Date.now()}`,
+    name: "",
+    description: "",
+    cost: { type: 'fixed', value: 0 },
+    effects: {},
+    xpBonus: { area: 'finances', type: 'fixed', value: 0 }
+};
+
+
 export function CatalogEditor({
   title,
   description,
@@ -95,18 +106,62 @@ export function CatalogEditor({
   type,
 }: CatalogEditorProps) {
   const [items, setItems] = useState(data);
-  const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+  const [editingInvestment, setEditingInvestment] = useState<Investment>(emptyInvestment);
 
-  const handleRowClick = (item: CatalogItem) => {
+
+  const openDetails = (item: CatalogItem) => {
     setSelectedItem(item);
     setDetailDialogOpen(true);
   };
   
+  const openForm = (item?: Investment) => {
+      setEditingInvestment(item ? JSON.parse(JSON.stringify(item)) : { ...emptyInvestment, id: `inv_${Date.now()}` });
+      setFormOpen(true);
+  };
+
   const handleDelete = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
     setItems(items.filter(item => item.id !== itemId));
+  };
+  
+  const handleSaveInvestment = () => {
+    setItems(prevItems => {
+        const existing = prevItems.find(item => item.id === editingInvestment.id);
+        if (existing) {
+            return prevItems.map(item => item.id === editingInvestment.id ? editingInvestment : item);
+        }
+        return [...prevItems, editingInvestment];
+    });
+    setFormOpen(false);
+  };
+
+  const handleInvestmentFormChange = (field: string, value: any) => {
+    setEditingInvestment(prev => {
+        const keys = field.split('.');
+        if (keys.length === 1) {
+            return { ...prev, [field]: value };
+        } else {
+            // Deep copy to avoid mutation issues
+            const newState = JSON.parse(JSON.stringify(prev));
+            let current = newState;
+            for (let i = 0; i < keys.length - 1; i++) {
+                current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = value;
+            
+            // Handle specific logic, e.g., if cost type changes
+            if(field === 'cost.type') {
+                newState.cost.value = value === 'fixed' ? 0 : [0, 0];
+            }
+            if(field === 'xpBonus.type') {
+                newState.xpBonus.value = value === 'fixed' ? 0 : [0, 0];
+            }
+            return newState;
+        }
+    });
   };
 
 
@@ -120,9 +175,10 @@ export function CatalogEditor({
 
   const formatCost = (cost: Investment['cost']) => {
     if (cost.type === 'fixed') {
-      return `${cost.value.toLocaleString('es-ES')} CC`;
+      return `${(cost.value as number).toLocaleString('es-ES')} CC`;
     }
-    return `${cost.value[0].toLocaleString('es-ES')} - ${cost.value[1].toLocaleString('es-ES')} CC`;
+    const [min, max] = cost.value as [number, number];
+    return `${min.toLocaleString('es-ES')} - ${max.toLocaleString('es-ES')} CC`;
   };
 
   const formatArea = (area: 'finances' | 'reputation' | 'morale') => {
@@ -134,44 +190,122 @@ export function CatalogEditor({
     }
   }
 
-  const AddNewDialog = () => (
-     <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Añadir Nuevo Evento de {type === 'crisis' ? 'Crisis' : 'Inversión'}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Nombre</Label>
-              <Input id="name" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Descripción</Label>
-              <Textarea id="description" className="col-span-3" />
-            </div>
-            {type === 'crisis' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="options" className="text-right">Opciones</Label>
-                <Textarea id="options" className="col-span-3" placeholder="Añade 5 opciones, separadas por saltos de línea" />
+  const InvestmentForm = () => (
+      <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-3xl">
+              <DialogHeader>
+                  <DialogTitle>{editingInvestment.name ? `Editar Inversión: ${editingInvestment.name}` : "Añadir Nueva Inversión"}</DialogTitle>
+                  <DialogDescription>Define todos los parámetros y efectos de esta inversión en la simulación.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                  {/* Columna Izquierda */}
+                  <div className="space-y-4">
+                      <h3 className="font-semibold text-lg border-b pb-2">Información Básica</h3>
+                      <div>
+                          <Label htmlFor="inv-name">Nombre</Label>
+                          <Input id="inv-name" value={editingInvestment.name} onChange={e => handleInvestmentFormChange('name', e.target.value)} />
+                      </div>
+                      <div>
+                          <Label htmlFor="inv-desc">Descripción</Label>
+                          <Textarea id="inv-desc" value={editingInvestment.description} onChange={e => handleInvestmentFormChange('description', e.target.value)} />
+                      </div>
+
+                      <h3 className="font-semibold text-lg border-b pb-2 mt-4">Coste</h3>
+                      <div className="space-y-2">
+                         <Label>Tipo de Coste</Label>
+                         <Select value={editingInvestment.cost.type} onValueChange={value => handleInvestmentFormChange('cost.type', value)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="fixed">Fijo</SelectItem>
+                                <SelectItem value="range">Rango</SelectItem>
+                            </SelectContent>
+                         </Select>
+                      </div>
+                      {editingInvestment.cost.type === 'fixed' ? (
+                          <div>
+                              <Label htmlFor="cost-fixed">Coste Fijo (CC)</Label>
+                              <Input id="cost-fixed" type="number" value={editingInvestment.cost.value as number} onChange={e => handleInvestmentFormChange('cost.value', Number(e.target.value))} />
+                          </div>
+                      ) : (
+                          <div className="flex gap-4">
+                              <div>
+                                  <Label htmlFor="cost-range-min">Mínimo</Label>
+                                  <Input id="cost-range-min" type="number" value={(editingInvestment.cost.value as [number, number])[0]} onChange={e => handleInvestmentFormChange('cost.value', [Number(e.target.value), (editingInvestment.cost.value as [number, number])[1]])} />
+                              </div>
+                               <div>
+                                  <Label htmlFor="cost-range-max">Máximo</Label>
+                                  <Input id="cost-range-max" type="number" value={(editingInvestment.cost.value as [number, number])[1]} onChange={e => handleInvestmentFormChange('cost.value', [(editingInvestment.cost.value as [number, number])[0], Number(e.target.value)])} />
+                              </div>
+                          </div>
+                      )}
+                  </div>
+                  {/* Columna Derecha */}
+                  <div className="space-y-4">
+                      <h3 className="font-semibold text-lg border-b pb-2">Efectos Directos en KPIs</h3>
+                       <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <Label htmlFor="effect-nma">Bonus NMA</Label>
+                              <Input id="effect-nma" type="number" step="0.1" value={editingInvestment.effects.nma || 0} onChange={e => handleInvestmentFormChange('effects.nma', Number(e.target.value))} />
+                           </div>
+                            <div>
+                              <Label htmlFor="effect-morale">Bonus Moral</Label>
+                              <Input id="effect-morale" type="number" step="1" value={editingInvestment.effects.morale || 0} onChange={e => handleInvestmentFormChange('effects.morale', Number(e.target.value))} />
+                           </div>
+                           <div>
+                              <Label htmlFor="effect-iam">Bonus IAM</Label>
+                              <Input id="effect-iam" type="number" step="1" value={editingInvestment.effects.iam || 0} onChange={e => handleInvestmentFormChange('effects.iam', Number(e.target.value))} />
+                           </div>
+                           <div>
+                              <Label htmlFor="effect-cost-reduc">Reducción Coste Personal (%)</Label>
+                              <Input id="effect-cost-reduc" type="number" step="0.01" value={(editingInvestment.effects.personnelCostReduction || 0) * 100} onChange={e => handleInvestmentFormChange('effects.personnelCostReduction', Number(e.target.value) / 100)} />
+                           </div>
+                       </div>
+                      <h3 className="font-semibold text-lg border-b pb-2 mt-4">Bonus de XP</h3>
+                      <div className="space-y-2">
+                        <Label>Área del Bonus</Label>
+                        <Select value={editingInvestment.xpBonus.area} onValueChange={value => handleInvestmentFormChange('xpBonus.area', value)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="finances">Finanzas</SelectItem>
+                                <SelectItem value="reputation">Reputación</SelectItem>
+                                <SelectItem value="morale">Moral</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                       <div className="space-y-2">
+                        <Label>Tipo de Bonus</Label>
+                        <Select value={editingInvestment.xpBonus.type} onValueChange={value => handleInvestmentFormChange('xpBonus.type', value)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="fixed">Fijo</SelectItem>
+                                <SelectItem value="scaled">Escalonado (por coste)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                      {editingInvestment.xpBonus.type === 'fixed' ? (
+                          <div>
+                              <Label htmlFor="xp-fixed">XP Fijo</Label>
+                              <Input id="xp-fixed" type="number" value={editingInvestment.xpBonus.value as number} onChange={e => handleInvestmentFormChange('xpBonus.value', Number(e.target.value))} />
+                          </div>
+                      ) : (
+                          <div className="flex gap-4">
+                              <div>
+                                  <Label htmlFor="xp-range-min">Mínimo</Label>
+                                  <Input id="xp-range-min" type="number" value={(editingInvestment.xpBonus.value as [number, number])[0]} onChange={e => handleInvestmentFormChange('xpBonus.value', [Number(e.target.value), (editingInvestment.xpBonus.value as [number, number])[1]])} />
+                              </div>
+                               <div>
+                                  <Label htmlFor="xp-range-max">Máximo</Label>
+                                  <Input id="xp-range-max" type="number" value={(editingInvestment.xpBonus.value as [number, number])[1]} onChange={e => handleInvestmentFormChange('xpBonus.value', [(editingInvestment.xpBonus.value as [number, number])[0], Number(e.target.value)])} />
+                              </div>
+                          </div>
+                      )}
+                  </div>
               </div>
-            )}
-            {type === 'investment' && (
-              <>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="costRange" className="text-right">Rango de Coste</Label>
-                  <Input id="costRange" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="effect" className="text-right">Efecto</Label>
-                  <Input id="effect" className="col-span-3" />
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="submit">Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleSaveInvestment}>Guardar Inversión</Button>
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
   );
 
@@ -185,10 +319,12 @@ export function CatalogEditor({
               <CardTitle>{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
-            <Button onClick={() => setAddDialogOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Nuevo
-            </Button>
+            {type === 'investment' && (
+                <Button onClick={() => openForm()}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Añadir Nuevo
+                </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -210,15 +346,15 @@ export function CatalogEditor({
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item.id} onClick={() => handleRowClick(item)} className="cursor-pointer">
+                <TableRow key={item.id} onClick={() => openDetails(item)} className="cursor-pointer">
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground max-w-sm truncate">
                     {item.description}
                   </TableCell>
                   {type === "investment" && isInvestment(item) && (
                      <>
                         <TableCell>
-                            {formatArea(item.xpBonus.area)}
+                            <Badge variant="outline">{formatArea(item.xpBonus.area)}</Badge>
                         </TableCell>
                         <TableCell className="font-mono">
                             {formatCost(item.cost)}
@@ -234,9 +370,14 @@ export function CatalogEditor({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRowClick(item); }}>
-                           <Eye className="mr-2 h-4 w-4" /> Ver
+                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDetails(item); }}>
+                           <Eye className="mr-2 h-4 w-4" /> Ver Detalles
                          </DropdownMenuItem>
+                         {isInvestment(item) && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openForm(item); }}>
+                                <Edit className="mr-2 h-4 w-4" /> Editar
+                            </DropdownMenuItem>
+                         )}
                         <DropdownMenuItem className="text-destructive" onClick={(e) => handleDelete(e, item.id)}>
                           <Trash2 className="mr-2 h-4 w-4" /> Borrar
                         </DropdownMenuItem>
@@ -250,7 +391,7 @@ export function CatalogEditor({
         </CardContent>
       </Card>
       
-      <AddNewDialog />
+      {type === 'investment' && <InvestmentForm />}
       
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setDetailDialogOpen}>

@@ -75,18 +75,19 @@ export function updateKpisForNextRound(
   let currentPublicIncome = PUBLIC_INCOME;
   let loanIncome = 0;
   let recoveredSubsidy = 0;
+  let privateIncome = updatedNumStudents * decisions.tuitionPrice;
 
-  // --- Crisis C2 Effect ---
-  // The crisis effect is applied by default unless a specific option counteracts it.
-  let crisisC2Active = !!decisions.crisisResponse && decisions.crisisResponse.crisisId === 'C2';
-  if (crisisC2Active) {
-      const optionId = decisions.crisisResponse!.optionId;
-      if (optionId === 'C2_op1') { // Loan
+  // --- Crisis Effects on Income ---
+  const crisisId = decisions.crisisResponse?.crisisId;
+  const crisisOption = decisions.crisisResponse?.optionId;
+
+  if (crisisId === 'C2') { // Pérdida de subvención
+      if (crisisOption === 'C2_op1') { // Loan
           currentPublicIncome -= 25000;
           loanIncome = 25000;
-      } else if (optionId === 'C2_op2' || optionId === 'C2_op5') { // Cut investments or Delay payments
+      } else if (crisisOption === 'C2_op2' || crisisOption === 'C2_op5') { // Cut investments or Delay payments
           // Subsidy loss is avoided. No change to currentPublicIncome.
-      } else if (optionId === 'C2_op3') { // Negotiate
+      } else if (crisisOption === 'C2_op3') { // Negotiate
           currentPublicIncome -= 25000; // Subsidy is lost initially.
           if (negotiationSuccess) {
               recoveredSubsidy = 15000; // 15k is recovered on success.
@@ -96,8 +97,10 @@ export function updateKpisForNextRound(
       }
   }
 
+  if (crisisId === 'C3') { // Morosidad en matrículas
+    privateIncome -= 10000; // Se aplica el déficit inicial de la crisis.
+  }
 
-  const privateIncome = updatedNumStudents * decisions.tuitionPrice;
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 

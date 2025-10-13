@@ -192,6 +192,8 @@ export function updateKpisForNextRound(
       updatedMorale = 40;
     } else if (decisions.crisisResponse.optionId === 'C1_op4') {
       updatedMorale += 15;
+    } else if (decisions.crisisResponse.optionId === 'C1_op5') {
+        updatedMorale -= 30;
     }
   }
 

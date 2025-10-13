@@ -123,9 +123,10 @@ export default function GameDetailsPage() {
 
   const allTeamsConfirmed = useMemo(() => {
     if (!game || game.teamNames.length === 0) {
-      return false;
+        return false;
     }
 
+    // This check is now required for ALL rounds, including round 0.
     const roundDecisions = game.decisions?.[game.round];
     if (!roundDecisions) return false;
 
@@ -133,7 +134,7 @@ export default function GameDetailsPage() {
         const teamDecision = roundDecisions[teamName];
         return teamDecision?.roundConfirmed === true;
     });
-  }, [game]);
+}, [game]);
 
 
   const getButtonText = () => {

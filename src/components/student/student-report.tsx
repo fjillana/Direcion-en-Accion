@@ -10,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Loader2, ServerCrash } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
+import { CrisisReport } from "./crisis-report";
 
 export function StudentReport() {
   const { studentGame } = useStudentGame();
@@ -78,18 +79,18 @@ export function StudentReport() {
       initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
   }
 
-    const totalInvestmentCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
-        const investment = allInvestments.find(inv => inv.id === actionId);
-        if (investment) {
-            if (investment.cost.type === 'fixed') {
-                return acc + (investment.cost.value as number);
-            }
-            return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
-        }
-        return acc;
-    }, 0);
+  const totalInvestmentCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
+      const investment = allInvestments.find(inv => inv.id === actionId);
+      if (investment) {
+          if (investment.cost.type === 'fixed') {
+              return acc + (investment.cost.value as number);
+          }
+          return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
+      }
+      return acc;
+  }, 0);
   
-  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 0 }; //P2 cost is recurrent salary
+  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 }; //P2 cost is recurrent salary
   
   const totalCenterActionsCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
       return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
@@ -97,8 +98,8 @@ export function StudentReport() {
   
   const totalDecisionsCost = totalInvestmentCost + totalCenterActionsCost;
   const crisisCost = Math.abs(reportData.decisions.crisisResponse?.cost || 0);
-  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + crisisCost;
-  const finalCash = initialCashForRound + reportData.kpis.income - totalCosts;
+  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0);
+  const finalCash = initialCashForRound + reportData.kpis.income - totalCosts + crisisCost; // We add crisis cost back as it's already negative
 
   return (
      <Card>
@@ -124,12 +125,14 @@ export function StudentReport() {
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
                             {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
-                            <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
+                             {reportData.kpis.crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
+
+                            <div className="flex justify-between text-destructive"><span>(-) Gastos Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
-                            {crisisCost > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(crisisCost)}</span></div>}
+                            {reportData.kpis.crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
-                            <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
+                            <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(reportData.kpis.cash)}</span></div>
                        </div>
                     </AccordionContent>
                 </AccordionItem>
@@ -142,6 +145,11 @@ export function StudentReport() {
                             <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
                             <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
                             <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                             {reportData.decisions.crisisResponse && (
+                                <div className="mt-2 pt-2 border-t">
+                                     <p className="text-sm text-muted-foreground">Impacto Crisis ({reportData.decisions.crisisResponse.crisisName}): {formatCurrency(reportData.kpis.crisisImpact || 0)}</p>
+                                </div>
+                            )}
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
@@ -171,7 +179,7 @@ export function StudentReport() {
                  <AccordionItem value="item-kpi-summary" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Resumen de KPIs</h3></AccordionTrigger>
                     <AccordionContent className="px-4 grid md:grid-cols-3 gap-4">
-                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(finalCash)}</span></Badge>
+                        <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Saldo de Tesorería:</span> <span className="font-bold">{formatCurrency(reportData.kpis.cash)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Coste Personal / Ingresos:</span> <span className="font-bold">{reportData.kpis.income ? ((reportData.kpis.personnelCost / reportData.kpis.income) * 100).toFixed(1) : '0.0'}%</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Nota Media Alumnado:</span> <span className="font-bold">{reportData.kpis.nma.toFixed(1)}</span></Badge>
                         <Badge variant="outline" className="flex justify-between p-3 text-sm"><span>Cuota de Mercado:</span> <span className="font-bold">{reportData.kpis.marketShare.toFixed(1)}%</span></Badge>
@@ -214,6 +222,15 @@ export function StudentReport() {
                     </AccordionContent>
                 </AccordionItem>
                 
+                 {reportData.decisions.crisisResponse && (
+                    <AccordionItem value="item-crisis" className="border rounded-lg">
+                        <AccordionTrigger className="px-4 hover:no-underline"><h3 className="font-semibold text-lg">Análisis de Crisis</h3></AccordionTrigger>
+                        <AccordionContent className="px-4">
+                            <CrisisReport report={reportData.decisions.crisisResponse} />
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+
                 <AccordionItem value="item-6" className="border rounded-lg">
                     <AccordionTrigger className="px-4 hover:no-underline">
                         <h3 className="font-semibold text-lg">Análisis Cualitativo y Sugerencias</h3>

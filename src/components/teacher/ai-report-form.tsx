@@ -45,6 +45,7 @@ import { generateRoundReport } from "@/ai/flows/generate-round-report";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiveness";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
+import { CrisisReport } from "../student/crisis-report";
 
 type TeamName = string;
 
@@ -139,6 +140,12 @@ export function AIReportForm() {
         });
         return;
     }
+    
+    // Find previous round's KPIs for comparison
+    const previousRoundNumber = reportableRound - 1;
+    const previousPerformance = activeGame.performance?.[previousRoundNumber]?.find(p => p.name === selectedTeam);
+    const previousKpis = previousPerformance ? previousPerformance.kpis : null;
+
 
     setIsGenerating(true);
     try {
@@ -153,6 +160,7 @@ export function AIReportForm() {
           }
         }, null, 2),
         marketConditions: `Mercado con ${activeGame.newStudentsPerRound} nuevos alumnos disponibles.`,
+        previousKpis: previousKpis ? JSON.stringify(previousKpis, null, 2) : undefined
       };
       
       console.log(`[GPS] 6. Generating AI Report for ${selectedTeam}. Payload:`, reportPayload);
@@ -254,38 +262,17 @@ export function AIReportForm() {
   };
 
   const { 
-    totalInvestmentCost, 
     finalCash, 
     totalCosts,
     initialCashForRound,
-    crisisCost
+    crisisImpact,
   } = useMemo(() => {
     if (!reportData || !activeGame || !selectedTeam) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, initialCashForRound: 0, crisisCost: 0 };
+      return { finalCash: 0, totalCosts: 0, initialCashForRound: 0, crisisImpact: 0 };
     }
     
-    const decisions = reportData.decisions || {};
     const kpis = reportData.kpis || {};
     
-    const actionCosts = (decisions.actions || []).reduce((acc: number, actionId: string) => {
-        const investment = allInvestments.find(inv => inv.id === actionId);
-        if (investment) {
-            if (investment.cost.type === 'fixed') {
-                return acc + (investment.cost.value as number);
-            } else {
-                 return acc + (decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
-            }
-        }
-        if (actionId === 'P2') return acc;
-        if (actionId === 'P7') return acc + 7500;
-        if (actionId === 'F5') return acc + 50000;
-        return acc;
-    }, 0);
-
-    const costOfCrisis = Math.abs(decisions.crisisResponse?.cost || 0);
-    
-    const allCosts = (kpis.personnelCost || 0) + actionCosts + costOfCrisis + (kpis.loanInterest || 0);
-
     const gameData = getGameById(activeGame.id);
     let cashAtStart = gameData?.initialFunds || 0;
 
@@ -296,17 +283,39 @@ export function AIReportForm() {
         cashAtStart = prevRoundPerformance.kpis.cash;
       }
     }
-    
-    const cash = cashAtStart + (kpis.income || 0) - allCosts;
 
     return { 
-        totalInvestmentCost: actionCosts,
-        finalCash: cash, 
-        totalCosts: allCosts,
+        finalCash: kpis.cash || 0, 
+        totalCosts: (kpis.personnelCost || 0) + (kpis.loanInterest || 0),
         initialCashForRound: cashAtStart,
-        crisisCost: costOfCrisis
+        crisisImpact: kpis.crisisImpact || 0,
     };
   }, [reportData, activeGame, getGameById, selectedTeam]);
+
+  const totalDecisionsCost = useMemo(() => {
+     if (!reportData || !reportData.decisions) return 0;
+     const { actions = [], investmentCosts = {} } = reportData.decisions;
+     
+     const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 };
+     
+     const totalCenterActionsCost = actions.reduce((acc: number, actionId: string) => {
+      return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
+     }, 0);
+
+     const totalInvestmentCost = actions.reduce((acc: number, actionId: string) => {
+        const investment = allInvestments.find(inv => inv.id === actionId);
+        if (investment) {
+            if (investment.cost.type === 'fixed') {
+                return acc + (investment.cost.value as number);
+            }
+            return acc + (investmentCosts?.[actionId] || investment.cost.value[1]);
+        }
+        return acc;
+    }, 0);
+
+    return totalCenterActionsCost + totalInvestmentCost;
+
+  }, [reportData]);
 
 
   return (
@@ -362,11 +371,13 @@ export function AIReportForm() {
                                     <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
                                     <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                                     <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
-                                     {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
-                                    <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
+                                    {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
+                                    {crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
+                                    
+                                    <div className="flex justify-between text-destructive"><span>(-) Gastos Totales:</span> <span className="font-mono">{formatCurrency(totalCosts + totalDecisionsCost)}</span></div>
                                     <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
-                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones (Acciones + Inversiones):</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
-                                    {crisisCost > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(crisisCost)}</span></div>}
+                                    <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
+                                    {crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
                                     {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                                     <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                                </div>
@@ -381,6 +392,11 @@ export function AIReportForm() {
                                     <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
                                     <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
                                     <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                                    {reportData.decisions.crisisResponse && (
+                                        <div className="mt-2 pt-2 border-t">
+                                            <p className="text-sm text-muted-foreground">Impacto Crisis ({reportData.decisions.crisisResponse.crisisName}): {formatCurrency(reportData.kpis.crisisImpact || 0)}</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="p-3 bg-muted/50 rounded-lg border">
                                     <h4 className="font-semibold">Decisiones Realizadas</h4>

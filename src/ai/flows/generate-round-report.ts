@@ -17,6 +17,7 @@ const GenerateRoundReportInputSchema = z.object({
   roundNumber: z.number().describe('El número de ronda para el cual generar el reporte.'),
   teamPerformanceData: z.string().describe('Los datos de rendimiento del equipo en formato JSON. Incluye decisiones, KPIs finales y desglose del PEB.'),
   marketConditions: z.string().describe('Un resumen de las condiciones del mercado durante la ronda.'),
+  previousKpis: z.string().optional().describe('KPIs de la ronda anterior en formato JSON para comparar la evolución.'),
 });
 export type GenerateRoundReportInput = z.infer<typeof GenerateRoundReportInputSchema>;
 
@@ -66,6 +67,13 @@ const prompt = ai.definePrompt({
   {{{teamPerformanceData}}}
   \`\`\`
 
+  {{#if previousKpis}}
+  **KPIs de la Ronda Anterior (para comparación):**
+  \`\`\`json
+  {{{previousKpis}}}
+  \`\`\`
+  {{/if}}
+
   **Tu Misión (Sigue estas reglas estrictamente):**
   1.  **Analiza en Profundidad**: Examina los datos de rendimiento del equipo en el JSON. Conecta sus decisiones (inversiones, precio, gestión de crisis) con los resultados en sus KPIs (finanzas, reputación, moral) y su puntuación de equilibrio de negocio (PEB).
   2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
@@ -73,7 +81,8 @@ const prompt = ai.definePrompt({
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
   5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para CADA KPI. Tu análisis DEBE explicar el porqué del valor final de forma cuantitativa, basándote en los datos de entrada.
       - **Identifica Inversiones por ID:** Usa el 'investmentCatalog' para encontrar el nombre de cada inversión a partir de su ID en \`teamPerformanceData.decisions.actions\`. **NO ALUCINES NOMBRES DE INVERSIONES.** Si una inversión no está en la lista de acciones del equipo, no la menciones.
-      - **Calcula el Valor Correcto:** Para el campo 'value' de cada KPI, usa el valor final que se encuentra en \`teamPerformanceData.kpis\`. Asegúrate de usar el formato de valor exacto solicitado a continuación.
+      - **Usa el Valor Final Correcto:** Para el campo 'value' de cada KPI, usa el valor final que se encuentra en \`teamPerformanceData.kpis\`. Asegúrate de usar el formato de valor exacto solicitado a continuación.
+      - **Usa los Valores Anteriores para Comparar:** Si se proporcionan 'previousKpis', úsalos para comparar la evolución (ej. "subió de 7.5 a 8.3"). Si no se proporcionan, no inventes un valor base.
       - **Formato de Valores:**
         - **tesoreria:** Un número entero sin decimales (ej: "77600").
         - **costePersonal:** Un número entero sin decimales (ej: "247500").
@@ -82,11 +91,11 @@ const prompt = ai.definePrompt({
         - **moral:** Un número entero y el símbolo % (ej: "65%").
         - **ratioAlumnosProfesor:** Un número con dos decimales, usando coma (ej: "26,09").
       - **Describe el Cálculo y los Factores:** En el campo 'analysis', describe en palabras cómo se llegó al valor.
-          - Para **Tesoreria**: Menciona el saldo inicial, los ingresos y los gastos totales (personal, inversiones, crisis).
+          - Para **Tesoreria**: Menciona el saldo inicial (usa el KPI 'cash' de 'previousKpis' si existe), los ingresos y los gastos totales (personal, inversiones, crisis). NO inventes el saldo inicial.
           - Para **Coste Personal**: Basa el análisis en el número de profesores.
-          - Para **NMA**: Menciona el valor base y suma o resta los bonus/penalizaciones de inversiones (ej: P1, R2) o por sobrecarga de profesorado (ratio > 26).
+          - Para **NMA**: Compara con el valor anterior y menciona el impacto de inversiones (ej: P1, R2) o por sobrecarga/baja carga de profesorado (ratio > 26 o < 24).
           - Para **Cuota de Mercado**: Analízalo en función de la competitividad del precio y las inversiones en marketing (ej: R1).
-          - Para **Moral**: Analiza el impacto de inversiones (P1, P2, P4, P5), despidos (P7) y, muy importante, la penalización de -15 puntos si el ratio de alumnos/profesor es superior a 26.
+          - Para **Moral**: Compara con el valor anterior y analiza el impacto de inversiones (P1, P2, P4, P5), despidos (P7) y, muy importante, la penalización de -15 puntos si el ratio de alumnos/profesor es superior a 26.
           - Para **Ratio Alumnos/Profesor**: Explica que se calcula dividiendo el número final de alumnos entre el número final de profesores.
 
   **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,

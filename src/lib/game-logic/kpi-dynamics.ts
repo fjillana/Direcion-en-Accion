@@ -41,6 +41,7 @@ export function updateKpisForNextRound(
   let updatedNma = currentKpis.nma;
   let cashInjection = 0;
   let personnelCostMultiplier = 1.0;
+  let crisisFinancialImpact = 0;
 
 
   const actions = decisions.actions || [];
@@ -81,87 +82,72 @@ export function updateKpisForNextRound(
   // 2. Calcular Ingresos y Costes
   let currentPublicIncome = PUBLIC_INCOME;
   let loanIncome = 0;
-  let recoveredSubsidy = 0;
   let privateIncome = updatedNumStudents * decisions.tuitionPrice;
-  let otherIncome = 0; // For sponsorships etc.
 
   // --- Crisis Effects on Income and Morale---
   const crisisId = decisions.crisisResponse?.crisisId;
-  const crisisOption = decisions.crisisResponse?.optionId;
+  const crisisOptionId = decisions.crisisResponse?.optionId;
 
-  if (crisisId === 'C2') { // Pérdida de subvención
-      if (crisisOption === 'C2_op1') { // Loan
-          currentPublicIncome -= 25000;
-          loanIncome = 25000;
-      } else if (crisisOption === 'C2_op2' || crisisOption === 'C2_op5') { // Cut investments or Delay payments
-          // Subsidy loss is avoided. No change to currentPublicIncome.
-      } else if (crisisOption === 'C2_op3') { // Negotiate
-          currentPublicIncome -= 25000; // Subsidy is lost initially.
-          if (negotiationSuccess) {
-              recoveredSubsidy = 15000; // 15k is recovered on success.
-          }
-      } else { // Default effect for option 4 and any other
-          currentPublicIncome -= 25000;
-      }
-  }
+  if (crisisId && crisisOptionId) {
+    const crisis = allCrises.find(c => c.id === crisisId);
+    const option = crisis?.options.find(o => o.id === crisisOptionId);
 
-  if (crisisId === 'C3') { // Morosidad en matrículas
-    privateIncome -= 10000; // Se aplica el déficit inicial de la crisis.
-    if(crisisOption === 'C3_op1') { // Ofrecer plan de pagos
-      privateIncome += 8000; // Recupera el 80%
-    } else if (crisisOption === 'C3_op2') { // Subir matrícula
-        privateIncome += 10000; // Compensa el déficit con ingresos extra
-    } else if (crisisOption === 'C3_op3') { // Solicitar préstamo
-        loanIncome += 10000;
-    } else if (crisisOption === 'C3_op4') { // Recortar actividades
-        privateIncome += 10000; // Reintegra el coste de las actividades, compensando el déficit.
-        updatedMorale -= 5; // Penalización de moral
+    if (option) {
+        crisisFinancialImpact += option.cost; // cost is often negative
     }
-  }
+
+    if (crisisId === 'C2') { // Pérdida de subvención
+      currentPublicIncome -= 25000;
+      if (crisisOptionId === 'C2_op1') loanIncome += 25000;
+      else if (crisisOptionId === 'C2_op2' || crisisOptionId === 'C2_op5') currentPublicIncome += 25000;
+      else if (crisisOptionId === 'C2_op3' && negotiationSuccess) crisisFinancialImpact += 15000;
+    }
+
+    if (crisisId === 'C3') { // Morosidad
+        privateIncome -= 10000;
+        if(crisisOptionId === 'C3_op1') privateIncome += 8000;
+        else if (crisisOptionId === 'C3_op2') privateIncome += 10000;
+        else if (crisisOptionId === 'C3_op3') loanIncome += 10000;
+        else if (crisisOptionId === 'C3_op4') {
+            crisisFinancialImpact += 10000; // Represents saving from cut activities
+            updatedMorale -= 5;
+        }
+    }
   
-  if (crisisId === 'C4') {
-    if (crisisOption === 'C4_op1') { // Ignorar
-      updatedMorale -= 10;
-    } else if (crisisOption === 'C4_op4') { // Mejoras
-      updatedMorale += 5;
+    if (crisisId === 'C1') {
+        if (crisisOptionId === 'C1_op1') updatedMorale += 30;
+        else if (crisisOptionId === 'C1_op2') updatedMorale += 20;
+        else if (crisisOptionId === 'C1_op3') updatedMorale = 40;
+        else if (crisisOptionId === 'C1_op4') updatedMorale += 15;
+        else if (crisisOptionId === 'C1_op5') updatedMorale -= 30;
+    }
+    
+    if (crisisId === 'C4') {
+      if (crisisOptionId === 'C4_op1') updatedMorale -= 10;
+      else if (crisisOptionId === 'C4_op4') updatedMorale += 5;
+    }
+
+    if(crisisId === 'C5') {
+      if (crisisOptionId === 'C5_op3') updatedMorale += 5;
+      else if (crisisOptionId === 'C5_op4') updatedMorale -= 15;
+      else if (crisisOptionId === 'C5_op5' && negotiationSuccess) crisisFinancialImpact += 5000;
+    }
+
+    if (crisisId === 'C6') {
+        privateIncome -= 10000; // Sponsorship is a form of income
+        if (crisisOptionId === 'C6_op1' && negotiationSuccess) privateIncome += 5000;
+        if (crisisOptionId === 'C6_op2' || crisisOptionId === 'C6_op4') privateIncome += 10000;
+        if (crisisOptionId === 'C6_op3') loanIncome += 10000;
+    }
+
+    if(crisisId === 'C7') {
+      if (crisisOptionId === 'C7_op1') updatedMorale -= 5;
+      else if (crisisOptionId === 'C7_op2') updatedMorale += 5;
+      else if (crisisOptionId === 'C7_op5') updatedMorale -= 10;
     }
   }
 
-  if(crisisId === 'C5') {
-    if (crisisOption === 'C5_op3') { // Contratar personal sanitario
-      updatedMorale += 5;
-    } else if (crisisOption === 'C5_op4') { // Ignorar recomendaciones
-      updatedMorale -= 15;
-    } else if (crisisOption === 'C5_op5') {
-      if (negotiationSuccess) {
-          // The 5k is a cash injection, handled here as "recoveredSubsidy" for simplicity
-          recoveredSubsidy += 5000;
-      }
-    }
-  }
-
-  if (crisisId === 'C6') { // Retraso en patrocinio
-    otherIncome -= 10000; // Apply base deficit
-    if (crisisOption === 'C6_op1' && negotiationSuccess) {
-        otherIncome += 5000; // Recover 5k
-    } else if (crisisOption === 'C6_op2' || crisisOption === 'C6_op4') {
-        otherIncome += 10000; // Recover full amount (from new sponsor or by cutting marketing)
-    } else if (crisisOption === 'C6_op3') {
-        loanIncome += 10000; // Loan to cover the deficit
-    }
-  }
-
-  if(crisisId === 'C7') { // Ciberbullying
-      if (crisisOption === 'C7_op1') { // Minimizar caso
-          updatedMorale -= 5;
-      } else if (crisisOption === 'C7_op2') { // Investigar
-          updatedMorale += 5;
-      } else if (crisisOption === 'C7_op5') { // Demandear
-          updatedMorale -= 10;
-      }
-  }
-
-  const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy + otherIncome;
+  const income = privateIncome + currentPublicIncome + loanIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   // Apply P4 salary increase permanently
@@ -192,38 +178,6 @@ export function updateKpisForNextRound(
       return sum;
   }, 0);
   
-  // Calculate crisis cost with potential insurance reduction
-  let crisisCost = 0;
-  const hasInsurance = performanceHistory.some(round => round.decisions.actions.includes('F3')) || actions.includes('F3');
-  if (decisions.crisisResponse && decisions.crisisResponse.cost) {
-    crisisCost = decisions.crisisResponse.cost;
-    if (hasInsurance && crisisCost < 0) {
-      crisisCost *= 0.9; // Apply 10% reduction to negative costs
-    }
-  }
-  
-  if (crisisOption === 'C3_op5') { // Coste extra de la opción de marketing de C3
-    crisisCost -= 10000;
-  }
-  if (crisisOption === 'C4_op3') {
-    crisisCost -= 10000;
-  }
-  if (crisisOption === 'C4_op4') {
-    crisisCost -= 20000;
-  }
-  if (crisisOption === 'C4_op5') {
-    crisisCost -= 8000;
-  }
-  if (crisisOption === 'C6_op2') {
-    crisisCost -= 4000;
-  }
-  if (crisisOption === 'C7_op3') {
-    crisisCost -= 5000;
-  }
-  if (crisisOption === 'C7_op5') {
-    crisisCost -= 10000;
-  }
-
   // Calculate interest cost if loan was taken previously
   let interestCost = 0;
   const hasC2Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
@@ -240,31 +194,15 @@ export function updateKpisForNextRound(
     interestCost += 10000 * 0.10; // 10% interest on 10k loan for C6
   }
 
-
-  const totalDecisionsCost = investmentCost + centerActionsCost + Math.abs(crisisCost) + interestCost;
-  const totalExpenses = personnelCost + totalDecisionsCost;
+  const totalDecisionsCost = investmentCost + centerActionsCost;
+  const totalExpenses = personnelCost + totalDecisionsCost + interestCost;
   
-  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
+  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisFinancialImpact=${crisisFinancialImpact}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
 
-  let updatedCash = teamState.kpis.cash + income - totalExpenses + cashInjection;
+  let updatedCash = teamState.kpis.cash + income - totalExpenses + cashInjection + crisisFinancialImpact;
   
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
-
-  // --- Crisis C1 Effects ---
-  if (decisions.crisisResponse?.crisisId === 'C1') {
-    if (decisions.crisisResponse.optionId === 'C1_op1') {
-      updatedMorale += 30;
-    } else if (decisions.crisisResponse.optionId === 'C1_op2') {
-      updatedMorale += 20;
-    } else if (decisions.crisisResponse.optionId === 'C1_op3') {
-      updatedMorale = 40;
-    } else if (decisions.crisisResponse.optionId === 'C1_op4') {
-        updatedMorale += 15;
-    } else if (decisions.crisisResponse.optionId === 'C1_op5') {
-        updatedMorale -= 30;
-    }
-  }
 
   // Bonificación por ratio bajo
   if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
@@ -296,7 +234,8 @@ export function updateKpisForNextRound(
       privateIncome,
       publicIncome: currentPublicIncome,
       loanInterest: interestCost,
-      loanIncome: loanIncome
+      loanIncome: loanIncome,
+      crisisImpact: crisisFinancialImpact,
   };
   
   return finalKPIs;

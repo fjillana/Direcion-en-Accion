@@ -27,7 +27,7 @@ export const investments: Investment[] = [
     {
       id: 'F4',
       name: 'Negociación agresiva de cuentas por pagar',
-      description: 'Retrasar el pago a proveedores genera liquidez inmediata (+50.000 CC) pero daña la imagen del centro (-8 XP Reputación). Otorga 8 XP de Finanzas.',
+      description: 'Retrasar el pago a proveedores genera liquidez inmediata (+50.000 CC) pero daña la imagen del centro. Otorga 8 XP de Finanzas y una penalización de -8 XP de Reputación.',
       cost: { type: 'fixed', value: 0 },
       bonus: { area: 'finances', type: 'fixed', value: 8 }, // Note: This has a negative reputational impact not captured here
     },
@@ -56,7 +56,7 @@ export const investments: Investment[] = [
     {
       id: 'R3',
       name: 'Mejora de instalaciones (patios, laboratorios)',
-      description: 'Mejora la percepción de calidad y la satisfacción de alumnos y familias. Otorga entre 5 y 12 XP de Reputación.',
+      description: 'Mejora la NMA (+0.3), la moral (+10) y la atractividad del centro (+5 puntos IAM). Otorga entre 5 y 12 XP de Reputación.',
       cost: { type: 'range', value: [10000, 100000] },
       bonus: { area: 'reputation', type: 'scaled', value: [5, 12] },
     },

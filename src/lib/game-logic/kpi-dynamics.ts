@@ -1,5 +1,4 @@
 
-
 import type { TeamState, TeamKPIs } from "./types";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
@@ -112,6 +111,10 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   if (actions.includes('R2')) { // Inversión en TIC
       updatedNma += 0.2;
       updatedMorale += 5;
+  }
+  if (actions.includes('R3')) { // Mejora de instalaciones
+    updatedNma += 0.3;
+    updatedMorale += 10;
   }
   if (actions.includes('P1')) { // Formación docente
       updatedNma += 0.1;

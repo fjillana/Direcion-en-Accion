@@ -1,3 +1,4 @@
+
 // src/lib/game-logic/market-attractiveness.ts
 
 import type { Game } from "@/hooks/use-games";
@@ -23,7 +24,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
   const averageTuition = totalTuition / teams.length;
 
   let totalIamPoints = 0;
-  const teamIamResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number } }> = {};
+  const teamIamResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number; facilities: number; } }> = {};
 
   // 2. Calcular el IAM para cada equipo siguiendo la fórmula del manual técnico.
   // IAM = (NMA * 10) + (Precio medio / Precio del equipo * 30) + (Inversión en Marketing / 1000)
@@ -47,13 +48,16 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
         }
     }
 
+    // d. Componente de Instalaciones: Bonus fijo por la inversión 'R3'.
+    const facilitiesPoints = (team.decisions?.actions || []).includes('R3') ? 5 : 0;
+
     // Sanitize values to ensure they are numbers, defaulting to 0.
     const sanitizedNmaPoints = isNaN(nmaPoints) ? 0 : nmaPoints;
     const sanitizedPricePoints = isNaN(pricePoints) ? 0 : pricePoints;
     const sanitizedMarketingPoints = isNaN(marketingPoints) ? 0 : marketingPoints;
 
     // Fórmula completa del IAM
-    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints;
+    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints;
     const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
 
     teamIamResults[team.name] = {
@@ -61,14 +65,15 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
         points: { 
           nma: sanitizedNmaPoints, 
           price: sanitizedPricePoints, 
-          marketing: sanitizedMarketingPoints 
+          marketing: sanitizedMarketingPoints,
+          facilities: facilitiesPoints
         }
     };
     totalIamPoints += finalIam;
   }
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
-  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
+  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number; }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
   if (totalIamPoints > 0) {
     for (const team of teams) {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;

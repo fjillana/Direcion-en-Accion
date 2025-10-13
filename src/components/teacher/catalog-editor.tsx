@@ -40,6 +40,7 @@ import { useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
 
+// NEW, DETAILED INVESTMENT TYPE
 export type Investment = {
   id: string;
   name: string;
@@ -48,12 +49,21 @@ export type Investment = {
     type: 'fixed' | 'range';
     value: number | [number, number];
   };
-  bonus: {
+  effects: {
+    nma?: number;
+    morale?: number;
+    personnelCostReduction?: number; // e.g., 0.02 for 2%
+    iam?: number; // IAM points bonus
+    cashInjection?: number; // For F4
+    reputationPenalty?: number; // For F4
+  };
+  xpBonus: {
     area: 'finances' | 'reputation' | 'morale';
     type: 'fixed' | 'scaled';
     value: number | [number, number];
   };
 };
+
 
 type CrisisOption = {
   label: string;
@@ -105,7 +115,7 @@ export function CatalogEditor({
   }
   
   const isInvestment = (item: CatalogItem): item is Investment => {
-    return 'cost' in item && 'bonus' in item;
+    return 'cost' in item && 'xpBonus' in item;
   }
 
   const formatCost = (cost: Investment['cost']) => {
@@ -208,7 +218,7 @@ export function CatalogEditor({
                   {type === "investment" && isInvestment(item) && (
                      <>
                         <TableCell>
-                            {formatArea(item.bonus.area)}
+                            {formatArea(item.xpBonus.area)}
                         </TableCell>
                         <TableCell className="font-mono">
                             {formatCost(item.cost)}
@@ -264,9 +274,9 @@ export function CatalogEditor({
                   <div className="p-3 bg-muted/50 rounded-md">
                     <p className="font-medium">Bonus de XP</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Área: <span className="capitalize">{selectedItem.bonus.area}</span>,
-                      Tipo: <span className="capitalize">{selectedItem.bonus.type}</span>,
-                      Valor: {Array.isArray(selectedItem.bonus.value) ? `${selectedItem.bonus.value[0]} a ${selectedItem.bonus.value[1]}` : selectedItem.bonus.value} XP
+                      Área: <span className="capitalize">{selectedItem.xpBonus.area}</span>,
+                      Tipo: <span className="capitalize">{selectedItem.xpBonus.type}</span>,
+                      Valor: {Array.isArray(selectedItem.xpBonus.value) ? `${selectedItem.xpBonus.value[0]} a ${selectedItem.xpBonus.value[1]}` : selectedItem.xpBonus.value} XP
                     </p>
                   </div>
                 </div>
@@ -298,5 +308,3 @@ export function CatalogEditor({
     </>
   );
 }
-
-    

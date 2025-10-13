@@ -180,6 +180,14 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         }
     }
 
+    // Crisis C3 Effects
+    if (decisions.crisisResponse?.crisisId === 'C3') {
+        if(decisions.crisisResponse.optionId === 'C3_op1') {
+            bonus.reputation += 2;
+            bonus.finances -= 2;
+        }
+    }
+
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;

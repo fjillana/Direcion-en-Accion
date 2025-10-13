@@ -99,6 +99,9 @@ export function updateKpisForNextRound(
 
   if (crisisId === 'C3') { // Morosidad en matrículas
     privateIncome -= 10000; // Se aplica el déficit inicial de la crisis.
+    if(crisisOption === 'C3_op1') { // Ofrecer plan de pagos
+      privateIncome += 8000; // Recupera el 80%
+    }
   }
 
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;

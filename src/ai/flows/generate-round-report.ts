@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 const GenerateRoundReportInputSchema = z.object({
   gameId: z.string().describe('El ID de la partida.'),
@@ -41,38 +42,52 @@ const GenerateRoundReportOutputSchema = z.object({
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;
 
 export async function generateRoundReport(input: GenerateRoundReportInput): Promise<GenerateRoundReportOutput> {
-  return generateRoundReportFlow(input);
+  // We enrich the input with the full investment catalog so the AI knows the names of the investments.
+  const enrichedInput = {
+    ...input,
+    investmentCatalog: JSON.stringify(allInvestments, null, 2)
+  };
+  return generateRoundReportFlow(enrichedInput);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateRoundReportPrompt',
-  input: {schema: GenerateRoundReportInputSchema},
+  input: {schema: GenerateRoundReportInputSchema.extend({ investmentCatalog: z.string() })},
   output: {schema: GenerateRoundReportOutputSchema},
-  prompt: `Eres un asistente de IA experto en análisis de simulaciones de negocio para educación. Tu tarea es analizar el rendimiento de un equipo y generar un informe en ESPAÑOL para el profesor.
+  prompt: `Eres un asistente de IA experto en análisis de simulaciones de negocio para educación. Tu tarea es analizar el rendimiento de un equipo y generar un informe en ESPAÑOL para el profesor, siendo extremadamente riguroso y basándote ÚNICAMENTE en los datos proporcionados.
 
-  **Contexto de la Simulación:**
+  **Contexto General:**
   - Partida: {{{gameId}}}, Ronda: {{{roundNumber}}}
   - Condiciones del Mercado: {{{marketConditions}}}
-  - Rendimiento del Equipo (en formato JSON): {{{teamPerformanceData}}}
+  - Catálogo de Inversiones Disponibles: {{{investmentCatalog}}}
 
-  **Tu Misión:**
-  1.  **Analiza en Profundidad**: Examina los datos de rendimiento del equipo. Conecta sus decisiones (inversiones, precio, gestión de crisis) con los resultados en sus KPIs (finanzas, reputación, moral) y su puntuación de equilibrio de negocio (PEB).
+  **Datos del Equipo (JSON):**
+  \`\`\`json
+  {{{teamPerformanceData}}}
+  \`\`\`
+
+  **Tu Misión (Sigue estas reglas estrictamente):**
+  1.  **Analiza en Profundidad**: Examina los datos de rendimiento del equipo en el JSON. Conecta sus decisiones (inversiones, precio, gestión de crisis) con los resultados en sus KPIs (finanzas, reputación, moral) y su puntuación de equilibrio de negocio (PEB).
   2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
-  3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda (ej: ¿sacrificar rentabilidad por cuota de mercado?, ¿cómo una crisis impactó su plan?).
+  3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda.
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
-  5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para cada uno de los KPIs. Tu análisis DEBE explicar el porqué del valor de forma cuantitativa, basándote en los datos de entrada.
-      - **Usa el Valor Correcto:** Asegúrate de usar el valor final del KPI que se encuentra en el objeto \`kpis\` dentro de \`teamPerformanceData\`. No inventes valores.
-      - **Formato de Valores:** Al escribir el valor en el campo 'value' del JSON de salida, usa este formato exacto:
-        - **tesoreria:** Un número entero sin decimales (ej: "122890").
-        - **costePersonal:** Un número entero sin decimales (ej: "255000").
+  5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para CADA KPI. Tu análisis DEBE explicar el porqué del valor final de forma cuantitativa, basándote en los datos de entrada.
+      - **Identifica Inversiones por ID:** Usa el 'investmentCatalog' para encontrar el nombre de cada inversión a partir de su ID en \`teamPerformanceData.decisions.actions\`. **NO ALUCINES NOMBRES DE INVERSIONES.** Si una inversión no está en la lista de acciones del equipo, no la menciones.
+      - **Calcula el Valor Correcto:** Para el campo 'value' de cada KPI, usa el valor final que se encuentra en \`teamPerformanceData.kpis\`. Asegúrate de usar el formato de valor exacto solicitado a continuación.
+      - **Formato de Valores:**
+        - **tesoreria:** Un número entero sin decimales (ej: "77600").
+        - **costePersonal:** Un número entero sin decimales (ej: "247500").
         - **nma:** Un número con un decimal, usando coma (ej: "7,2").
-        - **cuotaDeMercado:** Un número con dos decimales, usando coma, y el símbolo % (ej: "51,52%").
+        - **cuotaDeMercado:** Un número con dos decimales, usando coma, y el símbolo % (ej: "18,52%").
         - **moral:** Un número entero y el símbolo % (ej: "65%").
         - **ratioAlumnosProfesor:** Un número con dos decimales, usando coma (ej: "26,09").
-      - **Describe el Cálculo:** En el campo 'analysis', describe en palabras cómo se llegó al valor. Menciona explícitamente las decisiones (inversiones, contrataciones) del JSON de entrada que aplicaron bonus o penalizaciones.
-      - **NO ALUCINES:** No menciones inversiones o decisiones que no aparezcan en el JSON \`teamPerformanceData.decisions.actions\`. Si el equipo no invirtió en algo relevante, explícalo.
-      - **Ejemplo de Análisis para NMA:** "El NMA bajó a 7,2 principalmente por la penalización de -0.3 por sobrecarga de profesorado, al tener un ratio de 26.1. No se realizaron inversiones en formación (P1) o TIC (R2) que pudieran haber compensado esta caída."
-      - **Ejemplo de Análisis para Moral:** "La moral cayó a 65% debido a la fuerte penalización de -15 puntos por un ratio de alumnos/profesor superior a 26. La falta de inversión en formación (P1) o actividades sociales (P5) impidió mejorarla."
+      - **Describe el Cálculo y los Factores:** En el campo 'analysis', describe en palabras cómo se llegó al valor.
+          - Para **Tesoreria**: Menciona el saldo inicial, los ingresos y los gastos totales (personal, inversiones, crisis).
+          - Para **Coste Personal**: Basa el análisis en el número de profesores.
+          - Para **NMA**: Menciona el valor base y suma o resta los bonus/penalizaciones de inversiones (ej: P1, R2) o por sobrecarga de profesorado (ratio > 26).
+          - Para **Cuota de Mercado**: Analízalo en función de la competitividad del precio y las inversiones en marketing (ej: R1).
+          - Para **Moral**: Analiza el impacto de inversiones (P1, P2, P4, P5), despidos (P7) y, muy importante, la penalización de -15 puntos si el ratio de alumnos/profesor es superior a 26.
+          - Para **Ratio Alumnos/Profesor**: Explica que se calcula dividiendo el número final de alumnos entre el número final de profesores.
 
   **IMPORTANTE**: Responde únicamente con el formato JSON solicitado. No añadas introducciones ni despedidas. El idioma de toda tu respuesta debe ser ESPAÑOL.`,
 });
@@ -80,7 +95,7 @@ const prompt = ai.definePrompt({
 const generateRoundReportFlow = ai.defineFlow(
   {
     name: 'generateRoundReportFlow',
-    inputSchema: GenerateRoundReportInputSchema,
+    inputSchema: GenerateRoundReportInputSchema.extend({ investmentCatalog: z.string() }),
     outputSchema: GenerateRoundReportOutputSchema,
     retries: {
       max: 3,

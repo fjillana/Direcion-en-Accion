@@ -182,12 +182,18 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     const negotiationSuccess = negotiationOutcomes[teamState.name];
     const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess);
 
+    // Clean the decisions object before saving
+    const finalDecisions = { ...teamState.decisions };
+    if (finalDecisions.poachingTarget === undefined) {
+      delete finalDecisions.poachingTarget;
+    }
+
     const result: TeamPerformanceData = {
       name: teamState.name,
       type: teamState.type,
       round: game.round,
       ...performance,
-      decisions: teamState.decisions,
+      decisions: finalDecisions,
       kpis: teamState.kpis,
     };
     

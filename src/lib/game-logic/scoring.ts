@@ -142,7 +142,7 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         }
     }
     
-    // Crisis C2 Option 2 Penalty
+    // Crisis C2 Effects
     if (decisions.crisisResponse?.crisisId === 'C2') {
         if (decisions.crisisResponse.optionId === 'C2_op2') {
             bonus.reputation -= 15;
@@ -153,6 +153,10 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
             } else {
                 bonus.finances -= 5;
             }
+        }
+        if (decisions.crisisResponse.optionId === 'C2_op5') {
+            bonus.finances += 8;
+            bonus.reputation -= 8;
         }
     }
 

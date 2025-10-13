@@ -37,7 +37,7 @@ interface InvestmentFormProps {
 }
 
 const centerActionsCostMap: Record<string, number> = {
-    'P2': 0, // Contratar no tiene coste de inversión, es gasto recurrente
+    'P2': 7500, // Contratar tiene el coste del primer salario trimestral
     'P7': 7500, // Despedir tiene coste de indemnización
     'F5': 50000, // Ampliación de aulas
 };

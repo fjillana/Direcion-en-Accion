@@ -188,6 +188,7 @@ export function updateKpisForNextRound(
   const centerActionsCost = actions.reduce((sum, actionId) => {
       if (actionId === 'F5') return sum + 50000;
       if (actionId === 'P7') return sum + 7500; // Coste de despido
+      if (actionId === 'P2') return sum + 7500; // Coste de contratación (primer salario)
       return sum;
   }, 0);
   

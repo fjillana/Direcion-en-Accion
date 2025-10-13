@@ -114,6 +114,15 @@ export function CatalogEditor({
     return `${cost.value[0].toLocaleString('es-ES')} - ${cost.value[1].toLocaleString('es-ES')} CC`;
   };
 
+  const formatArea = (area: 'finances' | 'reputation' | 'morale') => {
+    switch (area) {
+      case 'finances': return 'Finanzas';
+      case 'reputation': return 'Reputación';
+      case 'morale': return 'Moral';
+      default: return area;
+    }
+  }
+
   const AddNewDialog = () => (
      <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent>
@@ -178,7 +187,10 @@ export function CatalogEditor({
                 <TableHead>Nombre</TableHead>
                 <TableHead>Descripción</TableHead>
                 {type === "investment" && (
-                  <TableHead>Coste</TableHead>
+                  <>
+                    <TableHead>Área</TableHead>
+                    <TableHead>Coste</TableHead>
+                  </>
                 )}
                 <TableHead className="w-[50px]">
                   <span className="sr-only">Actions</span>
@@ -193,9 +205,14 @@ export function CatalogEditor({
                     {item.description}
                   </TableCell>
                   {type === "investment" && isInvestment(item) && (
-                     <TableCell className="font-mono">
-                      {formatCost(item.cost)}
-                    </TableCell>
+                     <>
+                        <TableCell>
+                            {formatArea(item.bonus.area)}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                            {formatCost(item.cost)}
+                        </TableCell>
+                     </>
                   )}
                   <TableCell>
                     <DropdownMenu>

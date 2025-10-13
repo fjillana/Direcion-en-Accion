@@ -299,7 +299,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             ...updatedDecisions,
             crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
           };
-          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, finalDecisions);
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
 

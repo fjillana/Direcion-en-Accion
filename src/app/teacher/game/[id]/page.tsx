@@ -147,8 +147,8 @@ export default function GameDetailsPage() {
   const isButtonDisabled = () => {
       if (isProcessing) return true;
       if (!game || game.status === 'Finalizado') return true;
-      if (!allTeamsConfirmed) return true; // Disable if not all teams have confirmed, even for round 0
-      if (game.round > game.numRounds) return true; // Game is effectively over
+      if (!allTeamsConfirmed) return true;
+      if (game.round > game.numRounds) return true;
       return false;
   }
 
@@ -165,26 +165,44 @@ export default function GameDetailsPage() {
     return game.decisions?.[parseInt(currentRoundTab)]?.[selectedTeam.name] || selectedTeam.decisions;
   }, [selectedTeam, game, currentRoundTab]);
   
-  const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
-    if (!team || !team.decisions?.actions) return "(Bonus)";
+  const getBonusSourceNames = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
+    if (!team?.decisions) return "";
 
-    const areaInvestments = (team.decisions.actions)
-        .map(actionId => allInvestments.find(inv => inv.id === actionId))
-        .filter((inv): inv is Investment => !!inv && !!inv.xpBonus[area]);
+    const sources: string[] = [];
 
-    if (areaInvestments.length === 0) return "";
-
-    const mainContributor = areaInvestments.reduce((max, current) => {
-        const maxBonusConfig = max.xpBonus[area];
-        const currentBonusConfig = current.xpBonus[area];
-        
-        const maxBonusValue = Array.isArray(maxBonusConfig) ? maxBonusConfig[1] : maxBonusConfig;
-        const currentBonusValue = Array.isArray(currentBonusConfig) ? currentBonusConfig[1] : currentBonusConfig;
-        
-        return (currentBonusValue ?? 0) > (maxBonusValue ?? 0) ? current : max;
+    // Check investment-based bonuses
+    (team.decisions.actions || []).forEach(actionId => {
+        const investment = allInvestments.find(inv => inv.id === actionId);
+        if (investment && investment.xpBonus[area]) {
+            sources.push(investment.name);
+        }
+        if (investment && investment.effects.reputationPenalty && area === 'reputation') {
+            sources.push(`${investment.name} (Penalización)`);
+        }
     });
 
-    return `(${mainContributor.name})`;
+    // Check crisis-based bonuses/penalties
+    const crisisId = team.decisions.crisisResponse?.crisisId;
+    const optionId = team.decisions.crisisResponse?.optionId;
+    if (crisisId && optionId) {
+        // This mapping should ideally come from a central place, but for now, we hardcode it.
+        const crisisXpEffects: Record<string, Record<string, Partial<Record<'finances' | 'reputation' | 'morale', number>>>> = {
+            'C1': { 'C1_op1': { morale: 5, finances: -5 }, 'C1_op2': { morale: 3, finances: -3 }, 'C1_op3': { finances: -15, reputation: -15, morale: -15 }, 'C1_op4': { morale: 2 }, 'C1_op5': { finances: 5, reputation: -10 } },
+            'C2': { 'C2_op2': { reputation: -15 }, 'C2_op3': { reputation: 5, finances: -5 }, 'C2_op5': { finances: 8, reputation: -8 } },
+            'C3': { 'C3_op1': { reputation: 2, finances: -2 }, 'C3_op2': { finances: 5, reputation: -5 }, 'C3_op4': { finances: 3, reputation: -4 }, 'C3_op5': { reputation: 3, finances: 2 } },
+            'C4': { 'C4_op1': { reputation: -5 }, 'C4_op2': { reputation: -2, morale: 2 }, 'C4_op3': { finances: 5 }, 'C4_op4': { reputation: 5 }, 'C4_op5': { reputation: 3 } },
+            'C5': { 'C5_op1': { reputation: -3, finances: -5 }, 'C5_op2': { reputation: 5, morale: 3 }, 'C5_op3': { morale: 3 }, 'C5_op4': { reputation: -10 }, 'C5_op5': { finances: -2, reputation: 2 } },
+            'C6': { 'C6_op1': { finances: -2, reputation: 2 }, 'C6_op2': { finances: 4, reputation: 2 }, 'C6_op4': { finances: 4, reputation: -5 }, 'C6_op5': { finances: -2 } },
+            'C7': { 'C7_op1': { reputation: -8 }, 'C7_op2': { reputation: -4, morale: 3 }, 'C7_op3': { reputation: 5, morale: 3 }, 'C7_op4': { reputation: -2, morale: 2 }, 'C7_op5': { reputation: -10, finances: 5 } }
+        };
+        const effect = crisisXpEffects[crisisId]?.[optionId];
+        if (effect && effect[area]) {
+            sources.push(effect[area]! > 0 ? "Bonus Crisis" : "Penalización Crisis");
+        }
+    }
+
+    if (sources.length === 0) return "";
+    return `(${sources.join(', ')})`;
   };
 
 
@@ -333,7 +351,7 @@ export default function GameDetailsPage() {
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpFinancesBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`} {selectedTeam.finances.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
+                        <p>{`(${selectedTeam.finances.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpFinancesBonus ?? 0).toFixed(2)} XP ${getBonusSourceNames(selectedTeam, 'finances')} = ${selectedTeam.finances.xp.toFixed(2)} XP`} {selectedTeam.finances.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -348,7 +366,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpReputationBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`} {selectedTeam.reputation.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
+                        <p>{`(${selectedTeam.reputation.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpReputationBonus ?? 0).toFixed(2)} XP ${getBonusSourceNames(selectedTeam, 'reputation')} = ${selectedTeam.reputation.xp.toFixed(2)} XP`} {selectedTeam.reputation.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
                  <div className="space-y-2 p-3 border rounded-lg">
@@ -363,7 +381,7 @@ export default function GameDetailsPage() {
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
-                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpMoraleBonus ?? 0).toFixed(2)} XP ${getBonusSourceName(selectedTeam, 'morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`} {selectedTeam.morale.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
+                        <p>{`(${selectedTeam.morale.peb.toFixed(2)}/100 * 26.67) + ${(selectedTeam.xpMoraleBonus ?? 0).toFixed(2)} XP ${getBonusSourceNames(selectedTeam, 'morale')} = ${selectedTeam.morale.xp.toFixed(2)} XP`} {selectedTeam.morale.xp >= 29.33 && <span className="text-xs text-primary font-semibold">(MAX 110%)</span>}</p>
                     </div>
                  </div>
               </div>
@@ -471,5 +489,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

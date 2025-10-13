@@ -120,10 +120,15 @@ export function updateKpisForNextRound(
   }
 
   if(crisisId === 'C5') {
-    if(crisisOption === 'C5_op3') { // Contratar personal sanitario
+    if (crisisOption === 'C5_op3') { // Contratar personal sanitario
       updatedMorale += 5;
     } else if (crisisOption === 'C5_op4') { // Ignorar recomendaciones
       updatedMorale -= 15;
+    } else if (crisisOption === 'C5_op5') {
+      if (negotiationSuccess) {
+          // The 5k is a cash injection, handled here as "recoveredSubsidy" for simplicity
+          recoveredSubsidy += 5000;
+      }
     }
   }
 

@@ -229,6 +229,11 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
             bonus.morale += 3;
         } else if (optionId === 'C5_op4') {
             bonus.reputation -= 10;
+        } else if (optionId === 'C5_op5') {
+            bonus.finances -= 2;
+            if (negotiationSuccess) {
+                bonus.reputation += 2;
+            }
         }
     }
 

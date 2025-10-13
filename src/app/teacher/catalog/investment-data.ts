@@ -13,7 +13,7 @@ export const investments: Investment[] = [
     {
       id: 'F2',
       name: 'Contratación de asesoría financiera',
-      description: 'Apoyo experto para elaborar presupuestos y evaluar inversiones. Se contrata por ronda.',
+      description: 'Consultor financiero especializado para elaborar presupuestos y evaluar inversiones. Se contrata por ronda.',
       cost: { type: 'range', value: [8000, 12000] },
       bonus: { area: 'finances', type: 'scaled', value: [3, 8] },
     },

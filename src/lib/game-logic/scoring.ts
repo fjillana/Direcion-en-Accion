@@ -1,5 +1,4 @@
 
-
 import type { TeamState } from './types';
 import type { TeamDecision } from '@/hooks/use-games';
 import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
@@ -145,7 +144,7 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
     
     // Crisis C2 Option 2 Penalty
     if (decisions.crisisResponse?.crisisId === 'C2' && decisions.crisisResponse.optionId === 'C2_op2') {
-        bonus.reputation -= 5;
+        bonus.reputation -= 15;
     }
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);

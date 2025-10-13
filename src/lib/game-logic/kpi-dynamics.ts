@@ -70,10 +70,16 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
 
   // --- Crisis C2 Effect ---
   if (decisions.crisisResponse?.crisisId === 'C2') {
-    currentPublicIncome -= 25000; // Main effect of the crisis
-    if (decisions.crisisResponse.optionId === 'C2_op1') {
-      loanIncome = 25000; // Loan received
-    }
+      if (decisions.crisisResponse.optionId === 'C2_op1') {
+          // Main effect of crisis happens, but is offset by loan
+          currentPublicIncome -= 25000;
+          loanIncome = 25000;
+      } else if (decisions.crisisResponse.optionId === 'C2_op2') {
+          // The cut is avoided completely
+      } else {
+          // Default effect for all other options
+          currentPublicIncome -= 25000;
+      }
   }
 
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;

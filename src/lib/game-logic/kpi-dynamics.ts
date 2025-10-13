@@ -119,6 +119,14 @@ export function updateKpisForNextRound(
     }
   }
 
+  if(crisisId === 'C5') {
+    if(crisisOption === 'C5_op3') { // Contratar personal sanitario
+      updatedMorale += 5;
+    } else if (crisisOption === 'C5_op4') { // Ignorar recomendaciones
+      updatedMorale -= 15;
+    }
+  }
+
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 

@@ -1,4 +1,5 @@
 
+
 // src/lib/game-logic/market-attractiveness.ts
 
 import type { Game } from "@/hooks/use-games";
@@ -50,6 +51,10 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
 
     // d. Componente de Instalaciones: Bonus fijo por la inversión 'R3'.
     const facilitiesPoints = (team.decisions?.actions || []).includes('R3') ? 5 : 0;
+    
+    // e. Componente de Sostenibilidad: Bonus fijo por la inversión 'R5'.
+    const sustainabilityPoints = (team.decisions?.actions || []).includes('R5') ? 5 : 0;
+
 
     // Sanitize values to ensure they are numbers, defaulting to 0.
     const sanitizedNmaPoints = isNaN(nmaPoints) ? 0 : nmaPoints;
@@ -57,7 +62,7 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const sanitizedMarketingPoints = isNaN(marketingPoints) ? 0 : marketingPoints;
 
     // Fórmula completa del IAM
-    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints;
+    const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints + sustainabilityPoints;
     const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
 
     teamIamResults[team.name] = {

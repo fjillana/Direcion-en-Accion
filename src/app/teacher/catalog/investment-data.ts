@@ -70,7 +70,7 @@ export const investments: Investment[] = [
     {
       id: 'R5',
       name: 'Programa de sostenibilidad y ecología',
-      description: 'Implementar reciclaje, huertos escolares o certificación ecológica atrae familias concienciadas. Otorga 4 XP de Reputación.',
+      description: 'Implementar reciclaje, huertos escolares o certificación ecológica atrae familias concienciadas (+5 puntos IAM). Otorga 4 XP de Reputación.',
       cost: { type: 'range', value: [5000, 15000] },
       bonus: { area: 'reputation', type: 'fixed', value: 4 },
     },

@@ -52,6 +52,10 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     if (team.decisions.crisisResponse?.optionId === 'C3_op5') {
         marketingPoints += 10; // Bonus de 10 puntos de IAM
     }
+    // Bonus de marketing por crisis C4
+    if (team.decisions.crisisResponse?.optionId === 'C4_op5') {
+        marketingPoints += 10;
+    }
 
 
     // d. Componente de Instalaciones: Bonus fijo por la inversión 'R3'.

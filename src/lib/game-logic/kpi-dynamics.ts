@@ -77,7 +77,7 @@ export function updateKpisForNextRound(
   let recoveredSubsidy = 0;
   let privateIncome = updatedNumStudents * decisions.tuitionPrice;
 
-  // --- Crisis Effects on Income ---
+  // --- Crisis Effects on Income and Morale---
   const crisisId = decisions.crisisResponse?.crisisId;
   const crisisOption = decisions.crisisResponse?.optionId;
 
@@ -112,8 +112,10 @@ export function updateKpisForNextRound(
   }
   
   if (crisisId === 'C4') {
-    if (crisisOption === 'C4_op1') {
+    if (crisisOption === 'C4_op1') { // Ignorar
       updatedMorale -= 10;
+    } else if (crisisOption === 'C4_op4') { // Mejoras
+      updatedMorale += 5;
     }
   }
 
@@ -162,6 +164,15 @@ export function updateKpisForNextRound(
   
   if (crisisOption === 'C3_op5') { // Coste extra de la opción de marketing de C3
     crisisCost -= 10000;
+  }
+  if (crisisOption === 'C4_op3') {
+    crisisCost -= 10000;
+  }
+  if (crisisOption === 'C4_op4') {
+    crisisCost -= 20000;
+  }
+  if (crisisOption === 'C4_op5') {
+    crisisCost -= 8000;
   }
 
   // Calculate interest cost if loan was taken previously

@@ -265,6 +265,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
       } else if (optionId === 'C7_op3') { // Programa anti-bullying
         bonus.reputation += 5;
         bonus.morale += 3;
+      } else if (optionId === 'C7_op4') { // Comunicado
+        bonus.reputation -= 2;
+        bonus.morale += 2;
+      } else if (optionId === 'C7_op5') { // Demandear
+        bonus.reputation -= 10;
+        bonus.finances += 5;
       }
     }
 

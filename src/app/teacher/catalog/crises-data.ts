@@ -96,7 +96,7 @@ export const crises: Crisis[] = [
         { label: 'Buscar otro patrocinador', costText: '-4.000 CC', cost: -4000, effect: 'Impacto: -4.000 CC de coste para encontrar un nuevo patrocinador, pero se recuperan los 10.000 CC. +4 XP Finanzas, +2 XP Reputación.' },
         { label: 'Solicitar un préstamo', costText: 'Préstamo', cost: 0, effect: 'Cubre el déficit con 10.000 CC pero reduce el PEB de Finanzas a la mitad y genera intereses.' },
         { label: 'Recortar gastos de marketing', costText: '0 CC', cost: 0, effect: 'Anula la pérdida de 10.000 CC a cambio de una penalización de -5 XP en Reputación y +4 XP en Finanzas.' },
-        { label: 'Aceptar la pérdida', costText: '0 CC', cost: -10000, effect: 'Impacto: −2 XP Finanzas; mantiene la reputación intacta; reduce la tesorería' },
+        { label: 'Aceptar la pérdida', costText: '0 CC', cost: 0, effect: 'Impacto: −2 XP Finanzas; mantiene la reputación intacta; reduce la tesorería' },
       ]
     },
     {
@@ -104,10 +104,10 @@ export const crises: Crisis[] = [
       name: 'Caso de redes sociales / ciberbullying',
       description: 'Se viraliza en redes sociales un caso de ciberbullying entre estudiantes del centro. Se acusa al colegio de no actuar con rapidez.',
       options: [
-        { label: 'Minimizar el caso', costText: '0 CC', cost: 0, effect: 'Impacto: −8 XP Reputación; la moral baja 5 puntos; puede afectar al IAM la próxima ronda' },
-        { label: 'Abrir una investigación interna', costText: '0 CC', cost: 0, effect: 'Impacto: −4 XP Reputación inicial, +3 XP Personal; previene mayores daños; mejora la moral 5 puntos' },
-        { label: 'Implementar un programa anti‑bullying', costText: '-5.000 CC', cost: -5000, effect: 'Impacto: −5.000 CC, +5 XP Reputación, +3 XP Personal; mejora la NMA a largo plazo' },
-        { label: 'Realizar un comunicado público y pedir disculpas', costText: '0 CC', cost: 0, effect: 'Impacto: −2 XP Reputación inicial; +2 XP Personal; evita penalizaciones mayores' },
+        { label: 'Minimizar el caso', costText: '0 CC', cost: 0, effect: 'Impacto: −8 XP Reputación; la moral baja 5 puntos; afecta negativamente al IAM (-20 puntos) la próxima ronda' },
+        { label: 'Abrir una investigación interna', costText: '0 CC', cost: 0, effect: 'Impacto: −4 XP Reputación inicial, +3 XP Personal; mejora la moral 5 puntos' },
+        { label: 'Implementar un programa anti‑bullying', costText: '-5.000 CC', cost: -5000, effect: 'Impacto: −5.000 CC, +5 XP Reputación, +3 XP Personal; mejora el IAM en +10 puntos.' },
+        { label: 'Realizar un comunicado público y pedir disculpas', costText: '0 CC', cost: 0, effect: 'Impacto: −2 XP Reputación inicial; +2 XP Personal.' },
         { label: 'Demandear a los denunciantes por difamación', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10 XP Reputación; −10 puntos de moral; +5 XP Finanzas por ahorro de inversiones en prevención; genera mala imagen a largo plazo' },
       ]
     },

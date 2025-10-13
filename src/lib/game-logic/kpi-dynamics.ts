@@ -137,12 +137,10 @@ export function updateKpisForNextRound(
     otherIncome -= 10000; // Apply base deficit
     if (crisisOption === 'C6_op1' && negotiationSuccess) {
         otherIncome += 5000; // Recover 5k
-    } else if (crisisOption === 'C6_op2') {
-        otherIncome += 10000; // Recover full amount
+    } else if (crisisOption === 'C6_op2' || crisisOption === 'C6_op4') {
+        otherIncome += 10000; // Recover full amount (from new sponsor or by cutting marketing)
     } else if (crisisOption === 'C6_op3') {
         loanIncome += 10000; // Loan to cover the deficit
-    } else if (crisisOption === 'C6_op4') {
-        otherIncome += 10000; // Recutting marketing avoids the loss
     }
   }
 
@@ -151,6 +149,8 @@ export function updateKpisForNextRound(
           updatedMorale -= 5;
       } else if (crisisOption === 'C7_op2') { // Investigar
           updatedMorale += 5;
+      } else if (crisisOption === 'C7_op5') { // Demandear
+          updatedMorale -= 10;
       }
   }
 
@@ -214,6 +214,9 @@ export function updateKpisForNextRound(
   }
   if (crisisOption === 'C7_op3') {
     crisisCost -= 5000;
+  }
+  if (crisisOption === 'C7_op5') {
+    crisisCost -= 10000;
   }
 
   // Calculate interest cost if loan was taken previously

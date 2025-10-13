@@ -246,6 +246,11 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         } else if (optionId === 'C6_op2') {
             bonus.finances += 4;
             bonus.reputation += 2;
+        } else if (optionId === 'C6_op4') {
+            bonus.finances += 4;
+            bonus.reputation -= 5;
+        } else if (optionId === 'C6_op5') {
+            bonus.finances -= 2;
         }
     }
 
@@ -257,12 +262,21 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
     const { kpis, decisions } = teamState;
     
-    const hasLoan = decisions.crisisResponse?.optionId === 'C2_op1' || decisions.crisisResponse?.optionId === 'C3_op3';
+    const hasC2Loan = decisions.crisisResponse?.optionId === 'C2_op1';
+    const hasC3Loan = decisions.crisisResponse?.optionId === 'C3_op3';
+    const hasC6Loan = decisions.crisisResponse?.optionId === 'C6_op3';
+    const hasLoan = hasC2Loan || hasC3Loan || hasC6Loan;
 
     // --- PEB Calculation ---
     const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, hasLoan);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
-    const pebFinanzas = Math.min(110, (treasury.peb + personnelCost.peb) / 2);
+    let pebFinanzas = (treasury.peb + personnelCost.peb) / 2;
+
+    if (hasC6Loan) { // Specific PEB penalty for C6 loan
+        pebFinanzas *= 0.5;
+    }
+    pebFinanzas = Math.min(110, pebFinanzas);
+
 
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);

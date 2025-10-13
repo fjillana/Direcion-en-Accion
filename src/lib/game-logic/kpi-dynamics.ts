@@ -139,6 +139,10 @@ export function updateKpisForNextRound(
         otherIncome += 5000; // Recover 5k
     } else if (crisisOption === 'C6_op2') {
         otherIncome += 10000; // Recover full amount
+    } else if (crisisOption === 'C6_op3') {
+        loanIncome += 10000; // Loan to cover the deficit
+    } else if (crisisOption === 'C6_op4') {
+        otherIncome += 10000; // Recutting marketing avoids the loss
     }
   }
 
@@ -204,13 +208,17 @@ export function updateKpisForNextRound(
   // Calculate interest cost if loan was taken previously
   let interestCost = 0;
   const hasC2Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
-  const hasC3Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C3_op3') || decisions.crisisResponse?.optionId === 'C3_op3';
-  
+  const hasC3Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C3_op3');
+  const hasC6Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C6_op3') || decisions.crisisResponse?.optionId === 'C6_op3';
+
   if (hasC2Loan) {
     interestCost += 25000 * 0.10; // 10% interest on 25k loan
   }
   if (hasC3Loan) {
     interestCost += 10000 * 0.10; // 10% interest on 10k loan
+  }
+  if (hasC6Loan) {
+    interestCost += 10000 * 0.10; // 10% interest on 10k loan for C6
   }
 
 

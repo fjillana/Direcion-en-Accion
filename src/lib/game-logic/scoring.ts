@@ -142,6 +142,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
             }
         }
     }
+    
+    // Crisis C2 Option 2 Penalty
+    if (decisions.crisisResponse?.crisisId === 'C2' && decisions.crisisResponse.optionId === 'C2_op2') {
+        bonus.reputation -= 5;
+    }
+
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;
 }

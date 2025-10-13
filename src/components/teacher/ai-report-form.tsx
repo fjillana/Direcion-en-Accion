@@ -234,14 +234,12 @@ export function AIReportForm() {
   const formatKpiValue = (valueStr: string, key: string): string => {
     if (typeof valueStr !== 'string') return valueStr;
 
-    // Handle percentage values first
     if (valueStr.includes('%') || key === 'cuotaDeMercado' || key === 'moral') {
         const numericValue = parseFloat(valueStr.replace(/[^0-9,-]/g, '').replace(',', '.'));
         if (isNaN(numericValue)) return valueStr;
         return `${numericValue.toFixed(2).replace('.', ',')}%`;
     }
 
-    // Handle decimal values like NMA or Ratio
     if (key === 'nma' || key === 'ratioAlumnosProfesor') {
         const numericValue = parseFloat(valueStr.replace(/[^0-9,-]/g, '').replace(',', '.'));
         if (isNaN(numericValue)) return valueStr;
@@ -249,7 +247,6 @@ export function AIReportForm() {
         return numericValue.toFixed(decimalPlaces).replace('.', ',');
     }
 
-    // Handle large integer values like Tesoreria or Coste
     const numericValue = parseInt(valueStr.replace(/[^0-9]/g, ''), 10);
     if (isNaN(numericValue)) return valueStr;
     
@@ -260,10 +257,11 @@ export function AIReportForm() {
     totalInvestmentCost, 
     finalCash, 
     totalCosts,
-    initialCashForRound
+    initialCashForRound,
+    crisisCost
   } = useMemo(() => {
     if (!reportData || !activeGame || !selectedTeam) {
-      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, initialCashForRound: 0 };
+      return { totalInvestmentCost: 0, finalCash: 0, totalCosts: 0, initialCashForRound: 0, crisisCost: 0 };
     }
     
     const decisions = reportData.decisions || {};
@@ -275,17 +273,18 @@ export function AIReportForm() {
             if (investment.cost.type === 'fixed') {
                 return acc + (investment.cost.value as number);
             } else {
-                // Placeholder for ranged investments, assuming max for now.
-                return acc + (investment.cost.value[1]);
+                 return acc + (decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
             }
         }
-        if (actionId === 'P2') return acc; // Salary is in personnelCost
-        if (actionId === 'P7') return acc + 7500; // Severance
+        if (actionId === 'P2') return acc;
+        if (actionId === 'P7') return acc + 7500;
         if (actionId === 'F5') return acc + 50000;
         return acc;
     }, 0);
+
+    const costOfCrisis = Math.abs(decisions.crisisResponse?.cost || 0);
     
-    const allCosts = (kpis.personnelCost || 0) + actionCosts;
+    const allCosts = (kpis.personnelCost || 0) + actionCosts + costOfCrisis + (kpis.loanInterest || 0);
 
     const gameData = getGameById(activeGame.id);
     let cashAtStart = gameData?.initialFunds || 0;
@@ -301,10 +300,11 @@ export function AIReportForm() {
     const cash = cashAtStart + (kpis.income || 0) - allCosts;
 
     return { 
-        totalInvestmentCost: actionCosts, // Unified cost
+        totalInvestmentCost: actionCosts,
         finalCash: cash, 
         totalCosts: allCosts,
-        initialCashForRound: cashAtStart
+        initialCashForRound: cashAtStart,
+        crisisCost: costOfCrisis
     };
   }, [reportData, activeGame, getGameById, selectedTeam]);
 
@@ -362,9 +362,12 @@ export function AIReportForm() {
                                     <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
                                     <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                                     <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
+                                     {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
                                     <div className="flex justify-between text-destructive"><span>(-) Costes Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                                     <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                                     <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones (Acciones + Inversiones):</span> <span className="font-mono">{formatCurrency(totalInvestmentCost)}</span></div>
+                                    {crisisCost > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Crisis:</span> <span className="font-mono">{formatCurrency(crisisCost)}</span></div>}
+                                    {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                                     <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                                </div>
                             </AccordionContent>
@@ -385,7 +388,7 @@ export function AIReportForm() {
                                         {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
                                           const investment = allInvestments.find(inv => inv.id === actionId);
                                           if (investment) {
-                                            const cost = investment.cost.type === 'fixed' ? investment.cost.value : investment.cost.value[1];
+                                            const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
                                             return <li key={`${actionId}-${index}`}>{investment.name}: {formatCurrency(cost as number)}</li>
                                           }
                                           if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente (Coste salarial recurrente)</li>

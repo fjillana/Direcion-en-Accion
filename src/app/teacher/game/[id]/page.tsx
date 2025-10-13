@@ -405,7 +405,6 @@ export default function GameDetailsPage() {
                                         
                                         const name = investmentInfo?.name || centerActionInfo?.name || actionId;
                                         
-                                        // Retrieve the specific cost saved for this decision
                                         const cost = fullDecisionsForDialog.investmentCosts?.[actionId] ?? 
                                                      (investmentInfo?.cost.type === 'fixed' ? investmentInfo.cost.value :
                                                       centerActionInfo ? centerActionInfo.cost : undefined);
@@ -450,6 +449,10 @@ export default function GameDetailsPage() {
                                     "{fullDecisionsForDialog.crisisResponse.justification}"
                                 </blockquote>
                             </div>
+                             <div className="flex justify-between items-center bg-muted/50 rounded-md p-3">
+                                 <span className="font-medium">Coste de la Opción:</span>
+                                 <span className="font-mono font-bold text-red-600">{formatCurrency(fullDecisionsForDialog.crisisResponse.cost)} CC</span>
+                             </div>
                          </div>
                      ) : (
                         <p className="text-sm text-muted-foreground">No hubo crisis para este equipo en esta ronda.</p>

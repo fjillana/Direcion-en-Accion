@@ -1,4 +1,5 @@
 
+
 import type { TeamState } from './types';
 import type { TeamDecision } from '@/hooks/use-games';
 import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
@@ -147,6 +148,9 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
       if (decisions.crisisResponse.optionId === 'C1_op1') {
         bonus.morale += 5;
         bonus.finances -= 5;
+      } else if (decisions.crisisResponse.optionId === 'C1_op2') {
+        bonus.morale += 3;
+        bonus.finances -= 3;
       }
     }
 

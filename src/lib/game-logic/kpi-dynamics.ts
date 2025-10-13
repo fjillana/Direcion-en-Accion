@@ -1,4 +1,5 @@
 
+
 import type { TeamState, TeamKPIs } from "./types";
 import type { TeamPerformanceData } from "@/hooks/use-games";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
@@ -185,6 +186,8 @@ export function updateKpisForNextRound(
   if (decisions.crisisResponse?.crisisId === 'C1') {
     if (decisions.crisisResponse.optionId === 'C1_op1') {
       updatedMorale += 30;
+    } else if (decisions.crisisResponse.optionId === 'C1_op2') {
+      updatedMorale += 20;
     }
   }
 

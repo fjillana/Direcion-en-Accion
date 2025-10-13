@@ -13,9 +13,11 @@ import { useMemo } from "react";
 
 export default function AchievementsPage() {
   const { studentGame } = useStudentGame();
-  const performanceHistory = studentGame?.performanceHistory || [];
-
-  const achievements = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
+  
+  const achievements = useMemo(() => {
+    const unlockedAchievementNames = studentGame?.unlockedAchievements || [];
+    return getAchievementsStatus(unlockedAchievementNames);
+  }, [studentGame?.unlockedAchievements]);
 
   return (
     <StudentGate>

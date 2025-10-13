@@ -31,9 +31,22 @@ const achievementsList: Omit<Achievement, 'unlocked'>[] = [
   },
 ];
 
-export function getAchievementsStatus(history: TeamPerformanceData[] | undefined): Achievement[] {
-  if(!history) return achievementsList.map(ach => ({ ...ach, unlocked: false }));
-  
+export function getAchievementsStatus(historyOrUnlocked: TeamPerformanceData[] | string[]): Achievement[] {
+  if (!historyOrUnlocked) {
+    return achievementsList.map(ach => ({ ...ach, unlocked: false }));
+  }
+
+  // If we receive a list of unlocked achievement names, use that directly.
+  if (Array.isArray(historyOrUnlocked) && typeof historyOrUnlocked[0] === 'string') {
+    const unlockedNames = historyOrUnlocked as string[];
+    return achievementsList.map(ach => ({
+      ...ach,
+      unlocked: unlockedNames.includes(ach.name)
+    }));
+  }
+
+  // Otherwise, calculate from performance history.
+  const history = historyOrUnlocked as TeamPerformanceData[];
   return achievementsList.map(ach => ({
     ...ach,
     unlocked: ach.check(history)

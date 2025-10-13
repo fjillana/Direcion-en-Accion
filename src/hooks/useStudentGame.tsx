@@ -11,7 +11,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import type { TeamDecision } from "@/hooks/use-games";
+import type { TeamDecision, CrisisDecision } from "@/hooks/use-games";
 
 
 type StudentGameStatus = "no-game" | "pending" | "joined";
@@ -24,19 +24,12 @@ export interface StudentGameState {
   teamName: string | null;
   planConfirmed?: boolean;
   strategicPlan?: StrategicPlan;
+  unlockedAchievements?: string[];
 }
 
-export interface RoundDecisions {
-  actions: string[];
-  tuitionPrice: number;
-  crisisResponse: {
-      crisisId: string;
-      optionId: string;
-      justification: string;
-      crisisName: string;
-      option: string;
-  } | null;
-  roundConfirmed: boolean;
+export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
+    crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
+    poachingTarget?: string;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -76,14 +69,17 @@ const initialStudentState: Omit<StudentGameState, 'userId'> = {
       morale: { target: 85, operator: "min" },
       studentTeacherRatio: { target: 23, operator: "max" },
     }
-  }
+  },
+  unlockedAchievements: []
 };
 
 const initialRoundDecisions: RoundDecisions = {
   actions: [],
+  investmentCosts: {},
   tuitionPrice: 120,
   crisisResponse: null,
   roundConfirmed: false,
+  poachingTarget: undefined,
 };
 
 
@@ -295,11 +291,16 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             ...prev.decisions,
             ...newDecisions,
             actions: newDecisions.actions !== undefined ? newDecisions.actions : prev.decisions.actions,
+            investmentCosts: { ...(prev.decisions.investmentCosts || {}), ...newDecisions.investmentCosts },
         };
 
         if (newDecisions.roundConfirmed) {
-          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, updatedDecisions);
-          confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, updatedDecisions);
+          const finalDecisions: TeamDecision = {
+            ...updatedDecisions,
+            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
+          };
+          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, finalDecisions);
+          confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
 
         return { ...prev, decisions: updatedDecisions };

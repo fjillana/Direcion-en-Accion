@@ -47,7 +47,12 @@
         "status": { "type": "string", "enum": ["no-game", "pending", "joined"] },
         "gameId": { "type": "string" },
         "gameName": { "type": "string" },
-        "teamName": { "type": "string" }
+        "teamName": { "type": "string" },
+        "unlockedAchievements": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of unlocked achievement names."
+        }
       }
     }
   },

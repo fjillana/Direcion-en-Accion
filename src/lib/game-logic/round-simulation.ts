@@ -6,6 +6,9 @@ import { calculateMarketAttractiveness } from "./market-attractiveness";
 import { updateKpisForNextRound } from "./kpi-dynamics";
 import type { TeamState, TeamKPIs, AIArchetype } from "./types";
 import { getAIDecisions } from "./ai-strategy";
+import { getAchievementsStatus } from "../achievements";
+import { doc, updateDoc, getFirestore } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
 
 const getStudentDecisions = (teamName: string, game: Game, studentGames: StudentGameState[]): RoundDecisions => {
     const studentState = studentGames.find(sg => sg.teamName === teamName);
@@ -198,8 +201,24 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const newMessages: GameMessage[] = [];
   const automaticCrises: { teamName: string, crisisIds: string[] }[] = [];
 
-  // --- Automatic Crisis Trigger Check ---
+  const { firestore } = initializeFirebase();
+
+  // --- Automatic Crisis & Achievement Trigger Check ---
   performanceResults.forEach(teamPerformance => {
+    if (teamPerformance.type === 'H') {
+      const student = studentGames.find(s => s.teamName === teamPerformance.name);
+      if (student) {
+        const fullHistory = [...teamPerformance.performanceHistory, teamPerformance];
+        const currentAchievements = getAchievementsStatus(fullHistory).filter(a => a.unlocked).map(a => a.name);
+        const previousAchievements = student.unlockedAchievements || [];
+        
+        if (currentAchievements.length > previousAchievements.length) {
+          const studentRef = doc(firestore, "studentGames", student.userId);
+          updateDoc(studentRef, { unlockedAchievements: currentAchievements });
+        }
+      }
+    }
+    
     // Check for Teacher Strike
     if (teamPerformance.kpis.morale < 50) {
       automaticCrises.push({ teamName: teamPerformance.name, crisisIds: ['C1'] });

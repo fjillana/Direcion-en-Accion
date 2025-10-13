@@ -105,6 +105,9 @@ export function updateKpisForNextRound(
         privateIncome += 10000; // Compensa el déficit con ingresos extra
     } else if (crisisOption === 'C3_op3') { // Solicitar préstamo
         loanIncome += 10000;
+    } else if (crisisOption === 'C3_op4') { // Recortar actividades
+        privateIncome += 10000; // Reintegra el coste de las actividades, compensando el déficit.
+        updatedMorale -= 5; // Penalización de moral
     }
   }
 

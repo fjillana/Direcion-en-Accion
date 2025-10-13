@@ -56,10 +56,10 @@ export const crises: Crisis[] = [
       name: 'Morosidad en las matrículas privadas',
       description: 'Varias familias no pagan la matrícula privada del trimestre, generando un déficit de 10.000 CC en los ingresos privados.',
       options: [
-        { label: 'Ofrecer un plan de pagos', costText: '0 CC', cost: 0, effect: 'Impacto: recuperación del 80 % del déficit; +2 XP Reputación; −2 XP Finanzas' },
-        { label: 'Subir temporalmente la matrícula a los alumnos solventes', costText: '0 CC', cost: 0, effect: 'Impacto: se compensa el déficit, −5 XP Reputación, +5 XP Finanzas' },
+        { label: 'Ofrecer un plan de pagos', costText: '0 CC', cost: 0, effect: 'Impacto: se recupera el 80% del déficit; +2 XP Reputación; −2 XP Finanzas' },
+        { label: 'Subir temporalmente la matrícula a los alumnos solventes', costText: '0 CC', cost: 0, effect: 'Impacto: se compensa el déficit, +5 XP Finanzas, -5 XP Reputación' },
         { label: 'Solicitar un préstamo de emergencia', costText: 'Préstamo', cost: 0, effect: 'Suma 10.000 CC a tesorería pero genera deuda y una penalización de -20 PEB en Finanzas.' },
-        { label: 'Recortar actividades extraescolares', costText: '0 CC', cost: 0, effect: 'Impacto: −4 XP Reputación, +3 XP Finanzas; puede bajar la moral en 5 puntos' },
+        { label: 'Recortar actividades extraescolares', costText: '0 CC', cost: 0, effect: 'Impacto: se compensa el déficit; +3 XP Finanzas, −4 XP Reputación; puede bajar la moral en 5 puntos' },
         { label: 'Invertir en marketing para captar nuevos alumnos', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10.000 CC en marketing, +3 XP Reputación, +2 XP Finanzas; el efecto se nota en la siguiente ronda a través del IAM' },
       ]
     },

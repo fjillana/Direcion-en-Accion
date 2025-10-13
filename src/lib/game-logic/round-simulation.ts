@@ -70,7 +70,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const previousRound = game.round > 0 ? game.round -1 : 0;
   const previousPerformance = game.performance?.[previousRound];
 
-  const currentTeamsState: TeamState[] = [];
+  let currentTeamsState: TeamState[] = [];
 
   // Build state for human teams
   game.teamNames.forEach(name => {

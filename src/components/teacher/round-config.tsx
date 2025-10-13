@@ -148,6 +148,52 @@ export function RoundConfig({
     setSelectedCrisesInDialog([]);
   };
 
+  const allSelectableInvestments = fullInvestments.filter(
+    (inv) => !roundInvestments.some((roundInv) => roundInv.id === inv.id)
+  );
+
+  const areAllSelected = allSelectableInvestments.length > 0 &&
+    selectedCatalogInvestments.length === allSelectableInvestments.length;
+
+  const handleSelectAllToggle = () => {
+    if (areAllSelected) {
+      setSelectedCatalogInvestments([]);
+    } else {
+      setSelectedCatalogInvestments(allSelectableInvestments.map(inv => inv.id));
+    }
+  };
+  
+  const getInvestmentEffectSummary = (investment: Investment): string => {
+    const effects: string[] = [];
+    if(investment.cost.type === 'fixed') {
+        effects.push(`Coste: ${investment.cost.value.toLocaleString('es-ES')} CC`);
+    } else {
+        effects.push(`Coste: ${investment.cost.value[0].toLocaleString('es-ES')} - ${investment.cost.value[1].toLocaleString('es-ES')} CC`);
+    }
+
+    const kpiEffects = Object.entries(investment.effects)
+      .filter(([, value]) => value !== undefined && value !== 0)
+      .map(([key, value]) => {
+          if (key === 'personnelCostReduction') return `Reducción Coste Personal: -${(value! * 100).toFixed(0)}%`;
+          return `${key.charAt(0).toUpperCase() + key.slice(1)}: +${value}`;
+      });
+
+    if(kpiEffects.length > 0) {
+      effects.push(`KPIs: ${kpiEffects.join(', ')}`);
+    }
+
+    const xpAreas: string[] = [];
+    if(investment.xpBonus.finances) xpAreas.push('Finanzas');
+    if(investment.xpBonus.reputation) xpAreas.push('Reputación');
+    if(investment.xpBonus.morale) xpAreas.push('Moral');
+
+    if(xpAreas.length > 0) {
+        effects.push(`XP: ${xpAreas.join(', ')}`);
+    }
+    
+    return effects.join(' | ');
+  }
+
 
   return (
     <>
@@ -266,7 +312,7 @@ export function RoundConfig({
           if (!open) setSelectedCatalogInvestments([]);
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Añadir Inversiones desde el Catálogo</DialogTitle>
             <DialogDescription>
@@ -280,7 +326,7 @@ export function RoundConfig({
                   (roundItem) => roundItem.id === item.id
                 );
                 return (
-                  <div key={item.id} className="flex items-start space-x-3">
+                  <div key={item.id} className="flex items-start space-x-3 rounded-lg border p-3">
                     <Checkbox
                       id={`cat-inv-${item.id}`}
                       className="mt-1"
@@ -290,7 +336,7 @@ export function RoundConfig({
                       checked={selectedCatalogInvestments.includes(item.id)}
                       disabled={isInRound}
                     />
-                    <div className="grid gap-1.5 leading-none">
+                    <div className="grid gap-1.5 leading-none flex-1">
                       <label
                         htmlFor={`cat-inv-${item.id}`}
                         className={`font-medium cursor-pointer ${
@@ -302,25 +348,37 @@ export function RoundConfig({
                       <p className="text-sm text-muted-foreground">
                         {item.description}
                       </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
+                        {getInvestmentEffectSummary(item)}
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
           </ScrollArea>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-between">
             <Button
-              variant="outline"
-              onClick={() => setInvestmentsDialogOpen(false)}
+              variant="ghost"
+              onClick={handleSelectAllToggle}
+              disabled={allSelectableInvestments.length === 0}
             >
-              Cancelar
+              {areAllSelected ? "Deseleccionar Todo" : "Seleccionar Todo"}
             </Button>
-            <Button
-              onClick={handleAddInvestments}
-              disabled={selectedCatalogInvestments.length === 0}
-            >
-              Añadir Seleccionados
-            </Button>
+            <div className="flex gap-2">
+                <Button
+                variant="outline"
+                onClick={() => setInvestmentsDialogOpen(false)}
+                >
+                Cancelar
+                </Button>
+                <Button
+                onClick={handleAddInvestments}
+                disabled={selectedCatalogInvestments.length === 0}
+                >
+                Añadir Seleccionados
+                </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -392,5 +450,3 @@ export function RoundConfig({
     </>
   );
 }
-
-    

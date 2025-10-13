@@ -311,11 +311,30 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
-    console.log(`[GPS] 1. Saving Decisions for ${fullStudentState.teamName} in Round ${fullStudentState.round}. Data:`, fullStudentState.decisions);
+    
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
-    const updateData = {
-      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: fullStudentState.decisions
+    
+    // This is an "upsert" operation. It first reads the document.
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) {
+        throw new Error("Game document not found, cannot save decisions.");
+    }
+
+    const gameData = gameDoc.data();
+    const round = fullStudentState.round;
+    const teamName = fullStudentState.teamName;
+
+    // Create the nested structure if it doesn't exist.
+    const newDecisions = {
+        ...(gameData.decisions || {}),
+        [round]: {
+            ...(gameData.decisions?.[round] || {}),
+            [teamName]: fullStudentState.decisions,
+        }
     };
+    
+    const updateData = { decisions: newDecisions };
+
     await updateDoc(gameRef, updateData);
   }
 

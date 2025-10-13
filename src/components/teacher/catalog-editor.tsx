@@ -67,6 +67,7 @@ export type Investment = {
 };
 
 type CrisisOption = {
+  id: string;
   label: string;
   cost: number;
   effect: string;
@@ -495,7 +496,7 @@ export function CatalogEditor({
                   <h4 className="font-semibold">Opciones de Respuesta:</h4>
                   <div className="space-y-3">
                     {selectedItem.options.map((option, index) => (
-                      <div key={index} className="p-3 bg-muted/50 rounded-md">
+                      <div key={option.id} className="p-3 bg-muted/50 rounded-md">
                         <div className="flex justify-between items-center">
                           <p className="font-medium">{index + 1}. {option.label}</p>
                           <p className="font-mono text-sm">{option.cost.toLocaleString('es-ES')} CC</p>

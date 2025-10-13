@@ -27,7 +27,7 @@ export const investments: Investment[] = [
     {
       id: 'F4',
       name: 'Negociación agresiva de cuentas por pagar',
-      description: 'Retrasar el pago a proveedores genera liquidez inmediata (50.000 CC) pero daña la imagen del centro y puede afectar la confianza de la comunidad. Otorga 8 XP de Finanzas.',
+      description: 'Retrasar el pago a proveedores genera liquidez inmediata (+50.000 CC) pero daña la imagen del centro (-8 XP Reputación). Otorga 8 XP de Finanzas.',
       cost: { type: 'fixed', value: 0 },
       bonus: { area: 'finances', type: 'fixed', value: 8 }, // Note: This has a negative reputational impact not captured here
     },
@@ -49,7 +49,7 @@ export const investments: Investment[] = [
     {
       id: 'R2',
       name: 'Inversión en TIC',
-      description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA y la moral. Otorga entre 3 y 15 XP de Reputación.',
+      description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA (+0.2) y la moral. Otorga entre 3 y 15 XP de Reputación.',
       cost: { type: 'range', value: [10000, 75000] },
       bonus: { area: 'reputation', type: 'scaled', value: [3, 15] },
     },
@@ -78,14 +78,14 @@ export const investments: Investment[] = [
     {
       id: 'P1',
       name: 'Formación docente',
-      description: 'Cursos de actualización, metodologías innovadoras. Cuanto mayor es la inversión, mayor el impacto. Otorga entre 5 y 10 XP de Moral.', // Also affects NMA and Morale points directly
+      description: 'Cursos de actualización, metodologías innovadoras. Aumenta NMA (+0.1) y Moral (+10). Otorga entre 5 y 10 XP de Moral.',
       cost: { type: 'range', value: [5000, 15000] },
       bonus: { area: 'morale', type: 'scaled', value: [5, 10] },
     },
     {
       id: 'P2',
       name: 'Contratación docente',
-      description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. El coste salarial se añade a los gastos recurrentes. Otorga 10 XP de Moral.',
+      description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo. Mejora la moral (+15). Otorga 10 XP de Moral.',
       cost: { type: 'fixed', value: 7500 },
       bonus: { area: 'morale', type: 'fixed', value: 10 },
     },

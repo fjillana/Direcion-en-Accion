@@ -21,7 +21,7 @@ function calculateTreasuryPeb(cash: number, income: number): { peb: number, brea
 
     const peb = cash < 0 ? 0 : cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
 
-    return { peb, breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
 }
 
 function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb: number, breakdown: string } {
@@ -37,7 +37,7 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
     } else {
         peb = 70;
     }
-    return { peb, breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 
 // --- Reputation PEB Calculation (Sección 10.2) ---
@@ -50,7 +50,7 @@ function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
     } else {
         peb = 60;
     }
-    return { peb, breakdown: `NMA (${nma.toFixed(1)}): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `NMA (${nma.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
 
 function calculateMarketSharePeb(currentStudents: number, initialStudents: number = 800): { peb: number, breakdown: string } {
@@ -67,7 +67,7 @@ function calculateMarketSharePeb(currentStudents: number, initialStudents: numbe
     } else {
         peb = 50;
     }
-    return { peb, breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 
 // --- Morale PEB Calculation (Sección 10.3) ---
@@ -84,7 +84,7 @@ function calculateStaffMoralePeb(morale: number): { peb: number, breakdown: stri
     } else {
         peb = 0;
     }
-    return { peb, breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
 }
 
 function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdown: string } {
@@ -100,7 +100,7 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
     } else {
         peb = 0;
     }
-    return { peb, breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.min(110, peb), breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
 
 // --- XP Bonus Calculation from Decisions ---
@@ -111,6 +111,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
     console.log(`[GPS] 5c. Calculating XP Bonus. Decisions received:`, decisions);
 
     for (const actionId of actions) {
+        if (actionId === 'F4') {
+            bonus.finances += 8;
+            bonus.reputation -= 8; // Penalty for aggressive negotiation
+            continue;
+        }
+
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;
         
@@ -120,10 +126,15 @@ function getXpBonusFromDecisions(decisions: TeamDecision): { finances: number; r
             bonus[area] += investmentInfo.bonus.value as number;
         } else if (investmentInfo.bonus.type === 'scaled') {
             const [minBonus, maxBonus] = investmentInfo.bonus.value as [number, number];
-            // Scaled bonus is based on the investment cost, which we assume is max for now
-            // This is a simplification. A more accurate model would require the chosen cost
-            // to be part of the decision object. For now, let's grant the max bonus.
-            bonus[area] += maxBonus;
+            const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
+            const actualCost = decisions.investmentCosts?.[actionId] || maxCost;
+            
+            if (maxCost > minCost) {
+                const ratio = (actualCost - minCost) / (maxCost - minCost);
+                bonus[area] += minBonus + (maxBonus - minBonus) * ratio;
+            } else {
+                 bonus[area] += maxBonus;
+            }
         }
     }
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);

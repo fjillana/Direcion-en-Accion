@@ -96,8 +96,12 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   
   console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, totalExpenses=${totalExpenses}`);
 
-  const cashAtStartOfRound = teamState.kpis.cash;
-  const updatedCash = cashAtStartOfRound + income - totalExpenses;
+  let updatedCash = teamState.kpis.cash + income - totalExpenses;
+  
+  // Apply F4 cash injection
+  if(actions.includes('F4')) {
+    updatedCash += 50000;
+  }
 
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedNma = currentKpis.nma;

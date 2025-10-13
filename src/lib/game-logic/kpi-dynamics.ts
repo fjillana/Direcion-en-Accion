@@ -76,6 +76,7 @@ export function updateKpisForNextRound(
   let loanIncome = 0;
   let recoveredSubsidy = 0;
   let privateIncome = updatedNumStudents * decisions.tuitionPrice;
+  let otherIncome = 0; // For sponsorships etc.
 
   // --- Crisis Effects on Income and Morale---
   const crisisId = decisions.crisisResponse?.crisisId;
@@ -132,7 +133,16 @@ export function updateKpisForNextRound(
     }
   }
 
-  const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;
+  if (crisisId === 'C6') { // Retraso en patrocinio
+    otherIncome -= 10000; // Apply base deficit
+    if (crisisOption === 'C6_op1' && negotiationSuccess) {
+        otherIncome += 5000; // Recover 5k
+    } else if (crisisOption === 'C6_op2') {
+        otherIncome += 10000; // Recover full amount
+    }
+  }
+
+  const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy + otherIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
@@ -186,6 +196,9 @@ export function updateKpisForNextRound(
   }
   if (crisisOption === 'C4_op5') {
     crisisCost -= 8000;
+  }
+  if (crisisOption === 'C6_op2') {
+    crisisCost -= 4000;
   }
 
   // Calculate interest cost if loan was taken previously

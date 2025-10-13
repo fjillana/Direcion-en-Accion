@@ -76,24 +76,24 @@ export const crises: Crisis[] = [
       ]
     },
     {
-      id: 'C5',
-      name: 'Crisis sanitaria',
-      description: 'Brote de un virus que obliga a suspender las clases presenciales una semana.',
-      options: [
-        { label: 'Suspender todas las actividades y esperar a que pase', costText: '0 CC', cost: 0, effect: 'Impacto: −3 XP Reputación; −5 XP Finanzas por pérdida de clases extraescolares' },
-        { label: 'Adoptar clases en línea mediante inversión en TIC (R2)', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10.000 CC, +5 XP Reputación; +3 XP Personal' },
-        { label: 'Contratar personal sanitario temporal', costText: '-5.000 CC', cost: -5000, effect: 'Impacto: −5.000 CC, +3 XP Personal; mejora la moral' },
-        { label: 'Ignorar las recomendaciones sanitarias', costText: '0 CC', cost: 0, effect: 'Impacto: −10 XP Reputación; −15 puntos de moral; riesgo de huelga' },
-        { label: 'Solicitar apoyo de la administración', costText: '-2.000 CC', cost: -2000, effect: 'Impacto: −2 XP Finanzas por trámites; 50 % de probabilidad de recibir 5.000 CC para comprar equipos; +2 XP Reputación si se recibe' },
-      ]
+        id: 'C5',
+        name: 'Crisis sanitaria',
+        description: 'Brote de un virus que obliga a suspender las clases presenciales una semana.',
+        options: [
+          { label: 'Suspender todas las actividades y esperar a que pase', costText: '0 CC', cost: 0, effect: 'Impacto: −3 XP Reputación; −5 XP Finanzas por pérdida de clases extraescolares' },
+          { label: 'Adoptar clases en línea mediante inversión en TIC (R2)', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −10.000 CC, +5 XP Reputación; +3 XP Personal' },
+          { label: 'Contratar personal sanitario temporal', costText: '-5.000 CC', cost: -5000, effect: 'Impacto: −5.000 CC, +3 XP Personal, +5 Moral' },
+          { label: 'Ignorar las recomendaciones sanitarias', costText: '0 CC', cost: 0, effect: 'Impacto: −10 XP Reputación; −15 puntos de moral; riesgo de huelga' },
+          { label: 'Solicitar apoyo de la administración', costText: '-2.000 CC', cost: -2000, effect: 'Impacto: −2 XP Finanzas por trámites; 50 % de probabilidad de recibir 5.000 CC para comprar equipos; +2 XP Reputación si se recibe' },
+        ]
     },
     {
       id: 'C6',
       name: 'Retraso en los ingresos por patrocinio',
       description: 'Una empresa patrocinadora retrasa el pago de 10.000 CC correspondiente a un patrocinio.',
       options: [
-        { label: 'Renegociar el contrato', costText: '-2.000 CC', cost: -2000, effect: 'Impacto: −2 XP Finanzas, +2 XP Reputación; 50 % de recuperar 5.000 CC con interés' },
-        { label: 'Buscar otro patrocinador', costText: 'Variable', cost: 0, effect: 'Impacto: +4 XP Finanzas, +2 XP Reputación; costo inicial' },
+        { label: 'Renegociar el contrato', costText: '-2.000 CC', cost: -2000, effect: 'Impacto: -2.000 CC de coste, -2 XP Finanzas, +2 XP Reputación. 50% probabilidad de recuperar 5.000 CC.' },
+        { label: 'Buscar otro patrocinador', costText: '-4.000 CC', cost: -4000, effect: 'Impacto: -4.000 CC de coste para encontrar un nuevo patrocinador, pero se recuperan los 10.000 CC. +4 XP Finanzas, +2 XP Reputación.' },
         { label: 'Solicitar un préstamo', costText: 'Préstamo', cost: 0, effect: 'Impacto: reducción de PEB Finanzas al 50 %' },
         { label: 'Recortar gastos de marketing', costText: '0 CC', cost: 0, effect: 'Impacto: −5 XP Reputación, +4 XP Finanzas' },
         { label: 'Aceptar la pérdida', costText: '-10.000 CC', cost: -10000, effect: 'Impacto: −2 XP Finanzas; mantiene la reputación intacta; reduce la tesorería' },

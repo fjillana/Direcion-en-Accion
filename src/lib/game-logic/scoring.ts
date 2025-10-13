@@ -236,6 +236,18 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
             }
         }
     }
+    
+    // Crisis C6 Effects
+    if (decisions.crisisResponse?.crisisId === 'C6') {
+        const optionId = decisions.crisisResponse.optionId;
+        if(optionId === 'C6_op1') {
+            bonus.finances -= 2;
+            bonus.reputation += 2;
+        } else if (optionId === 'C6_op2') {
+            bonus.finances += 4;
+            bonus.reputation += 2;
+        }
+    }
 
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);

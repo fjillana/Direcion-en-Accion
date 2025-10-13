@@ -144,7 +144,11 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   
   const negotiationOutcomes: Record<string, boolean> = {};
   teamsAfterPoaching.forEach(team => {
-    if (team.decisions.crisisResponse?.optionId === 'C2_op3' || team.decisions.crisisResponse?.optionId === 'C5_op5') {
+    if (
+        team.decisions.crisisResponse?.optionId === 'C2_op3' || 
+        team.decisions.crisisResponse?.optionId === 'C5_op5' ||
+        team.decisions.crisisResponse?.optionId === 'C6_op1'
+    ) {
       negotiationOutcomes[team.name] = Math.random() < 0.5; // 50% chance
     }
   });

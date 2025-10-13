@@ -49,7 +49,7 @@ export const investments: Investment[] = [
     {
       id: 'R2',
       name: 'Inversión en TIC',
-      description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA (+0.2) y la moral. Otorga entre 3 y 15 XP de Reputación.',
+      description: 'Renovar aulas con tecnología y equipamiento digital. Mejora la NMA (+0.2) y la moral (+5). Otorga entre 3 y 15 XP de Reputación.',
       cost: { type: 'range', value: [10000, 75000] },
       bonus: { area: 'reputation', type: 'scaled', value: [3, 15] },
     },

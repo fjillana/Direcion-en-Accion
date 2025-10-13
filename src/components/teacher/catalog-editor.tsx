@@ -68,7 +68,6 @@ export type Investment = {
 
 type CrisisOption = {
   label: string;
-  costText: string;
   cost: number;
   effect: string;
 };
@@ -95,7 +94,7 @@ const emptyInvestment: Investment = {
     description: "",
     cost: { type: 'fixed', value: 0 },
     effects: {},
-    xpBonus: { type: 'fixed', finances: 0, reputation: 0, morale: 0 }
+    xpBonus: { type: 'fixed' }
 };
 
 interface InvestmentFormProps {
@@ -499,7 +498,7 @@ export function CatalogEditor({
                       <div key={index} className="p-3 bg-muted/50 rounded-md">
                         <div className="flex justify-between items-center">
                           <p className="font-medium">{index + 1}. {option.label}</p>
-                          <p className="font-mono text-sm">{option.costText}</p>
+                          <p className="font-mono text-sm">{option.cost.toLocaleString('es-ES')} CC</p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{option.effect}</p>
                       </div>

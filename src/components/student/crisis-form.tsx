@@ -13,21 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { Crisis } from "@/components/teacher/catalog-editor";
 
-type CrisisOption = {
-  id: string;
+interface CrisisOption {
   label: string;
-  costText: string;
   cost: number;
-};
+}
 
-export interface CrisisProps {
-  id: string;
-  title: string;
-  description: string;
-  options: CrisisOption[];
+interface CrisisProps extends Omit<Crisis, 'options'> {
+  options: (CrisisOption & { id: string })[];
   disabled?: boolean;
 }
+
 
 interface FullCrisisFormProps extends CrisisProps {
     onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; }) => void;
@@ -85,7 +82,7 @@ export function CrisisForm({ id, title, description, options, disabled = false, 
                     <span className="font-semibold block">{option.label}</span>
                   </Label>
                 </div>
-                <div className="font-mono text-sm">{option.costText}</div>
+                <div className="font-mono text-sm">{option.cost.toLocaleString('es-ES')} CC</div>
               </div>
             ))}
           </RadioGroup>

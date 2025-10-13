@@ -147,8 +147,8 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
     };
 
     const handleNumericChange = (field: string, value: string) => {
-      const numValue = value === '' ? undefined : Number(value);
-      handleChange(field, numValue);
+        const numValue = value === '' ? '' : Number(value);
+        handleChange(field, numValue);
     };
     
     const getXpValue = (area: 'finances' | 'reputation' | 'morale'): number | [number, number] => {
@@ -193,7 +193,7 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                         {investment.cost.type === 'fixed' ? (
                             <div>
                                 <Label htmlFor="cost-fixed">Coste Fijo (CC)</Label>
-                                <Input id="cost-fixed" type="number" value={investment.cost.value || ''} onChange={e => handleChange('cost.value', Number(e.target.value))} />
+                                <Input id="cost-fixed" type="number" value={investment.cost.value || ''} onChange={e => handleNumericChange('cost.value', e.target.value)} />
                             </div>
                         ) : (
                             <div className="flex gap-4">
@@ -243,9 +243,9 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                         
                         {investment.xpBonus.type === 'fixed' ? (
                             <div className="grid grid-cols-3 gap-2">
-                                <div><Label>XP Finanzas</Label><Input type="number" value={getXpValue('finances') as number || ''} onChange={e => setXpValue('finances', Number(e.target.value))} /></div>
-                                <div><Label>XP Reputación</Label><Input type="number" value={getXpValue('reputation') as number || ''} onChange={e => setXpValue('reputation', Number(e.target.value))} /></div>
-                                <div><Label>XP Moral</Label><Input type="number" value={getXpValue('morale') as number || ''} onChange={e => setXpValue('morale', Number(e.target.value))} /></div>
+                                <div><Label>XP Finanzas</Label><Input type="number" value={(investment.xpBonus.finances as number) || ''} onChange={e => handleNumericChange('xpBonus.finances', e.target.value)} /></div>
+                                <div><Label>XP Reputación</Label><Input type="number" value={(investment.xpBonus.reputation as number) || ''} onChange={e => handleNumericChange('xpBonus.reputation', e.target.value)} /></div>
+                                <div><Label>XP Moral</Label><Input type="number" value={(investment.xpBonus.morale as number) || ''} onChange={e => handleNumericChange('xpBonus.morale', e.target.value)} /></div>
                             </div>
                         ) : (
                            <div className="space-y-4">
@@ -334,7 +334,15 @@ export function CatalogEditor({
     if (xpBonus.finances) areas.push('Finanzas');
     if (xpBonus.reputation) areas.push('Reputación');
     if (xpBonus.morale) areas.push('Moral');
-    return areas.join(', ') || 'N/A';
+    
+    if (areas.length > 1) {
+        return 'Varias';
+    }
+    if (areas.length === 1) {
+        return areas[0];
+    }
+    
+    return 'N/A';
   }
 
   return (
@@ -463,7 +471,7 @@ export function CatalogEditor({
                         {selectedItem.effects.personnelCostReduction ? <li>Reducción Coste Personal: -{(selectedItem.effects.personnelCostReduction * 100).toFixed(0)}%</li> : null}
                         {selectedItem.effects.cashInjection ? <li>Inyección de Tesorería: +{selectedItem.effects.cashInjection.toLocaleString('es-ES')} CC</li> : null}
                         {selectedItem.effects.reputationPenalty ? <li>Penalización Reputación: {selectedItem.effects.reputationPenalty} XP</li> : null}
-                        {Object.keys(selectedItem.effects).length === 0 && <li className="list-none">Sin efectos directos.</li>}
+                        {Object.values(selectedItem.effects).every(v => v === undefined || v === 0) && <li className="list-none">Sin efectos directos.</li>}
                     </ul>
                   </div>
 
@@ -506,4 +514,3 @@ export function CatalogEditor({
     </>
   );
 }
-

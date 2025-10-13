@@ -88,6 +88,8 @@ export function updateKpisForNextRound(
           if (negotiationSuccess) {
               recoveredSubsidy = 15000; // 15k is recovered on success.
           }
+      } else if (decisions.crisisResponse!.optionId === 'C2_op5') { // Delay payments
+          // Subsidy loss is avoided. No change to currentPublicIncome.
       }
       else {
           // Default effect for all other options (including 4 and 5)

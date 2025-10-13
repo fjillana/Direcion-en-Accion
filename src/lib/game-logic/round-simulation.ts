@@ -1,13 +1,13 @@
 
 
-import type { Game, TeamPerformanceData, TeamDecision, GameMessage, StudentGameState } from "@/hooks/use-games";
+import type { Game, TeamPerformanceData, TeamDecision, GameMessage, StudentGameState, RoundDecisions } from "@/hooks/use-games";
 import { calculateTeamPerformance } from "./scoring";
 import { calculateMarketAttractiveness } from "./market-attractiveness";
 import { updateKpisForNextRound } from "./kpi-dynamics";
 import type { TeamState, TeamKPIs, AIArchetype } from "./types";
 import { getAIDecisions } from "./ai-strategy";
 
-const getStudentDecisions = (teamName: string, game: Game, studentGames: StudentGameState[]): TeamDecision => {
+const getStudentDecisions = (teamName: string, game: Game, studentGames: StudentGameState[]): RoundDecisions => {
     const studentState = studentGames.find(sg => sg.teamName === teamName);
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
@@ -15,19 +15,21 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
     console.log(`[GPS] 3a. Retrieving decisions for ${teamName} in Round ${game.round}. Found:`, teamDecision);
 
     // Fallback if no decisions are found
-    const fallbackDecisions: TeamDecision = {
+    const fallbackDecisions: RoundDecisions = {
         actions: [],
         tuitionPrice: 120, // Default price
         crisisResponse: null,
         roundConfirmed: false,
+        investmentCosts: {},
     };
     
     if (teamDecision) {
-        const decisionsToReturn: TeamDecision = {
+        const decisionsToReturn: RoundDecisions = {
             actions: teamDecision.actions || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
             crisisResponse: teamDecision.crisisResponse || null,
             roundConfirmed: teamDecision.roundConfirmed || false,
+            investmentCosts: teamDecision.investmentCosts || {},
         };
         console.log(`[GPS] 3b. Parsed decisions for ${teamName}:`, decisionsToReturn);
         return decisionsToReturn;
@@ -77,6 +79,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
         type: 'H',
         kpis,
         decisions: getStudentDecisions(name, game, studentGames),
+        performanceHistory: game.performance ? Object.values(game.performance).flat().filter(p => p.name === name) : []
     });
   });
 
@@ -92,8 +95,9 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
         name,
         type: 'IA',
         kpis,
-        decisions: getAIDecisions({ name, type: 'IA', kpis, archetype, decisions: {} as TeamDecision }, game),
+        decisions: getAIDecisions({ name, type: 'IA', kpis, archetype, decisions: {} as RoundDecisions, performanceHistory: [] }, game),
         archetype,
+        performanceHistory: game.performance ? Object.values(game.performance).flat().filter(p => p.name === name) : []
     });
   }
   
@@ -104,7 +108,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   const teamsWithUpdatedKpis: TeamState[] = currentTeamsState.map(team => {
       const newStudents = marketResults[team.name]?.newStudents || 0;
-      const updatedKpis = updateKpisForNextRound(team, newStudents);
+      const updatedKpis = updateKpisForNextRound(team, newStudents, team.performanceHistory);
       return {
           ...team,
           kpis: updatedKpis,

@@ -1,6 +1,7 @@
 
 
 import type { TeamState, TeamKPIs } from "./types";
+import type { TeamPerformanceData } from "@/hooks/use-games";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 
 const TEACHER_SALARY = 7500; // Coste trimestral por profesor
@@ -19,7 +20,7 @@ const BASE_CAPACITY = 810;
  * @param newStudents - El número de nuevos alumnos captados en esta ronda.
  * @returns El nuevo estado de los KPIs del equipo.
  */
-export function updateKpisForNextRound(teamState: TeamState, newStudents: number) {
+export function updateKpisForNextRound(teamState: TeamState, newStudents: number, performanceHistory: TeamPerformanceData[]) {
   
   const currentKpis: TeamKPIs = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
@@ -53,7 +54,13 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
   // 2. Calcular Ingresos y Costes
   const privateIncome = updatedNumStudents * decisions.tuitionPrice;
   const income = privateIncome + PUBLIC_INCOME;
-  const personnelCost = updatedNumTeachers * TEACHER_SALARY;
+  let personnelCost = updatedNumTeachers * TEACHER_SALARY;
+
+  // Check if ERP (F1) was ever purchased
+  const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
+  if (hasErp) {
+    personnelCost *= 0.98; // Apply 2% reduction
+  }
   
   const investmentCost = actions.reduce((sum, actionId) => {
       const investmentInfo = allInvestments.find(inv => inv.id === actionId);
@@ -65,7 +72,7 @@ export function updateKpisForNextRound(teamState: TeamState, newStudents: number
       if(investmentInfo.cost.type === 'range') {
         // For now, assume max cost for range investments made by AI.
         // For humans, a slider would set the specific cost. This needs to be stored in the decision object.
-        return sum + (investmentInfo.cost.value[1]);
+        return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
       }
       return sum;
   }, 0);

@@ -1,4 +1,7 @@
 
+import type { RoundDecisions, TeamPerformanceData } from "@/hooks/use-games";
+
+
 export interface InvestmentDecision {
   id: string;
   name: string;
@@ -51,6 +54,7 @@ export interface TeamState {
   name: string;
   type: 'H' | 'IA';
   kpis: TeamKPIs;
-  decisions: TeamDecisions;
+  decisions: RoundDecisions;
   archetype?: AIArchetype;
+  performanceHistory: TeamPerformanceData[];
 }

@@ -1,6 +1,6 @@
 
 
-import type { Game } from "@/hooks/use-games";
+import type { Game, RoundDecisions } from "@/hooks/use-games";
 import type { TeamState, TeamDecisions, InvestmentDecision } from "./types";
 import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
 
@@ -12,7 +12,7 @@ import { investments as fullInvestmentsList } from '@/app/teacher/catalog/invest
  * @param game The current game object, containing settings.
  * @returns The decisions made by the AI for the current round.
  */
-export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions {
+export function getAIDecisions(teamState: TeamState, game: Game): RoundDecisions {
     const { kpis, archetype } = teamState;
     const { aiDifficulty, round, roundSettings } = game;
 
@@ -21,11 +21,12 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
     const rationality = aiDifficulty / 5;
 
     const availableInvestments = roundSettings?.[round]?.investments || [];
-    const decisions: TeamDecisions = {
+    const decisions: RoundDecisions = {
         actions: [],
         tuitionPrice: 120,
         crisisResponse: null,
         roundConfirmed: true,
+        investmentCosts: {},
     };
 
     // --- 1. Price Decision ---
@@ -82,9 +83,10 @@ export function getAIDecisions(teamState: TeamState, game: Game): TeamDecisions 
             const investmentAmount = investmentInfo.cost.type === 'range'
                 ? Math.round(minCost + (maxCost - minCost) * rationality)
                 : maxCost;
-
+            
             if (budget >= investmentAmount) {
                 decisions.actions.push(investment.id);
+                decisions.investmentCosts[investment.id] = investmentAmount;
                 budget -= investmentAmount;
             }
         }

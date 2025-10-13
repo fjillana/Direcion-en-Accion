@@ -199,6 +199,13 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         }
     }
 
+    // Crisis C4 Effects
+    if (decisions.crisisResponse?.crisisId === 'C4') {
+        if (decisions.crisisResponse.optionId === 'C4_op1') {
+            bonus.reputation -= 5;
+        }
+    }
+
 
     console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;

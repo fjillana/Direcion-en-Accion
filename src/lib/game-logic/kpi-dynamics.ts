@@ -110,6 +110,12 @@ export function updateKpisForNextRound(
         updatedMorale -= 5; // Penalización de moral
     }
   }
+  
+  if (crisisId === 'C4') {
+    if (crisisOption === 'C4_op1') {
+      updatedMorale -= 10;
+    }
+  }
 
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;

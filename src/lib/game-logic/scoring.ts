@@ -151,6 +151,10 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
       } else if (decisions.crisisResponse.optionId === 'C1_op2') {
         bonus.morale += 3;
         bonus.finances -= 3;
+      } else if (decisions.crisisResponse.optionId === 'C1_op3') {
+        bonus.finances -= 15;
+        bonus.reputation -= 15;
+        bonus.morale -= 15;
       }
     }
 
@@ -189,7 +193,13 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
     const pebReputationBase = (nma.peb + marketShare.peb) / 2;
     let pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase;
-    pebReputacion = Math.min(110, pebReputacion);
+
+    // Apply C1_op3 penalty
+    if (decisions.crisisResponse?.optionId === 'C1_op3') {
+        pebReputacion -= 40;
+    }
+    pebReputacion = Math.max(0, Math.min(110, pebReputacion));
+
 
     const staffMorale = calculateStaffMoralePeb(kpis.morale);
     const studentTeacherRatio = calculateStudentTeacherRatioPeb(kpis.studentTeacherRatio);

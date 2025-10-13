@@ -23,7 +23,7 @@ export const crises: Crisis[] = [
           label: 'Mantener la postura',
           costText: '0 CC',
           cost: 0,
-          effect: 'Impacto: huelga dura dos rondas; −20 XP en todas las áreas; moral se fija en 40; penalización severa en reputación'
+          effect: 'Impacto: la moral se fija en 40; penalización severa en el PEB de Reputación y -15 XP en todas las áreas.'
         },
         {
           label: 'Recurrir a mediadores externos',
@@ -44,11 +44,11 @@ export const crises: Crisis[] = [
       name: 'Pérdida parcial de la subvención',
       description: 'La consejería de educación recorta 25.000 CC de la subvención pública este trimestre por un error administrativo.',
       options: [
-        { label: 'Solicitar un préstamo de emergencia', costText: 'Préstamo', cost: 0, effect: 'Suma 25.000 CC a tesorería. Penalización de -20 PEB en Finanzas. Activa un coste de 2.500 CC/ronda por intereses.' },
-        { label: 'Recortar inversiones planificadas', costText: '0 CC', cost: 0, effect: 'Anula la pérdida de la subvención a cambio de una penalización de -15 XP de Reputación.' },
+        { label: 'Solicitar un préstamo de emergencia', costText: 'Préstamo', cost: 0, effect: 'Suma 25.000 CC a tesorería pero genera deuda. Penalización de -20 PEB en Finanzas y coste por intereses.' },
+        { label: 'Recortar inversiones planificadas', costText: '0 CC', cost: 0, effect: 'Evita la pérdida de la subvención a cambio de una penalización de -15 XP de Reputación.' },
         { label: 'Negociar con la consejería', costText: '-3.000 CC', cost: -3000, effect: 'Gasto de 3.000 CC; 50% de probabilidad de recuperar 15.000 CC. Éxito: +5 XP Reputación. Fracaso: -5 XP Finanzas.' },
-        { label: 'Utilizar reservas de tesorería', costText: '0 CC', cost: 0, effect: 'Impacto: baja la tesorería; si queda por debajo del 5 %, −5 XP Finanzas; no hay intereses' },
-        { label: 'Retrasar pagos a proveedores', costText: '0 CC', cost: 0, effect: 'Impacto: +8 XP Finanzas, −8 XP Reputación, pero evita el endeudamiento y la crisis de liquidez.' },
+        { label: 'Utilizar reservas de tesorería', costText: '0 CC', cost: 0, effect: 'Se asume la pérdida de 25.000 CC directamente contra la tesorería actual. No genera intereses ni penalizaciones directas de XP.' },
+        { label: 'Retrasar pagos a proveedores', costText: '0 CC', cost: 0, effect: 'Evita la pérdida de 25.000 CC en la tesorería. Impacto: +8 XP Finanzas, −8 XP Reputación.' },
       ]
     },
     {

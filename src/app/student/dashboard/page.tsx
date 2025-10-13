@@ -36,6 +36,7 @@ import { useMemo } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 import { useGames } from "@/hooks/use-games";
+import { CrisisReport } from "@/components/student/crisis-report";
 
 const mockCrises: Record<string, Omit<CrisisProps, 'disabled'>> = {
     'C1': { id: 'C1', title: '¡Evento de Crisis! - Huelga docente', description: 'La moral ha caído por debajo de 50 y los docentes convocan una huelga. El centro se paraliza. Debes tomar una decisión.', options: [ { id: 'C1_op1', label: 'Aceptar todas las demandas', cost: -25000, costText: '-25.000 CC' }, { id: 'C1_op2', label: 'Negociar un acuerdo parcial', cost: -15000, costText: '-15.000 CC' }, { id: 'C1_op3', label: 'Mantener la postura', cost: 0, costText: '0 CC' }, { id: 'C1_op4', label: 'Recurrir a mediadores externos', cost: -8000, costText: '-8.000 CC' }, { id: 'C1_op5', label: 'Despedir a los líderes del sindicato', cost: -10000, costText: '-10.000 CC' }, ] },
@@ -113,6 +114,21 @@ export default function StudentDashboard() {
     }
     return settingsForRound.teamCrises.find(tc => tc.teamName === studentGame.teamName)?.crisisIds[0];
   }, [studentGame]);
+
+  const lastCrisisReport = useMemo(() => {
+    if (!performanceHistory || performanceHistory.length === 0 || round === undefined) return null;
+    
+    const previousRound = round - 1;
+    if (previousRound < 0) return null;
+
+    const lastRoundPerformance = performanceHistory.find(p => p.round === previousRound);
+    
+    if (lastRoundPerformance && lastRoundPerformance.decisions.crisisResponse) {
+      return lastRoundPerformance.decisions.crisisResponse;
+    }
+
+    return null;
+  }, [performanceHistory, round]);
 
   const currentCrisis = currentCrisisId ? mockCrises[currentCrisisId] : undefined;
   
@@ -316,6 +332,13 @@ export default function StudentDashboard() {
             />
           </div>
         )}
+
+        {!currentCrisis && lastCrisisReport && (
+          <div className="w-full">
+            <CrisisReport report={lastCrisisReport} />
+          </div>
+        )}
+
       </div>
     </StudentGate>
   );

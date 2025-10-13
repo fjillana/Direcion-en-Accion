@@ -59,10 +59,10 @@ export type Investment = {
     reputationPenalty?: number; // For F4
   };
   xpBonus: {
+    type: 'fixed' | 'scaled';
     finances?: number | [number, number];
     reputation?: number | [number, number];
     morale?: number | [number, number];
-    type: 'fixed' | 'scaled';
   };
 };
 
@@ -95,7 +95,7 @@ const emptyInvestment: Investment = {
     description: "",
     cost: { type: 'fixed', value: 0 },
     effects: {},
-    xpBonus: { type: 'fixed' }
+    xpBonus: { type: 'fixed', finances: 0, reputation: 0, morale: 0 }
 };
 
 interface InvestmentFormProps {
@@ -122,21 +122,22 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
             }
             
             const finalKey = keys[keys.length - 1];
-            
-            if (typeof current[finalKey] === 'number') {
-              current[finalKey] = value === '' ? undefined : Number(value);
-            } else {
-              current[finalKey] = value;
-            }
+            current[finalKey] = value;
             
             if(field === 'cost.type') {
                 newState.cost.value = value === 'fixed' ? 0 : [0, 0];
             }
-            if(field === 'xpBonus.type') {
-                newState.xpBonus.finances = value === 'fixed' ? 0 : [0,0];
-                newState.xpBonus.reputation = value === 'fixed' ? 0 : [0,0];
-                newState.xpBonus.morale = value === 'fixed' ? 0 : [0,0];
+            if(field === 'xpBonus.type' && value === 'fixed') {
+                if(Array.isArray(newState.xpBonus.finances)) newState.xpBonus.finances = 0;
+                if(Array.isArray(newState.xpBonus.reputation)) newState.xpBonus.reputation = 0;
+                if(Array.isArray(newState.xpBonus.morale)) newState.xpBonus.morale = 0;
             }
+            if(field === 'xpBonus.type' && value === 'scaled') {
+                if(typeof newState.xpBonus.finances === 'number') newState.xpBonus.finances = [0,0];
+                if(typeof newState.xpBonus.reputation === 'number') newState.xpBonus.reputation = [0,0];
+                if(typeof newState.xpBonus.morale === 'number') newState.xpBonus.morale = [0,0];
+            }
+
             return newState;
         });
     };
@@ -147,12 +148,12 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
     };
 
     const handleNumericChange = (field: string, value: string) => {
-        const numValue = value === '' ? '' : Number(value);
+        const numValue = value === '' ? undefined : Number(value);
         handleChange(field, numValue);
     };
     
-    const getXpValue = (area: 'finances' | 'reputation' | 'morale'): number | [number, number] => {
-        return investment.xpBonus[area] ?? (investment.xpBonus.type === 'fixed' ? 0 : [0,0]);
+    const getXpValue = (area: 'finances' | 'reputation' | 'morale'): number | [number, number] | undefined => {
+        return investment.xpBonus[area];
     }
 
     const setXpValue = (area: 'finances' | 'reputation' | 'morale', value: any) => {
@@ -163,7 +164,7 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{investment.name ? `Editar Inversión: ${investment.name}` : "Añadir Nueva Inversión"}</DialogTitle>
+                    <DialogTitle>{initialData ? `Editar Inversión: ${initialData.name}` : "Añadir Nueva Inversión"}</DialogTitle>
                     <DialogDescription>Define todos los parámetros y efectos de esta inversión en la simulación.</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -304,9 +305,11 @@ export function CatalogEditor({
   
   const handleSaveInvestment = (investment: Investment) => {
     setItems(prevItems => {
-        const existing = prevItems.find(item => item.id === investment.id);
-        if (existing) {
-            return prevItems.map(item => item.id === investment.id ? investment : item);
+        const existingIndex = prevItems.findIndex(item => item.id === investment.id);
+        if (existingIndex > -1) {
+            const newItems = [...prevItems];
+            newItems[existingIndex] = investment;
+            return newItems;
         }
         return [...prevItems, investment];
     });

@@ -116,30 +116,38 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     console.log(`[GPS] 5c. Calculating XP Bonus. Decisions received:`, decisions);
 
     for (const actionId of actions) {
-        if (actionId === 'F4') {
-            bonus.finances += 8;
-            bonus.reputation -= 8; // Penalty for aggressive negotiation
-            continue;
-        }
-
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;
         
-        const area = investmentInfo.bonus.area;
+        // Apply XP bonus from investments
+        if (investmentInfo.xpBonus) {
+            const applyBonus = (area: 'finances' | 'reputation' | 'morale') => {
+                const bonusValue = investmentInfo.xpBonus[area];
+                if (bonusValue) {
+                    if (investmentInfo.xpBonus.type === 'fixed') {
+                        bonus[area] += bonusValue as number;
+                    } else if (investmentInfo.xpBonus.type === 'scaled') {
+                        const [minBonus, maxBonus] = bonusValue as [number, number];
+                        const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
+                        const actualCost = decisions.investmentCosts?.[actionId] || maxCost;
+                        
+                        if (maxCost > minCost) {
+                            const ratio = (actualCost - minCost) / (maxCost - minCost);
+                            bonus[area] += minBonus + (maxBonus - minBonus) * ratio;
+                        } else {
+                             bonus[area] += maxBonus;
+                        }
+                    }
+                }
+            };
+            applyBonus('finances');
+            applyBonus('reputation');
+            applyBonus('morale');
+        }
 
-        if (investmentInfo.bonus.type === 'fixed') {
-            bonus[area] += investmentInfo.bonus.value as number;
-        } else if (investmentInfo.bonus.type === 'scaled') {
-            const [minBonus, maxBonus] = investmentInfo.bonus.value as [number, number];
-            const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
-            const actualCost = decisions.investmentCosts?.[actionId] || maxCost;
-            
-            if (maxCost > minCost) {
-                const ratio = (actualCost - minCost) / (maxCost - minCost);
-                bonus[area] += minBonus + (maxBonus - minBonus) * ratio;
-            } else {
-                 bonus[area] += maxBonus;
-            }
+        // Apply direct reputation penalties from effects
+        if (investmentInfo.effects.reputationPenalty) {
+            bonus.reputation += investmentInfo.effects.reputationPenalty;
         }
     }
     

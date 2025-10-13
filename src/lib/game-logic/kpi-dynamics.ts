@@ -38,32 +38,39 @@ export function updateKpisForNextRound(
   let updatedNumTeachers = currentKpis.numTeachers;
   let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
   let updatedMorale = currentKpis.morale;
+  let updatedNma = currentKpis.nma;
+  let cashInjection = 0;
+  let personnelCostMultiplier = 1.0;
+
 
   const actions = decisions.actions || [];
 
-  // --- Apply decisions ---
+  // --- Apply static decisions effects ---
   if (actions.includes('P2')) { // Contratar
     updatedNumTeachers += 1;
+    updatedMorale += 15; // Direct effect from hiring
   }
   if (actions.includes('P7')) { // Despedir
     updatedNumTeachers -= 1;
+    updatedMorale -= 25; // Direct effect from firing
   }
-  // Poaching is handled in round-simulation as it affects other teams
-  
-  if (actions.includes('R3')) { // Mejora de instalaciones (aumento de NMA y Moral)
-    currentKpis.nma += 0.3;
-    updatedMorale += 10;
-  }
-  if (actions.includes('R4')) { // Desarrollo curricular innovador
-      currentKpis.nma += 0.3;
-  }
-  if (actions.includes('P5')) { // Actividades sociales
-    updatedMorale += 10;
-  }
-  
   if (actions.includes('F5')) { // Ampliación Aulas
     updatedCapacity += 50;
   }
+  
+  // --- Apply dynamic investment effects ---
+  actions.forEach(actionId => {
+      const investment = allInvestments.find(inv => inv.id === actionId);
+      if (investment) {
+          if (investment.effects.nma) updatedNma += investment.effects.nma;
+          if (investment.effects.morale) updatedMorale += investment.effects.morale;
+          if (investment.effects.cashInjection) cashInjection += investment.effects.cashInjection;
+          if (investment.effects.personnelCostReduction) {
+            personnelCostMultiplier -= investment.effects.personnelCostReduction;
+          }
+      }
+  });
+
 
   // Los nuevos alumnos se añaden
   const availableSpots = updatedCapacity - updatedNumStudents;
@@ -157,16 +164,13 @@ export function updateKpisForNextRound(
   const income = privateIncome + currentPublicIncome + loanIncome + recoveredSubsidy + otherIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
-  const hasErp = performanceHistory.some(round => round.decisions.actions.includes('F1')) || actions.includes('F1');
-  if (hasErp) {
-    personnelCost *= 0.98; // Apply 2% reduction
-  }
-
   // Apply P4 salary increase permanently
   const hasSalaryIncrease = performanceHistory.some(round => round.decisions.actions.includes('P4')) || actions.includes('P4');
   if (hasSalaryIncrease) {
     personnelCost *= 1.10; // Apply 10% permanent increase
   }
+
+  personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
   const investmentCost = actions.reduce((sum, actionId) => {
       const investmentInfo = allInvestments.find(inv => inv.id === actionId);
@@ -241,34 +245,10 @@ export function updateKpisForNextRound(
   
   console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisCost=${crisisCost}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
 
-  let updatedCash = teamState.kpis.cash + income - totalExpenses;
+  let updatedCash = teamState.kpis.cash + income - totalExpenses + cashInjection;
   
-  // Apply F4 cash injection
-  if(actions.includes('F4')) {
-    updatedCash += 50000;
-  }
-
   // 3. Calcular nuevos KPIs de Reputación y Moral
-  let updatedNma = currentKpis.nma;
-  
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
-
-  // Impacto de inversiones
-  if (actions.includes('R2')) { // Inversión en TIC
-      updatedNma += 0.2;
-      updatedMorale += 5;
-  }
-  
-  if (actions.includes('P1')) { // Formación docente
-      updatedNma += 0.1;
-      updatedMorale += 10;
-  }
-  if (actions.includes('R4')) { // Desarrollo curricular
-      updatedNma += 0.3;
-  }
-  if (actions.includes('P5')) { // Actividades sociales
-    updatedMorale += 10;
-  }
 
   // --- Crisis C1 Effects ---
   if (decisions.crisisResponse?.crisisId === 'C1') {
@@ -291,15 +271,6 @@ export function updateKpisForNextRound(
     updatedNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
   }
   
-  // Impacto de acciones de personal
-  if(actions.includes('P7')) { // Despedir
-      updatedMorale -= 25;
-  }
-  if(actions.includes('P2')) { // Contratar
-      updatedMorale += 15;
-  }
-  // Poaching morale effects are handled in round simulation
-
   // Impacto de sobrecarga (PENALTY)
   if (updatedStudentTeacherRatio > OVERLOAD_RATIO) {
     updatedMorale -= OVERLOAD_MORALE_PENALTY;

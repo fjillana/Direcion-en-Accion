@@ -201,8 +201,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
 
     // Crisis C4 Effects
     if (decisions.crisisResponse?.crisisId === 'C4') {
-        if (decisions.crisisResponse.optionId === 'C4_op1') {
+        const optionId = decisions.crisisResponse.optionId;
+        if (optionId === 'C4_op1') {
             bonus.reputation -= 5;
+        } else if (optionId === 'C4_op2') {
+            bonus.reputation -= 2;
+            bonus.morale += 2;
         }
     }
 

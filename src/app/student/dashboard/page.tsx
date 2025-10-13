@@ -322,6 +322,12 @@ export default function StudentDashboard() {
           numTeachers={kpis?.numTeachers || 0}
         />
         
+        {lastCrisisReport && (
+          <div className="w-full">
+            <CrisisReport report={lastCrisisReport} />
+          </div>
+        )}
+
         {currentCrisis && (
           <div className="w-full">
             <CrisisForm 
@@ -330,12 +336,6 @@ export default function StudentDashboard() {
               currentResponse={decisions?.crisisResponse || null}
               {...currentCrisis} 
             />
-          </div>
-        )}
-
-        {!currentCrisis && lastCrisisReport && (
-          <div className="w-full">
-            <CrisisReport report={lastCrisisReport} />
           </div>
         )}
 

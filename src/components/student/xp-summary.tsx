@@ -105,14 +105,18 @@ const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reput
 
     const areaInvestments = (team.decisions.actions)
       .map(actionId => allInvestments.find(inv => inv.id === actionId))
-      .filter((inv): inv is Investment => !!inv && inv.bonus.area === area);
+      .filter((inv): inv is Investment => !!inv && !!inv.xpBonus[area]);
 
     if (areaInvestments.length === 0) return "";
 
     const mainContributor = areaInvestments.reduce((max, current) => {
-        const maxBonusValue = Array.isArray(max.bonus.value) ? max.bonus.value[1] : max.bonus.value;
-        const currentBonusValue = Array.isArray(current.bonus.value) ? current.bonus.value[1] : current.bonus.value;
-        return currentBonusValue > maxBonusValue ? current : max;
+        const maxBonusConfig = max.xpBonus[area];
+        const currentBonusConfig = current.xpBonus[area];
+        
+        const maxBonusValue = Array.isArray(maxBonusConfig) ? maxBonusConfig[1] : maxBonusConfig;
+        const currentBonusValue = Array.isArray(currentBonusConfig) ? currentBonusConfig[1] : currentBonusConfig;
+        
+        return (currentBonusValue ?? 0) > (maxBonusValue ?? 0) ? current : max;
     });
 
     return `(${mainContributor.name})`;

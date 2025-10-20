@@ -78,16 +78,16 @@ export function StudentReport() {
       const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === studentGame!.teamName);
       initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
   }
-
+  
   const totalInvestmentCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
-      const investment = allInvestments.find(inv => inv.id === actionId);
-      if (investment) {
-          if (investment.cost.type === 'fixed') {
-              return acc + (investment.cost.value as number);
-          }
-          return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
-      }
-      return acc;
+    const investment = allInvestments.find(inv => inv.id === actionId);
+    if (investment && investment.id !== 'F4') { // F4 is cash injection, not cost
+        if (investment.cost.type === 'fixed') {
+            return acc + (investment.cost.value as number);
+        }
+        return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
+    }
+    return acc;
   }, 0);
   
   const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 }; //P2 cost is recurrent salary
@@ -97,14 +97,16 @@ export function StudentReport() {
   }, 0);
   
   const totalDecisionsCost = totalInvestmentCost + totalCenterActionsCost;
-  const crisisCost = Math.abs(reportData.decisions.crisisResponse?.cost || 0);
-  const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0);
-  const finalCash = initialCashForRound + reportData.kpis.income - totalCosts + crisisCost; // We add crisis cost back as it's already negative
+  const crisisImpact = reportData.kpis.crisisImpact || 0;
+  const cashInjection = reportData.kpis.cashInjection || 0;
+  const totalCosts = (reportData.kpis.personnelCost || 0) + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(crisisImpact < 0 ? crisisImpact : 0);
+  const totalIncome = (reportData.kpis.privateIncome || 0) + (reportData.kpis.publicIncome || 0) + (reportData.kpis.loanIncome || 0) + cashInjection + (crisisImpact > 0 ? crisisImpact : 0);
+  
+  const finalCash = reportData.kpis.cash || 0;
 
-  // --- Breakdown texts for financial details ---
-  const publicIncomeBreakdown = `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})`;
-  const privateIncomeBreakdown = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})${reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice ? ' - Crisis Morosidad' : ''}`;
-  const personnelCostBreakdown = `(${reportData.kpis.numTeachers} profesores x 7.500 CC)${reportData.kpis.personnelCost > reportData.kpis.numTeachers * 7500 ? ' + Incremento Salarial' : ''}`;
+  const publicIncomeText = `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})`;
+  const privateIncomeText = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})${reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice ? ' - Crisis Morosidad' : ''}`;
+  const personnelCostText = `(${reportData.kpis.numTeachers} profesores x 7.500 CC)${reportData.kpis.personnelCost > reportData.kpis.numTeachers * 7500 ? ' + Incremento Salarial' : ''}`;
 
 
   return (
@@ -127,18 +129,19 @@ export function StudentReport() {
                     <AccordionContent className="px-4 space-y-2">
                        <div className="p-3 bg-muted/50 rounded-lg border text-sm space-y-1">
                             <div className="flex justify-between"><span>Tesorería Inicial:</span> <span className="font-mono">{formatCurrency(initialCashForRound)}</span></div>
-                            <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(reportData.kpis.income)}</span></div>
+                            <div className="flex justify-between text-emerald-600"><span>(+) Ingresos Totales:</span> <span className="font-mono">{formatCurrency(totalIncome)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
                             {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
-                             {reportData.kpis.crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
+                            {cashInjection > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Inyección Liquidez (F4):</span> <span className="font-mono">{formatCurrency(cashInjection)}</span></div>}
+                            {crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
 
                             <div className="flex justify-between text-destructive"><span>(-) Gastos Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
-                            {reportData.kpis.crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
+                            {crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
-                            <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(reportData.kpis.cash)}</span></div>
+                            <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>
                     </AccordionContent>
                 </AccordionItem>
@@ -148,9 +151,9 @@ export function StudentReport() {
                     <AccordionContent className="px-4 space-y-4">
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Cálculos Clave de Ingresos y Gastos</h4>
-                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)} <span className="text-xs">{publicIncomeBreakdown}</span></p>
-                            <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {formatCurrency(reportData.kpis.privateIncome || 0)} <span className="text-xs">{privateIncomeBreakdown}</span></p>
-                            <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {formatCurrency(reportData.kpis.personnelCost)} <span className="text-xs">{personnelCostBreakdown}</span></p>
+                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)} <span className="text-xs">{publicIncomeText}</span></p>
+                            <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {formatCurrency(reportData.kpis.privateIncome || 0)} <span className="text-xs">{privateIncomeText}</span></p>
+                            <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {formatCurrency(reportData.kpis.personnelCost)} <span className="text-xs">{personnelCostText}</span></p>
                              {reportData.decisions.crisisResponse && (
                                 <div className="mt-2 pt-2 border-t">
                                      <p className="text-sm text-muted-foreground">Impacto Crisis ({reportData.decisions.crisisResponse.crisisName}): {formatCurrency(reportData.kpis.crisisImpact || 0)}</p>

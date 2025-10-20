@@ -154,7 +154,7 @@ export function updateKpisForNextRound(
   }
 
 
-  const income = privateIncome + currentPublicIncome + loanIncome;
+  const income = privateIncome + currentPublicIncome + loanIncome + cashInjection + (crisisFinancialImpact > 0 ? crisisFinancialImpact : 0);
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
   // Apply P4 salary increase permanently
@@ -167,7 +167,7 @@ export function updateKpisForNextRound(
   
   const investmentCost = actions.reduce((sum, actionId) => {
       const investmentInfo = allInvestments.find(inv => inv.id === actionId);
-      if (!investmentInfo) return sum;
+      if (!investmentInfo || investmentInfo.id === 'F4') return sum; // Exclude F4 from cost calculation
 
       if(investmentInfo.cost.type === 'fixed') {
         return sum + (investmentInfo.cost.value as number);
@@ -202,11 +202,11 @@ export function updateKpisForNextRound(
   }
 
   const totalDecisionsCost = investmentCost + centerActionsCost;
-  const totalExpenses = personnelCost + totalDecisionsCost + interestCost;
+  const totalExpenses = personnelCost + totalDecisionsCost + interestCost + (crisisFinancialImpact < 0 ? Math.abs(crisisFinancialImpact) : 0);
   
   console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisFinancialImpact=${crisisFinancialImpact}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
 
-  let updatedCash = teamState.kpis.cash + income - totalExpenses + cashInjection + crisisFinancialImpact;
+  let updatedCash = teamState.kpis.cash + income - totalExpenses;
   
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
@@ -251,6 +251,7 @@ export function updateKpisForNextRound(
       loanInterest: interestCost,
       loanIncome: loanIncome,
       crisisImpact: crisisFinancialImpact,
+      cashInjection: cashInjection,
   };
   
   return finalKPIs;

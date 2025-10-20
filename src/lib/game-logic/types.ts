@@ -36,6 +36,7 @@ export interface TeamKPIs {
     loanInterest?: number;
     loanIncome?: number;
     crisisImpact?: number;
+    cashInjection?: number;
 }
 
 export type AIArchetype = 'BALANCED' | 'AGGRESSIVE_GROWTH' | 'FINANCE_CONSERVATIVE' | 'QUALITY_FOCUSED';

@@ -196,31 +196,26 @@ export function updateKpisForNextRound(
   personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
   const totalDecisionsCost = actions.reduce((sum, actionId) => {
-    // F4 (Negociación Agresiva) no tiene coste, inyecta liquidez, por lo que se excluye
-    if (actionId === 'F4') {
-        return sum;
-    }
-    
-    // El coste de P2 (contratación) se gestiona como un salario recurrente, no un coste de decisión puntual aquí.
-    if (actionId === 'P2') {
-        return sum;
-    }
-
+    // F4 (Negociación Agresiva) no tiene coste, inyecta liquidez.
+    if (actionId === 'F4') return sum;
+  
     // Buscar si es una inversión del catálogo
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
-        if(investmentInfo.cost.type === 'fixed') {
-            return sum + (investmentInfo.cost.value as number);
-        }
-        if(investmentInfo.cost.type === 'range') {
-            // Usar el coste real si está guardado, sino el máximo como fallback
-            return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
-        }
+      if (investmentInfo.cost.type === 'fixed') {
+        return sum + (investmentInfo.cost.value as number);
+      }
+      if (investmentInfo.cost.type === 'range') {
+        // Usar el coste real si está guardado, sino el máximo como fallback
+        return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+      }
     }
-
+  
     // Comprobar acciones del centro con coste fijo que no son inversiones de rango/variable
+    // Se procesan aquí para evitar contarlas dos veces si también están en la lista de inversiones.
+    // P2: Coste salarial se añade al coste de personal, no como decisión puntual.
     if (actionId === 'P7') return sum + 7500; // Coste de despido
-
+  
     return sum;
   }, 0);
   

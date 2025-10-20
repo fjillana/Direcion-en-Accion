@@ -26,7 +26,7 @@ function calculateTreasuryPeb(cash: number, income: number, hasLoan: boolean): {
         peb -= 20; // -20 PEB penalty for taking the loan
     }
 
-    return { peb: Math.max(0, Math.min(110, peb)), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.max(0, peb), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
 }
 
 function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb: number, breakdown: string } {
@@ -71,7 +71,7 @@ function calculateMarketSharePeb(currentStudents: number, initialStudents: numbe
     // Limitar el PEB entre 0 y 110
     peb = Math.max(0, Math.min(110, peb));
 
-    return { peb: Math.min(110, peb), breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
+    return { peb, breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 
 // --- Morale PEB Calculation (Sección 10.3) ---
@@ -94,27 +94,25 @@ function calculateStaffMoralePeb(morale: number): { peb: number, breakdown: stri
 }
 
 function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdown: string } {
-    let peb = 0;
-    if (ratio <= 22.5) {
-        peb = 100;
-    } else if (ratio <= 24) {
-        peb = 90;
-    } else if (ratio <= 25) {
-        peb = 70;
-    } else if (ratio <= 26) {
-        peb = 50;
-    } else {
-        peb = 0;
-    }
-    return { peb: Math.min(110, peb), breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
+    const basePeb = 70;
+    const baseRatio = 25.0;
+    
+    const ratioDifference = ratio - baseRatio;
+    
+    // 2 PEB por cada 0.1 de diferencia de ratio. Es decir, 20 PEB por cada punto de ratio.
+    const pebAdjustment = ratioDifference * 20; 
+    
+    let peb = basePeb - pebAdjustment;
+
+    peb = Math.max(0, Math.min(110, peb)); // Limitar el PEB entre 0 y 110
+
+    return { peb, breakdown: `Ratio Alumno/Profesor (${ratio.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
 
 // --- XP Bonus Calculation from Decisions ---
 function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
     const actions = decisions.actions || [];
-
-    console.log(`[GPS] 5c. Calculating XP Bonus. Decisions received:`, decisions);
 
     for (const actionId of actions) {
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
@@ -284,7 +282,6 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     }
 
 
-    console.log(`[GPS] 5d. Calculated XP Bonus:`, bonus);
     return bonus;
 }
 
@@ -309,13 +306,11 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
 
     const nma = calculateNmaPeb(kpis.nma);
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
-    let pebReputationBase = (nma.peb + marketShare.peb) / 2;
-
-    if(decisions.crisisResponse?.optionId === 'C1_op3') {
-        pebReputationBase -= 40;
-    }
+    let pebReputacion = (nma.peb + marketShare.peb) / 2;
     
-    let pebReputacion = pebReputationBase;
+    if(decisions.crisisResponse?.optionId === 'C1_op3') {
+        pebReputacion -= 40;
+    }
     pebReputacion = Math.max(0, Math.min(110, pebReputacion));
 
 

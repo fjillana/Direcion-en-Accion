@@ -165,12 +165,16 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     const serverRound = gameData.round;
+    const clientRound = fullStudentState?.round;
+
+    // BUG FIX: Check if the round has advanced. If so, reset local decisions.
+    if (clientRound !== undefined && serverRound > clientRound) {
+        setFullStudentState(prev => prev ? { ...prev, decisions: initialRoundDecisions } : null);
+    }
     
     const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
     
-    const clientDecisions = fullStudentState?.decisions;
-
-    let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
+    let currentDecisions = serverDecisions || fullStudentState?.decisions || initialRoundDecisions;
     
     const performanceHistory: TeamPerformanceData[] = [];
     let currentKpis: TeamKPIs | undefined = undefined;
@@ -223,7 +227,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
+  }, [studentGameState, games, gamesLoading, user, firestore]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -400,3 +404,4 @@ export function useStudentGame() {
   }
   return context;
 }
+

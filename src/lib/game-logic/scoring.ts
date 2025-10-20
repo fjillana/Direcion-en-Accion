@@ -36,16 +36,11 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
     const basePeb = 100;
     const basePercentage = 75;
     
-    // Calculate the difference in percentage points from the base
     const percentageDifference = costPercentage - basePercentage;
-    
-    // Calculate the PEB adjustment: 1 PEB for every 0.1% difference
     const pebAdjustment = percentageDifference * 10;
     
-    // Apply the adjustment (it's a penalty if the cost is higher, a bonus if lower)
     let peb = basePeb - pebAdjustment;
 
-    // Ensure PEB does not go below a certain floor, e.g., 0, or above a ceiling, e.g., 110
     peb = Math.max(0, peb);
 
     return { peb, breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
@@ -66,18 +61,16 @@ function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
 
 function calculateMarketSharePeb(currentStudents: number, initialStudents: number = 800): { peb: number, breakdown: string } {
     const growth = ((currentStudents - initialStudents) / initialStudents) * 100;
-    let peb = 0;
-    if (growth >= 10) {
-        peb = 110;
-    } else if (growth >= 5) {
-        peb = 100;
-    } else if (growth >= 1) {
-        peb = 80;
-    } else if (growth > -1) {
-        peb = 60;
-    } else {
-        peb = 50;
-    }
+    const basePeb = 100;
+    const targetGrowth = 5; // 5% de crecimiento se considera el objetivo para 100 PEB
+    
+    // 10 PEB por cada punto porcentual por encima o por debajo del objetivo
+    const pebAdjustment = (growth - targetGrowth) * 10;
+    let peb = basePeb + pebAdjustment;
+    
+    // Limitar el PEB entre 0 y 110
+    peb = Math.max(0, Math.min(110, peb));
+
     return { peb: Math.min(110, peb), breakdown: `Cuota Mercado (crecimiento ${growth.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 

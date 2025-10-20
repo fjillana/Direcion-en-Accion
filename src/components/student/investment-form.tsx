@@ -103,8 +103,15 @@ export function InvestmentForm({
         if (!studentGame?.gameId) return [];
         const game = games.find(g => g.id === studentGame.gameId);
         if (!game) return [];
-        // Rival teams are all human teams except the current one
-        return game.teamNames.filter(name => name !== studentGame.teamName);
+        
+        const humanTeams = game.teamNames || [];
+        const numAiTeams = humanTeams.length > 0 ? humanTeams.length : 0;
+        const aiTeams = Array.from({ length: numAiTeams }, (_, i) => `IA Rival ${i + 1}`);
+
+        const allTeams = [...humanTeams, ...aiTeams];
+        
+        // Rival teams are all teams except the current one
+        return allTeams.filter(name => name !== studentGame.teamName);
     }, [games, studentGame]);
 
   const totalCost = useMemo(() => {

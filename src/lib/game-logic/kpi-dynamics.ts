@@ -122,7 +122,9 @@ export function updateKpisForNextRound(
         else if (crisisOptionId === 'C3_op2') privateIncome += 10000;
         else if (crisisOptionId === 'C3_op3') loanIncome += 10000;
         else if (crisisOptionId === 'C3_op4') {
-            crisisFinancialImpact -= 10000; // Represents saving from cut activities, so it's a negative cost (a gain)
+             // Represents saving from cut activities, it's a negative cost (a gain)
+             // This is now an income, not a negative cost on the expense side.
+            crisisFinancialImpact += 10000; 
             updatedMorale -= 5;
         }
     }
@@ -196,12 +198,11 @@ export function updateKpisForNextRound(
   personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
   const totalDecisionsCost = actions.reduce((sum, actionId) => {
-    // F4 (Negociación Agresiva) and P2 (Hire) are not direct one-time costs here.
-    if (actionId === 'F4' || actionId === 'P2') {
+    // F4 (Negociación Agresiva) is cash injection, not a cost.
+    if (actionId === 'F4') {
         return sum;
     }
   
-    // Find investment from catalog
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
       if (investmentInfo.cost.type === 'fixed') {
@@ -213,10 +214,14 @@ export function updateKpisForNextRound(
     }
   
     // Handle fixed-cost center actions not in the main investment list
+    // P2 hiring cost is a direct cost, not a recurring salary at this stage.
+    // It will become a recurring cost in the next round's personnelCost calculation.
+    if (actionId === 'P2') { // Hiring cost
+        return sum + 7500;
+    }
     if (actionId === 'P7') { // Firing cost
         return sum + 7500;
     }
-    
     if (actionId === 'F5') { // Capacity expansion
         return sum + 50000;
     }

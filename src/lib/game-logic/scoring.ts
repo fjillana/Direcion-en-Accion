@@ -322,7 +322,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         pebReputationBase -= 40;
     }
     
-    let pebReputacion = ratioOverloaded ? pebReputationBase - 10 : pebReputationBase;
+    let pebReputacion = pebReputationBase;
     pebReputacion = Math.max(0, Math.min(110, pebReputacion));
 
 
@@ -352,7 +352,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
         reputation: {
             peb: pebReputacion,
             xp: xpReputacion,
-            pebBreakdown: [nma.breakdown, marketShare.breakdown, `Ajuste por sobrecarga: ${ratioOverloaded ? '-10' : '0'} PEB`],
+            pebBreakdown: [nma.breakdown, marketShare.breakdown],
         },
         morale: {
             peb: pebMoral,

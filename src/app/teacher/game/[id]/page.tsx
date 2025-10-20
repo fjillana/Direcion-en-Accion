@@ -206,6 +206,14 @@ export default function GameDetailsPage() {
     return `(${sources.join(', ')})`;
   };
 
+  const parsePebBreakdown = (breakdown: string[]) => {
+    return breakdown.map(line => {
+      const [label, valuePart] = line.split(':');
+      const value = parseFloat(valuePart.trim().split(' ')[0]);
+      return { label, value };
+    });
+  };
+
 
   if (!game) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -348,7 +356,15 @@ export default function GameDetailsPage() {
                     <Separator />
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo PEB:</p>
-                        <p>{`(${selectedTeam.finances.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.finances.pebBreakdown.length} = ${selectedTeam.finances.peb.toFixed(2)}`}</p>
+                        <div className="flex justify-around items-end">
+                            {parsePebBreakdown(selectedTeam.finances.pebBreakdown).map((item, index) => (
+                                <div key={index} className="text-center">
+                                    <p>{item.value.toFixed(2)}</p>
+                                    <p className="text-muted-foreground text-[10px]">({item.label})</p>
+                                </div>
+                            )).reduce((prev, curr) => [prev, <span key="plus" className="mx-1 font-bold">+</span>, curr] as any)}
+                        </div>
+                         <p className="text-center">/ {selectedTeam.finances.pebBreakdown.length} = <span className="font-bold">{selectedTeam.finances.peb.toFixed(2)}</span></p>
                     </div>
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
@@ -363,7 +379,15 @@ export default function GameDetailsPage() {
                     <Separator />
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo PEB:</p>
-                        <p>{`(${selectedTeam.reputation.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.reputation.pebBreakdown.length} = ${selectedTeam.reputation.peb.toFixed(2)}`}</p>
+                         <div className="flex justify-around items-end">
+                            {parsePebBreakdown(selectedTeam.reputation.pebBreakdown).map((item, index) => (
+                                <div key={index} className="text-center">
+                                    <p>{item.value.toFixed(2)}</p>
+                                    <p className="text-muted-foreground text-[10px]">({item.label})</p>
+                                </div>
+                            )).reduce((prev, curr) => [prev, <span key="plus" className="mx-1 font-bold">+</span>, curr] as any)}
+                        </div>
+                        <p className="text-center">/ {selectedTeam.reputation.pebBreakdown.length} = <span className="font-bold">{selectedTeam.reputation.peb.toFixed(2)}</span></p>
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>
@@ -378,7 +402,15 @@ export default function GameDetailsPage() {
                      <Separator />
                     <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo PEB:</p>
-                        <p>{`(${selectedTeam.morale.pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${selectedTeam.morale.pebBreakdown.length} = ${selectedTeam.morale.peb.toFixed(2)}`}</p>
+                         <div className="flex justify-around items-end">
+                             {parsePebBreakdown(selectedTeam.morale.pebBreakdown).map((item, index) => (
+                                <div key={index} className="text-center">
+                                    <p>{item.value.toFixed(2)}</p>
+                                    <p className="text-muted-foreground text-[10px]">({item.label})</p>
+                                </div>
+                            )).reduce((prev, curr) => [prev, <span key="plus" className="mx-1 font-bold">+</span>, curr] as any)}
+                        </div>
+                        <p className="text-center">/ {selectedTeam.morale.pebBreakdown.length} = <span className="font-bold">{selectedTeam.morale.peb.toFixed(2)}</span></p>
                     </div>
                      <div className="font-mono text-xs bg-muted/50 p-2 rounded-md">
                         <p className="font-semibold">Cálculo XP:</p>

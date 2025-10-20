@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { DollarSign, Shield, Heart, Info } from "lucide-react";
@@ -44,9 +44,19 @@ interface XpCardProps {
   bonusSource: string;
 }
 
+const parsePebBreakdownForFormula = (breakdown: string[]) => {
+  return breakdown.map(line => {
+    const parts = line.split(':');
+    const label = parts[0];
+    const value = parseFloat(parts[1].trim().split(' ')[0]);
+    return { label, value };
+  });
+};
+
 function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSource }: XpCardProps) {
     const calculatedXp = (peb * (80 / 3) / 100);
-    const finalCalculation = `(${pebBreakdown.map(b => b.split(':')[1].trim().split(' ')[0]).join(' + ')}) / ${pebBreakdown.length} = ${peb.toFixed(2)}`;
+    const parsedBreakdown = parsePebBreakdownForFormula(pebBreakdown);
+    const finalCalculation = `(${parsedBreakdown.map(item => `${item.label}: ${item.value.toFixed(2)}`).join(' + ')}) / ${parsedBreakdown.length} = ${peb.toFixed(2)}`;
     const isCapped = xp >= 29.33;
 
   return (
@@ -78,7 +88,7 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSourc
             </div>
              <div>
                 <h4 className="font-semibold mb-1">2. Cálculo del PEB Total del Área</h4>
-                 <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground">
+                 <div className="rounded-md border bg-muted/50 p-4 font-mono text-center text-foreground text-xs">
                     {finalCalculation}
                  </div>
             </div>
@@ -132,12 +142,11 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
 
   const [selectedRound, setSelectedRound] = useState<number>(latestRoundNumber);
 
-  // Update selectedRound if performanceHistory changes and the current selection is out of sync
-  useState(() => {
+  useEffect(() => {
     if (latestRoundNumber !== selectedRound) {
         setSelectedRound(latestRoundNumber);
     }
-  });
+  }, [latestRoundNumber, selectedRound]);
 
 
   if (!performanceHistory || performanceHistory.length === 0) {

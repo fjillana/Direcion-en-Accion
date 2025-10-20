@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -35,6 +34,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { TeamPerformanceData, Game, StudentGameState } from "@/hooks/use-games";
 import { useGames } from "@/hooks/use-games";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { getAchievementsStatus, type Achievement } from "@/lib/achievements";
+
 
 // Simplified team structure for the leaderboard view
 type LeaderboardTeam = {
@@ -45,6 +48,7 @@ type LeaderboardTeam = {
     kpis: TeamPerformanceData['kpis'];
     decisions: TeamPerformanceData['decisions'];
     strategicPlan?: Game['strategicPlan'];
+    achievements: Achievement[];
 };
 
 const kpiConfig = {
@@ -106,11 +110,13 @@ export default function TeacherLeaderboardPage() {
   const teams = useMemo(() => {
       if (!activeGame || !activeGame.performance) return [];
       
-      const performanceData = activeGame.performance[parseInt(selectedRound)];
+      const performanceDataForSelectedRound = activeGame.performance[parseInt(selectedRound)];
 
-      if (!performanceData) return [];
+      if (!performanceDataForSelectedRound) return [];
       
-      return performanceData.map(p => {
+      const allPerformanceHistory = Object.values(activeGame.performance).flat();
+
+      return performanceDataForSelectedRound.map(p => {
           let strategicPlan;
           if (p.type === 'H') {
               const studentState = studentGamesData.find(s => s.teamName === p.name);
@@ -118,6 +124,10 @@ export default function TeacherLeaderboardPage() {
                   strategicPlan = studentState.strategicPlan;
               }
           }
+          
+          const teamHistory = allPerformanceHistory.filter(hist => hist.name === p.name);
+          const achievements = getAchievementsStatus(teamHistory);
+          
           return {
               name: p.name,
               type: p.type,
@@ -125,6 +135,7 @@ export default function TeacherLeaderboardPage() {
               kpis: p.kpis,
               decisions: p.decisions,
               strategicPlan: strategicPlan,
+              achievements: achievements,
           }
       })
       .sort((a, b) => b.totalXp - a.totalXp)
@@ -206,7 +217,28 @@ export default function TeacherLeaderboardPage() {
               {teams.map((team) => (
                 <TableRow key={team.name} onClick={() => setSelectedTeam(team)} className="cursor-pointer">
                   <TableCell className="font-bold text-lg text-center">{team.rank}</TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                        <span>{team.name}</span>
+                        <TooltipProvider>
+                            <div className="flex items-center gap-1">
+                                {team.achievements.map(badge => (
+                                    badge.unlocked && (
+                                        <Tooltip key={badge.name}>
+                                            <TooltipTrigger>
+                                                <Badge variant="secondary" className="px-1.5 py-0.5"><badge.icon className="h-4 w-4 text-primary" /></Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="font-semibold">{badge.name}</p>
+                                                <p className="text-sm text-muted-foreground">{badge.description}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )
+                                ))}
+                            </div>
+                        </TooltipProvider>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost, team.kpis.income)}</TableCell>

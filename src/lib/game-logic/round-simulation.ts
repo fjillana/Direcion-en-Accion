@@ -128,9 +128,10 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
               poachingEffects[targetTeamName].teacherChange -= 1;
               poachingEffects[targetTeamName].moraleChange -= 10;
               
+              // Notify the team that lost the teacher, if human
               if (targetTeamState.type === 'H') {
                   newMessages.push({
-                    id: `msg-poach-${Date.now()}-${targetTeamName}`,
+                    id: `msg-poached-${Date.now()}-${targetTeamName}`,
                     from: 'system',
                     to: targetTeamName,
                     title: '¡ATENCIÓN! Fuga de talento',
@@ -140,10 +141,37 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
                     readBy: [],
                   });
               }
+
+              // Notify the poaching team of success, if human
+              if (poachingTeam.type === 'H') {
+                 newMessages.push({
+                    id: `msg-poach-success-${Date.now()}-${poachingTeam.name}`,
+                    from: 'system',
+                    to: poachingTeam.name,
+                    title: 'Fichaje Exitoso',
+                    content: `¡Enhorabuena! Tu intento de "poaching" ha tenido éxito. Has contratado un nuevo profesor del equipo "${targetTeamName}".`,
+                    type: 'message',
+                    timestamp: Date.now(),
+                    readBy: [],
+                  });
+              }
+
           } else {
               // Unsuccessful poach
               poachingTeam.decisions.poachingSuccess = false;
-              // We keep the action P3 in the list to show it in reports, but we'll nullify its cost and XP bonus later.
+               // Notify the poaching team of failure, if human
+              if (poachingTeam.type === 'H') {
+                 newMessages.push({
+                    id: `msg-poach-fail-${Date.now()}-${poachingTeam.name}`,
+                    from: 'system',
+                    to: poachingTeam.name,
+                    title: 'Fichaje Fallido',
+                    content: `Tu intento de "poaching" al equipo "${targetTeamName}" ha fallado. La moral de su personal era demasiado alta (superior al 70%). La inversión no se ha ejecutado y no ha tenido coste.`,
+                    type: 'message',
+                    timestamp: Date.now(),
+                    readBy: [],
+                  });
+              }
           }
       }
   });
@@ -257,18 +285,6 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
         title: '¡HUELGA DOCENTE!',
         content: 'La moral de tu personal ha caído por debajo del 50%. Se ha convocado una huelga que paraliza el centro. Debes tomar una decisión en la siguiente ronda.',
         type: 'crisis',
-        timestamp: Date.now(),
-        readBy: [],
-      });
-
-      // Message for the teacher
-       newMessages.push({
-        id: `msg-strike-teacher-${Date.now()}-${teamPerformance.name}`,
-        from: 'system',
-        to: 'teacher',
-        title: `Huelga en Equipo: ${teamPerformance.name}`,
-        content: `El equipo "${teamPerformance.name}" ha sufrido una huelga docente automática por tener una moral inferior a 50%.`,
-        type: 'message',
         timestamp: Date.now(),
         readBy: [],
       });

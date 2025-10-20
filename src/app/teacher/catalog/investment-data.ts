@@ -47,17 +47,6 @@ export const investments: Investment[] = [
         finances: 8,
       },
     },
-    {
-      id: 'F5',
-      name: 'Ampliación de aulas / capacidad',
-      description: 'Aumenta el número de plazas en bloques de 50 alumnos. Imprescindible si el centro supera la capacidad flexible de 810.',
-      cost: { type: 'fixed', value: 50000 },
-      effects: {},
-      xpBonus: {
-        type: 'fixed',
-        finances: 10,
-      },
-    },
     // Reputación
     {
       id: 'R1',
@@ -124,17 +113,6 @@ export const investments: Investment[] = [
       xpBonus: {
         type: 'scaled',
         morale: [5, 10],
-      },
-    },
-    {
-      id: 'P2',
-      name: 'Contratación docente',
-      description: 'Contratar un nuevo profesor reduce el ratio alumnos/profesor y la carga de trabajo.',
-      cost: { type: 'fixed', value: 7500 }, // This is the recurring salary, not an investment cost
-      effects: { morale: 15 },
-      xpBonus: {
-        type: 'fixed',
-        morale: 10,
       },
     },
     {

@@ -214,8 +214,6 @@ export function updateKpisForNextRound(
     }
   
     // Handle fixed-cost center actions not in the main investment list
-    // P2 hiring cost is a direct cost, not a recurring salary at this stage.
-    // It will become a recurring cost in the next round's personnelCost calculation.
     if (actionId === 'P2') { // Hiring cost
         return sum + 7500;
     }

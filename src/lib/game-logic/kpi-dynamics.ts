@@ -122,7 +122,7 @@ export function updateKpisForNextRound(
         else if (crisisOptionId === 'C3_op2') privateIncome += 10000;
         else if (crisisOptionId === 'C3_op3') loanIncome += 10000;
         else if (crisisOptionId === 'C3_op4') {
-            crisisFinancialImpact += 10000; // Represents saving from cut activities
+            crisisFinancialImpact -= 10000; // Represents saving from cut activities, so it's a negative cost (a gain)
             updatedMorale -= 5;
         }
     }
@@ -196,25 +196,30 @@ export function updateKpisForNextRound(
   personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
   const totalDecisionsCost = actions.reduce((sum, actionId) => {
-    // F4 (Negociación Agresiva) no tiene coste, inyecta liquidez.
-    if (actionId === 'F4') return sum;
+    // F4 (Negociación Agresiva) and P2 (Hire) are not direct one-time costs here.
+    if (actionId === 'F4' || actionId === 'P2') {
+        return sum;
+    }
   
-    // Buscar si es una inversión del catálogo
+    // Find investment from catalog
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
       if (investmentInfo.cost.type === 'fixed') {
         return sum + (investmentInfo.cost.value as number);
       }
       if (investmentInfo.cost.type === 'range') {
-        // Usar el coste real si está guardado, sino el máximo como fallback
         return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
       }
     }
   
-    // Comprobar acciones del centro con coste fijo que no son inversiones de rango/variable
-    // Se procesan aquí para evitar contarlas dos veces si también están en la lista de inversiones.
-    // P2: Coste salarial se añade al coste de personal, no como decisión puntual.
-    if (actionId === 'P7') return sum + 7500; // Coste de despido
+    // Handle fixed-cost center actions not in the main investment list
+    if (actionId === 'P7') { // Firing cost
+        return sum + 7500;
+    }
+    
+    if (actionId === 'F5') { // Capacity expansion
+        return sum + 50000;
+    }
   
     return sum;
   }, 0);

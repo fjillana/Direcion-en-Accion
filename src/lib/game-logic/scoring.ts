@@ -124,6 +124,12 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
             }
             continue; // Skip the generic bonus logic for P3
         }
+        
+        // Special handling for firing penalty
+        if (actionId === 'P7') {
+            bonus.morale -= 15;
+            continue;
+        }
 
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;

@@ -31,8 +31,6 @@ export function updateKpisForNextRound(
   const currentKpis: TeamKPIs = { ...teamState.kpis };
   const decisions = { ...teamState.decisions };
 
-  console.log(`[GPS] 5a. Updating KPIs for ${teamState.name}. Decisions received:`, decisions);
-
   // --- Pre-calculation state ---
   let updatedNumStudents = currentKpis.numStudents;
   let updatedNumTeachers = currentKpis.numTeachers;
@@ -214,14 +212,16 @@ export function updateKpisForNextRound(
     }
   
     // Handle fixed-cost center actions not in the main investment list
-    if (actionId === 'P2') { // Hiring cost
-        return sum + 7500;
-    }
-    if (actionId === 'P7') { // Firing cost
-        return sum + 7500;
-    }
-    if (actionId === 'F5') { // Capacity expansion
-        return sum + 50000;
+    // This is now redundant since these actions are removed from the catalog.
+    // The cost is calculated from the checkbox actions on the dashboard form.
+    const centerActionsCostMap: Record<string, number> = {
+      'P2': 7500,
+      'P7': 7500,
+      'F5': 50000,
+    };
+
+    if (actionId in centerActionsCostMap) {
+      return sum + centerActionsCostMap[actionId];
     }
   
     return sum;
@@ -245,8 +245,6 @@ export function updateKpisForNextRound(
   
   const totalExpenses = personnelCost + totalDecisionsCost + interestCost + (crisisFinancialImpact < 0 ? Math.abs(crisisFinancialImpact) : 0);
   
-  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${totalDecisionsCost}, crisisFinancialImpact=${crisisFinancialImpact}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
-
   let updatedCash = teamState.kpis.cash + income - totalExpenses;
   
   // 3. Calcular nuevos KPIs de Reputación y Moral

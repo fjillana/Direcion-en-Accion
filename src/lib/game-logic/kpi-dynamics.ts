@@ -89,7 +89,9 @@ export function updateKpisForNextRound(
   const crisisOptionId = decisions.crisisResponse?.optionId;
   
   if (teamState.decisions.crisisResponse) {
-    teamState.decisions.crisisResponse.outcomeDescription = `Impacto financiero: ${(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC`;
+    if(!teamState.decisions.crisisResponse.outcomeDescription) {
+        teamState.decisions.crisisResponse.outcomeDescription = `Impacto financiero: ${(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC`;
+    }
   }
 
   if (crisisId && crisisOptionId) {
@@ -175,13 +177,12 @@ export function updateKpisForNextRound(
   // --- NEW: Apply F3 Insurance Effect ---
   const hasInsurance = performanceHistory.some(round => round.decisions.actions.includes('F3')) || actions.includes('F3');
   if (hasInsurance && crisisFinancialImpact < 0) {
-    const reduction = crisisFinancialImpact * 0.10;
-    crisisFinancialImpact -= reduction; // Reduce el impacto negativo (haciéndolo menos negativo)
+    const reduction = Math.abs(crisisFinancialImpact * 0.10);
+    crisisFinancialImpact += reduction; // Reduce el impacto negativo (haciéndolo menos negativo)
     if(decisions.crisisResponse) {
         decisions.crisisResponse.outcomeDescription = (decisions.crisisResponse.outcomeDescription || '') + ` Gracias al seguro, el impacto negativo se redujo en ${reduction.toLocaleString('es-ES')} CC.`;
     }
   }
-
 
   const income = privateIncome + currentPublicIncome + loanIncome + cashInjection + (crisisFinancialImpact > 0 ? crisisFinancialImpact : 0);
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
@@ -194,24 +195,29 @@ export function updateKpisForNextRound(
 
   personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
-  const investmentCost = actions.reduce((sum, actionId) => {
-      const investmentInfo = allInvestments.find(inv => inv.id === actionId);
-      if (!investmentInfo || investmentInfo.id === 'F4') return sum; // Exclude F4 from cost calculation
+  const totalDecisionsCost = actions.reduce((sum, actionId) => {
+    // F4 (Negociación Agresiva) no tiene coste, inyecta liquidez, por lo que se excluye
+    if (actionId === 'F4') {
+        return sum;
+    }
+    
+    // Buscar si es una inversión del catálogo
+    const investmentInfo = allInvestments.find(inv => inv.id === actionId);
+    if (investmentInfo) {
+        if(investmentInfo.cost.type === 'fixed') {
+            return sum + (investmentInfo.cost.value as number);
+        }
+        if(investmentInfo.cost.type === 'range') {
+            // Usar el coste real si está guardado, sino el máximo como fallback
+            return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+        }
+    }
 
-      if(investmentInfo.cost.type === 'fixed') {
-        return sum + (investmentInfo.cost.value as number);
-      }
-      if(investmentInfo.cost.type === 'range') {
-        return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
-      }
-      return sum;
-  }, 0);
-  
-  const centerActionsCost = actions.reduce((sum, actionId) => {
-      if (actionId === 'F5') return sum + 50000;
-      if (actionId === 'P7') return sum + 7500; // Coste de despido
-      if (actionId === 'P2') return sum + 7500; // Coste de contratación (primer salario)
-      return sum;
+    // Comprobar acciones del centro con coste fijo que no son inversiones de rango/variable
+    if (actionId === 'P7') return sum + 7500; // Coste de despido
+    if (actionId === 'P2') return sum + 7500; // Coste de contratación (primer salario)
+    
+    return sum;
   }, 0);
   
   // Calculate interest cost if loan was taken previously
@@ -229,11 +235,10 @@ export function updateKpisForNextRound(
   if (hasC6Loan) {
     interestCost += 10000 * 0.10; // 10% interest on 10k loan for C6
   }
-
-  const totalDecisionsCost = investmentCost + centerActionsCost;
+  
   const totalExpenses = personnelCost + totalDecisionsCost + interestCost + (crisisFinancialImpact < 0 ? Math.abs(crisisFinancialImpact) : 0);
   
-  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${investmentCost}, centerActionsCost=${centerActionsCost}, crisisFinancialImpact=${crisisFinancialImpact}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
+  console.log(`[GPS] 5b. For ${teamState.name}: investmentCost=${totalDecisionsCost}, crisisFinancialImpact=${crisisFinancialImpact}, interestCost=${interestCost}, totalExpenses=${totalExpenses}`);
 
   let updatedCash = teamState.kpis.cash + income - totalExpenses;
   

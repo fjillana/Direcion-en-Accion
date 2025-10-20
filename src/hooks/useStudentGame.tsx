@@ -165,16 +165,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     const serverRound = gameData.round;
+    const clientGameId = fullStudentState?.gameId;
     const clientRound = fullStudentState?.round;
 
-    // BUG FIX: Check if the round has advanced. If so, reset local decisions.
-    if (clientRound !== undefined && serverRound > clientRound) {
-        setFullStudentState(prev => prev ? { ...prev, decisions: initialRoundDecisions } : null);
+    let useInitialDecisions = false;
+    // BUG FIX: If the game ID has changed, it's a new game. Reset all decisions.
+    if (clientGameId && clientGameId !== gameData.id) {
+        useInitialDecisions = true;
+    }
+    // BUG FIX: If the round has advanced, reset decisions for the new round.
+    else if (clientRound !== undefined && serverRound > clientRound) {
+        useInitialDecisions = true;
     }
     
     const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
     
-    let currentDecisions = serverDecisions || fullStudentState?.decisions || initialRoundDecisions;
+    const clientDecisions = useInitialDecisions ? initialRoundDecisions : fullStudentState?.decisions;
+
+    let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
     
     const performanceHistory: TeamPerformanceData[] = [];
     let currentKpis: TeamKPIs | undefined = undefined;
@@ -405,3 +413,6 @@ export function useStudentGame() {
   return context;
 }
 
+
+
+  

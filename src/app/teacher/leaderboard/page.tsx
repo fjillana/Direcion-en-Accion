@@ -207,6 +207,7 @@ export default function TeacherLeaderboardPage() {
                 <TableHead className="text-right">Tesorería</TableHead>
                 <TableHead className="text-right">Coste Personal</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
+                <TableHead className="text-right">Moral</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
                 <TableHead className="text-right">Precio Matrícula</TableHead>
@@ -243,6 +244,7 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost, team.kpis.income)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
+                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.morale, team.strategicPlan?.targets?.morale))}>{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
                   <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.decisions.tuitionPrice)}</TableCell>
@@ -251,7 +253,7 @@ export default function TeacherLeaderboardPage() {
               ))}
                {teams.length === 0 && (
                   <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                           No hay datos disponibles para la ronda {selectedRound}.
                       </TableCell>
                   </TableRow>

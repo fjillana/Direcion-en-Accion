@@ -215,6 +215,14 @@ export function updateKpisForNextRound(
     updatedMorale -= OVERLOAD_MORALE_PENALTY;
     updatedNma -= OVERLOAD_NMA_PENALTY;
   }
+
+  // --- NEW RULE: Inaction in HR ---
+  // If no investment in personnel area is made, apply penalty.
+  const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5'];
+  const hasHrInvestment = actions.some(actionId => hrInvestmentIds.includes(actionId));
+  if (!hasHrInvestment) {
+    updatedMorale -= 10;
+  }
   
   // Limitar valores para que no se salgan de rangos lógicos
   updatedNma = Math.max(0, Math.min(10, updatedNma));

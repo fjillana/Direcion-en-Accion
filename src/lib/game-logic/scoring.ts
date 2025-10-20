@@ -112,11 +112,19 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 // --- XP Bonus Calculation from Decisions ---
-function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean): { finances: number; reputation: number; morale: number } {
+function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean, wasPoachSuccessful?: boolean): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
     const actions = decisions.actions || [];
 
     for (const actionId of actions) {
+        // Special handling for poaching XP bonus
+        if (actionId === 'P3') {
+            if (wasPoachSuccessful) {
+                bonus.morale += 15;
+            }
+            continue; // Skip the generic bonus logic for P3
+        }
+
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (!investmentInfo) continue;
         
@@ -287,7 +295,7 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     return bonus;
 }
 
-export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
+export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean, wasPoachSuccessful?: boolean) {
     const { kpis, decisions } = teamState;
     
     const hasC2Loan = decisions.crisisResponse?.optionId === 'C2_op1';
@@ -325,7 +333,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const baseXpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
     const baseXpMoral = pebMoral * XP_CONVERSION_FACTOR;
     
-    const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess);
+    const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess, wasPoachSuccessful);
 
     const xpFinanzas = Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances);
     const xpReputacion = Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation);

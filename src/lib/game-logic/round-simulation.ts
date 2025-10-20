@@ -110,6 +110,8 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
   // --- Handle poaching logic ---
   const poachingEffects: Record<string, { teacherChange: number, moraleChange: number }> = {};
+  const newMessages: GameMessage[] = [];
+
   currentTeamsState.forEach(team => {
       poachingEffects[team.name] = { teacherChange: 0, moraleChange: 0 };
   });
@@ -124,6 +126,25 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
               poachingEffects[poachingTeam.name].teacherChange += 1;
               poachingEffects[targetTeamName].teacherChange -= 1;
               poachingEffects[targetTeamName].moraleChange -= 10;
+              
+              if (targetTeamState.type === 'H') {
+                  newMessages.push({
+                    id: `msg-poach-${Date.now()}-${targetTeamName}`,
+                    from: 'system',
+                    to: targetTeamName,
+                    title: '¡ATENCIÓN! Fuga de talento',
+                    content: `¡Te han robado un profesor! Uno de tus competidores ha fichado a un miembro de tu equipo. Esto te hace perder un docente y sufre una penalización de -10 en la moral.`,
+                    type: 'message',
+                    timestamp: Date.now(),
+                    readBy: [],
+                  });
+              }
+          } else {
+              // Unsuccessful poach: remove the action and cost
+              poachingTeam.decisions.actions = poachingTeam.decisions.actions.filter(id => id !== 'P3');
+              if (poachingTeam.decisions.investmentCosts) {
+                  delete poachingTeam.decisions.investmentCosts['P3'];
+              }
           }
       }
   });
@@ -180,7 +201,8 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
     const negotiationSuccess = negotiationOutcomes[teamState.name];
-    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess);
+    const wasPoachSuccessful = teamState.decisions.actions.includes('P3');
+    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess, wasPoachSuccessful);
 
     // Clean the decisions object before saving
     const finalDecisions = { ...teamState.decisions };
@@ -204,7 +226,6 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     return result;
   });
 
-  const newMessages: GameMessage[] = [];
   const automaticCrises: { teamName: string, crisisIds: string[] }[] = [];
 
   const { firestore } = initializeFirebase();

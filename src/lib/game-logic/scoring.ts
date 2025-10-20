@@ -32,17 +32,23 @@ function calculateTreasuryPeb(cash: number, income: number, hasLoan: boolean): {
 function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb: number, breakdown: string } {
     if (income === 0) return { peb: 0, breakdown: 'Coste Personal: 0 PEB (Ingresos son 0)' };
     const costPercentage = (personnelCost / income) * 100;
-    let peb = 0;
-    if (costPercentage <= 70) {
-        peb = 110;
-    } else if (costPercentage <= 78) { // 75 +/- 3
-        peb = 100;
-    } else if (costPercentage <= 80) {
-        peb = 90;
-    } else {
-        peb = 70;
-    }
-    return { peb: Math.min(110, peb), breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
+    
+    const basePeb = 100;
+    const basePercentage = 75;
+    
+    // Calculate the difference in percentage points from the base
+    const percentageDifference = costPercentage - basePercentage;
+    
+    // Calculate the PEB adjustment: 1 PEB for every 0.1% difference
+    const pebAdjustment = percentageDifference * 10;
+    
+    // Apply the adjustment (it's a penalty if the cost is higher, a bonus if lower)
+    let peb = basePeb - pebAdjustment;
+
+    // Ensure PEB does not go below a certain floor, e.g., 0, or above a ceiling, e.g., 110
+    peb = Math.max(0, peb);
+
+    return { peb, breakdown: `Coste Personal (${costPercentage.toFixed(1)}%): ${peb.toFixed(2)} PEB` };
 }
 
 // --- Reputation PEB Calculation (Sección 10.2) ---

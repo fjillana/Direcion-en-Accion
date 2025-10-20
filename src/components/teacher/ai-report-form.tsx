@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -46,6 +45,7 @@ import type { TeamPerformanceData } from "@/hooks/use-games";
 import { calculateMarketAttractiveness } from "@/lib/game-logic/market-attractiveness";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import { CrisisReport } from "../student/crisis-report";
+import { cn } from "@/lib/utils";
 
 type TeamName = string;
 
@@ -592,3 +592,5 @@ export function AIReportForm() {
     </Card>
   );
 }
+
+    

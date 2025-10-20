@@ -80,16 +80,18 @@ function calculateStaffMoralePeb(morale: number): { peb: number, breakdown: stri
     let peb = 0;
     if (morale >= 90) {
         peb = 110;
+    } else if (morale >= 80) {
+        peb = 91 + (morale - 80); // Escala lineal de 91 (en 80) a 100 (en 89)
     } else if (morale >= 70) {
-        peb = 100;
+        peb = 81 + (morale - 70); // Escala lineal de 81 (en 70) a 90 (en 79)
     } else if (morale >= 60) {
-        peb = 80;
+        peb = 71 + (morale - 60); // Escala lineal de 71 (en 60) a 80 (en 69)
     } else if (morale >= 50) {
-        peb = 50;
+        peb = 61 + (morale - 50); // Escala lineal de 61 (en 50) a 70 (en 59)
     } else {
-        peb = 0;
+        peb = 0; // Por debajo de 50 es 0
     }
-    return { peb: Math.min(110, peb), breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
+    return { peb: Math.max(0, Math.min(110, peb)), breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
 }
 
 function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdown: string } {

@@ -197,33 +197,30 @@ export function updateKpisForNextRound(
   
   const totalDecisionsCost = actions.reduce((sum, actionId) => {
     // F4 (Negociación Agresiva) is cash injection, not a cost.
-    if (actionId === 'F4') {
-        return sum;
-    }
-  
+    if (actionId === 'F4') return sum;
+    // Poaching only costs if successful
+    if (actionId === 'P3' && teamState.decisions.poachingSuccess !== true) return sum;
+
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
-      if (investmentInfo.cost.type === 'fixed') {
-        return sum + (investmentInfo.cost.value as number);
-      }
-      if (investmentInfo.cost.type === 'range') {
-        return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
-      }
+        if (investmentInfo.cost.type === 'fixed') {
+            return sum + (investmentInfo.cost.value as number);
+        }
+        if (investmentInfo.cost.type === 'range') {
+            return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+        }
     }
-  
-    // Handle fixed-cost center actions not in the main investment list
-    // This is now redundant since these actions are removed from the catalog.
-    // The cost is calculated from the checkbox actions on the dashboard form.
+
     const centerActionsCostMap: Record<string, number> = {
-      'P2': 7500,
-      'P7': 7500,
-      'F5': 50000,
+      'P2': 7500, // Contratar
+      'P7': 7500, // Despedir
+      'F5': 50000, // Ampliar
     };
 
     if (actionId in centerActionsCostMap) {
       return sum + centerActionsCostMap[actionId];
     }
-  
+    
     return sum;
   }, 0);
   

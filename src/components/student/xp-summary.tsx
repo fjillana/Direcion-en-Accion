@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -11,6 +10,7 @@ import type { TeamPerformanceData } from "@/hooks/use-games";
 import { Alert, AlertTitle } from "../ui/alert";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import type { Investment } from "@/components/teacher/catalog-editor";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type PebData = {
@@ -125,6 +125,21 @@ const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reput
 
 export function XpSummary({ performanceHistory }: XpSummaryProps) {
 
+  const latestRoundNumber = useMemo(() => {
+    if (!performanceHistory || performanceHistory.length === 0) return 0;
+    return performanceHistory.reduce((max, p) => p.round > max ? p.round : max, 0);
+  }, [performanceHistory]);
+
+  const [selectedRound, setSelectedRound] = useState<number>(latestRoundNumber);
+
+  // Update selectedRound if performanceHistory changes and the current selection is out of sync
+  useState(() => {
+    if (latestRoundNumber !== selectedRound) {
+        setSelectedRound(latestRoundNumber);
+    }
+  });
+
+
   if (!performanceHistory || performanceHistory.length === 0) {
     return (
         <Card>
@@ -143,32 +158,53 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
         </Card>
     );
   }
-
-  const latestRoundData = useMemo(() => {
-    // Find the data for the highest round number in the history
-    return performanceHistory.reduce((latest, current) => {
-        return current.round > latest.round ? current : latest;
-    });
-  }, [performanceHistory]);
   
-  const selectedRound = latestRoundData.round;
+  const selectedRoundData = useMemo(() => {
+    return performanceHistory.find(p => p.round === selectedRound);
+  }, [performanceHistory, selectedRound]);
 
-  const xpRonda = latestRoundData.totalXp;
+  const xpRonda = selectedRoundData?.totalXp || 0;
 
   const averageXp = useMemo(() => {
     const totalXp = performanceHistory.reduce((acc, roundData) => acc + roundData.totalXp, 0);
     return (totalXp / performanceHistory.length).toFixed(1);
   }, [performanceHistory]);
+  
+  const availableRounds = useMemo(() => {
+      return [...new Set(performanceHistory.map(p => p.round))].sort((a,b) => a-b);
+  }, [performanceHistory]);
+
+  if (!selectedRoundData) {
+      return (
+        <Card>
+            <CardHeader><CardTitle>Resumen de Puntuación</CardTitle></CardHeader>
+            <CardContent><p>No hay datos para la ronda seleccionada.</p></CardContent>
+        </Card>
+      );
+  }
+
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex-1">
                 <CardTitle>Resumen de Puntuación</CardTitle>
                 <CardDescription>
-                    Última ronda completada: <span className="font-bold text-primary">{selectedRound}</span>. XP de la ronda: <span className="font-bold text-primary">{xpRonda.toFixed(1)} XP</span>
+                    Puntuación de la ronda: <span className="font-bold text-primary">{selectedRound}</span>. XP de la ronda: <span className="font-bold text-primary">{xpRonda.toFixed(1)} XP</span>
                 </CardDescription>
+            </div>
+             <div className="w-full sm:w-[180px]">
+                <Select value={selectedRound.toString()} onValueChange={(value) => setSelectedRound(parseInt(value, 10))}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar Ronda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableRounds.map(roundNum => (
+                            <SelectItem key={roundNum} value={roundNum.toString()}>Ronda {roundNum}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
       </CardHeader>
@@ -177,33 +213,33 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <XpCard 
               title="Finanzas" 
-              xp={latestRoundData.finances.xp} 
+              xp={selectedRoundData.finances.xp} 
               icon={<DollarSign className="h-5 w-5 text-emerald-600" />} 
-              peb={latestRoundData.finances.peb} 
-              pebBreakdown={latestRoundData.finances.pebBreakdown} 
+              peb={selectedRoundData.finances.peb} 
+              pebBreakdown={selectedRoundData.finances.pebBreakdown} 
               round={selectedRound}
-              bonusXp={latestRoundData.xpFinancesBonus}
-              bonusSource={getBonusSourceName(latestRoundData, 'finances')}
+              bonusXp={selectedRoundData.xpFinancesBonus}
+              bonusSource={getBonusSourceName(selectedRoundData, 'finances')}
             />
             <XpCard 
               title="Reputación" 
-              xp={latestRoundData.reputation.xp} 
+              xp={selectedRoundData.reputation.xp} 
               icon={<Shield className="h-5 w-5 text-blue-600" />} 
-              peb={latestRoundData.reputation.peb} 
-              pebBreakdown={latestRoundData.reputation.pebBreakdown} 
+              peb={selectedRoundData.reputation.peb} 
+              pebBreakdown={selectedRoundData.reputation.pebBreakdown} 
               round={selectedRound}
-              bonusXp={latestRoundData.xpReputationBonus}
-              bonusSource={getBonusSourceName(latestRoundData, 'reputation')}
+              bonusXp={selectedRoundData.xpReputationBonus}
+              bonusSource={getBonusSourceName(selectedRoundData, 'reputation')}
             />
             <XpCard 
               title="Moral" 
-              xp={latestRoundData.morale.xp} 
+              xp={selectedRoundData.morale.xp} 
               icon={<Heart className="h-5 w-5 text-red-600" />} 
-              peb={latestRoundData.morale.peb} 
-              pebBreakdown={latestRoundData.morale.pebBreakdown} 
+              peb={selectedRoundData.morale.peb} 
+              pebBreakdown={selectedRoundData.morale.pebBreakdown} 
               round={selectedRound}
-              bonusXp={latestRoundData.xpMoraleBonus}
-              bonusSource={getBonusSourceName(latestRoundData, 'morale')}
+              bonusXp={selectedRoundData.xpMoraleBonus}
+              bonusSource={getBonusSourceName(selectedRoundData, 'morale')}
             />
           </div>
         </div>

@@ -37,10 +37,10 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const priceRatio = averageTuition / team.decisions.tuitionPrice;
     if (team.decisions.tuitionPrice <= averageTuition) {
       // Bonificación lineal por ser más barato o igual que la media
-      pricePoints = priceRatio * 30;
+      pricePoints = priceRatio * 50; // Aumentado de 30 a 50
     } else {
-      // Penalización exponencial por ser más caro. Se eleva al cuadrado.
-      pricePoints = (priceRatio ** 2) * 30;
+      // Penalización exponencial por ser más caro. Se eleva al cubo.
+      pricePoints = (priceRatio ** 3) * 50; // Cambiado a cúbico y aumentado a 50
     }
     
     // c. Componente de Marketing: Se calcula en base a la inversión en la campaña "R1".
@@ -98,32 +98,50 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     };
     totalIamPoints += finalIam;
   }
+  
+  type UnroundedResult = { team: TeamState; unroundedStudents: number; };
+  let unroundedResults: UnroundedResult[] = [];
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
-  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number, sustainability: number, crisis: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
   if (totalIamPoints > 0) {
-    for (const team of teams) {
+    unroundedResults = teams.map(team => {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;
-        const newStudents = Math.round(iamShare * NEW_STUDENTS_POOL);
-        finalResults[team.name] = {
-            ...teamIamResults[team.name],
-            newStudents: newStudents,
-            name: team.name,
-            type: team.type
-        };
-    }
+        const unroundedStudents = iamShare * NEW_STUDENTS_POOL;
+        return { team, unroundedStudents };
+    });
   } else {
     // Caso improbable: si ningún equipo tiene puntos IAM, los alumnos se reparten equitativamente.
-    const newStudentsPerTeam = Math.floor(NEW_STUDENTS_POOL / teams.length);
-    for (const team of teams) {
-        finalResults[team.name] = {
-            ...teamIamResults[team.name],
-            newStudents: newStudentsPerTeam,
-            name: team.name,
-            type: team.type
-        };
-    }
+    const unroundedStudentsPerTeam = NEW_STUDENTS_POOL / teams.length;
+    unroundedResults = teams.map(team => ({ team, unroundedStudents: unroundedStudentsPerTeam }));
   }
+  
+  // Identificar el equipo con más y menos alumnos (antes de redondear)
+  if (unroundedResults.length > 1) {
+    unroundedResults.sort((a, b) => b.unroundedStudents - a.unroundedStudents);
+  }
+
+  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number, sustainability: number, crisis: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
+
+  unroundedResults.forEach((result, index) => {
+    let newStudents: number;
+    if (unroundedResults.length > 1 && index === 0) {
+      // Equipo con más alumnos: redondear hacia arriba
+      newStudents = Math.ceil(result.unroundedStudents);
+    } else if (unroundedResults.length > 1 && index === unroundedResults.length - 1) {
+      // Equipo con menos alumnos: redondear hacia abajo
+      newStudents = Math.floor(result.unroundedStudents);
+    } else {
+      // Resto de equipos: redondeo estándar
+      newStudents = Math.round(result.unroundedStudents);
+    }
+
+    finalResults[result.team.name] = {
+      ...teamIamResults[result.team.name],
+      newStudents: newStudents,
+      name: result.team.name,
+      type: result.team.type
+    };
+  });
 
   return finalResults;
 }

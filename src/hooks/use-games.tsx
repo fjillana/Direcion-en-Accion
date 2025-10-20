@@ -173,7 +173,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
     const gameWithOwner = { ...game, createdBy: user.id };
-    await addDoc(collection(firestore, "games"), gameWithOwner)
+    addDoc(collection(firestore, "games"), gameWithOwner).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: 'games',
+        operation: 'create',
+        requestResourceData: gameWithOwner,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const removeGame = async (gameId: string) => {
@@ -209,8 +216,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
         }
     } catch (error: any) {
-        console.error("Error removing team:", error);
-        throw error;
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: gameRef.path,
+                operation: 'update',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
     }
 };
 
@@ -218,7 +230,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    await updateDoc(gameRef, updatedGame);
+    updateDoc(gameRef, updatedGame).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: gameRef.path,
+            operation: 'update',
+            requestResourceData: updatedGame,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
@@ -233,12 +252,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const currentRequests = gameDoc.data().pendingJoinRequests || [];
         const newTeamNames = requests.map(r => r.teamName);
         const remainingRequests = currentRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId));
-
-        // Update game doc with new team names and remove pending requests
-        await updateDoc(gameRef, {
+        const gameUpdateData = {
             teamNames: arrayUnion(...newTeamNames),
             pendingJoinRequests: remainingRequests
-        });
+        };
+        // Update game doc with new team names and remove pending requests
+        await updateDoc(gameRef, gameUpdateData);
 
         // Then, update all student documents in a batch
         const batch = writeBatch(firestore);
@@ -249,7 +268,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         await batch.commit();
 
     } catch (error) {
-        console.error("Error accepting join requests:", error);
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: gameRef.path,
+                operation: 'update',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            console.error("Error accepting join requests:", error);
+        }
     }
   };
 
@@ -280,14 +307,20 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updateData = { reports: newReports, messages: newMessages };
 
-    await updateDoc(gameRef, updateData);
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
 
-    // Get current game data to merge round settings
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data();
@@ -313,36 +346,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         [`roundSettings.${nextRound}`]: existingNextRoundSettings
     };
     
-    const findUndefined = (obj: any, path = ''): string[] => {
-      const undefinedPaths: string[] = [];
-      if (obj === undefined) {
-        undefinedPaths.push(path || 'root');
-        return undefinedPaths;
-      }
-      if (obj === null || typeof obj !== 'object') {
-        return undefinedPaths;
-      }
-      if (Array.isArray(obj)) {
-        obj.forEach((item, index) => {
-          undefinedPaths.push(...findUndefined(item, `${path}[${index}]`));
-        });
-      } else {
-        Object.entries(obj).forEach(([key, value]) => {
-          const currentPath = path ? `${path}.${key}` : key;
-          undefinedPaths.push(...findUndefined(value, currentPath));
-        });
-      }
-      return undefinedPaths;
-    };
-
-    const undefinedPaths = findUndefined(updateData);
-    if (undefinedPaths.length > 0) {
-      const errorMessage = `Cannot save undefined values at paths: ${undefinedPaths.join(', ')}`;
-      console.error('FOUND UNDEFINED VALUES AT:', undefinedPaths);
-      throw new Error(errorMessage);
-    }
-    
-    await updateDoc(gameRef, updateData);
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {
@@ -354,7 +365,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameData = gameDoc.data();
     const newSettingsState = { ...(gameData.roundSettings || {}) };
     
-    // Merge new settings with existing automatic crises for the round
     const existingCrises = newSettingsState[round]?.teamCrises || [];
     const manualCrises = settings.teamCrises;
     const mergedCrises = [...existingCrises];
@@ -384,7 +394,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
 
     const updatedMessages = [...(gameData.messages || []), ...newMessages];
-    await updateDoc(gameRef, { roundSettings: newSettingsState, messages: updatedMessages });
+    const updateData = { roundSettings: newSettingsState, messages: updatedMessages };
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const addMessage = async (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
@@ -395,8 +413,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       ...message, id: `msg-${Date.now()}`, timestamp: Date.now(), readBy: [],
     };
     
-    await updateDoc(gameRef, {
+    updateDoc(gameRef, {
         messages: arrayUnion(newMessage)
+    }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: { messages: [newMessage] },
+      });
+      errorEmitter.emit('permission-error', permissionError);
     });
   };
 
@@ -412,19 +437,32 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
       return msg;
     });
-    await updateDoc(gameRef, { messages: newMessages });
+    updateDoc(gameRef, { messages: newMessages }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: { messages: '...' },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
     
-    // Using dot notation to safely set a nested property
     const updateData = {
       [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true }
     };
   
-    await updateDoc(gameRef, updateData);
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: gameRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const getGameById = (gameId: string) => games.find(g => g.id === gameId);
@@ -440,7 +478,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const studentGames = querySnapshot.docs.map(doc => doc.data() as StudentGameState);
         return studentGames;
     } catch (error) {
-        console.error("Error fetching student games by gameId:", error);
+        if(error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'studentGames',
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
         return [];
     }
   }, [firestore]);
@@ -488,5 +532,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

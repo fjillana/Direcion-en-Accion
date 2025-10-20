@@ -17,7 +17,10 @@ export function useDoc<T>(path: string) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !path) {
+        setIsLoading(false);
+        return;
+    }
 
     const docRef = doc(firestore, path);
 

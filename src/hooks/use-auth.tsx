@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -71,9 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(appUser);
           _setTheme(appUser.theme);
         } else {
-          // User is authenticated, but no profile document exists. This can happen
-          // during registration before the doc is created.
-          // We will let the register function handle profile creation.
+          // This case can be hit during registration before the doc is created.
         }
       } catch (error) {
          const permissionError = new FirestorePermissionError({
@@ -81,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             operation: 'get',
           });
           errorEmitter.emit('permission-error', permissionError);
-          console.error("Error fetching user profile:", error);
       }
     } else {
       setUser(null);
@@ -109,7 +107,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     _setTheme(newTheme);
     if(user && firestore){
         const userRef = doc(firestore, "users", user.id);
-        setDoc(userRef, { theme: newTheme }, { merge: true });
+        setDoc(userRef, { theme: newTheme }, { merge: true }).catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: { theme: newTheme },
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
     }
   };
 
@@ -119,35 +124,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const userRef = doc(firestore, "users", userCredential.user.uid);
     
-    try {
-        const userDoc = await getDoc(userRef);
+    // This awaits the getDoc call, but the error will be caught by the outer try/catch in LoginForm
+    const userDoc = await getDoc(userRef);
 
-        if (!userDoc.exists()) {
-            throw new Error("No se pudo encontrar o crear el perfil de usuario tras el login.");
-        }
-
-        const appUser: User = {
-          id: userCredential.user.uid,
-          name: userDoc.data().name,
-          email: userCredential.user.email!,
-          avatar: userCredential.user.photoURL || `https://picsum.photos/seed/${userCredential.user.uid}/40/40`,
-          role: userDoc.data().role,
-          theme: userDoc.data().theme || 'light'
-        };
-        
-        setUser(appUser);
-        _setTheme(appUser.theme);
-        return appUser;
-
-    } catch (error) {
-        const permissionError = new FirestorePermissionError({
-            path: userRef.path,
-            operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        // Re-throw other errors
-        throw error;
+    if (!userDoc.exists()) {
+        throw new Error("No se pudo encontrar el perfil de usuario tras el login.");
     }
+
+    const appUser: User = {
+      id: userCredential.user.uid,
+      name: userDoc.data().name,
+      email: userCredential.user.email!,
+      avatar: userCredential.user.photoURL || `https://picsum.photos/seed/${userCredential.user.uid}/40/40`,
+      role: userDoc.data().role,
+      theme: userDoc.data().theme || 'light'
+    };
+    
+    setUser(appUser);
+    _setTheme(appUser.theme);
+    return appUser;
   };
   
   const register = async (email: string, password: string, role: UserRole): Promise<User> => {
@@ -197,18 +192,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     const userRef = doc(firestore, "users", user.id);
-    await setDoc(userRef, { 
+    const dataToSave = { 
         name: updatedData.name, 
         email: updatedData.email,
         avatar: updatedData.avatar
-    }, { merge: true });
+    };
+
+    setDoc(userRef, dataToSave, { merge: true }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 
     setUser(prevUser => prevUser ? ({ ...prevUser, ...prevUser, ...updatedData }) : null);
   };
   
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!auth || !auth.currentUser) throw new Error("Usuario no autenticado.");
-    // Re-authentication is needed for security-sensitive operations
     const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
     const credential = EmailAuthProvider.credential(auth.currentUser.email!, currentPassword);
     
@@ -217,7 +220,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { updatePassword } = await import("firebase/auth");
         await updatePassword(auth.currentUser, newPassword);
     } catch(error) {
-        console.error("Error al cambiar la contraseña", error);
         throw error; // Re-throw to be caught in the component
     }
   };

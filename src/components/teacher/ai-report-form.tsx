@@ -307,7 +307,7 @@ export function AIReportForm() {
     }, 0);
     
     const centerActionsCost = actions.reduce((acc: number, actionId: string) => {
-        if (actionId === 'P7') return acc + 7500;
+        if (actionId === 'P7' || actionId === 'P2') return acc + 7500;
         return acc;
     }, 0);
 
@@ -464,7 +464,13 @@ export function AIReportForm() {
                                         <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
                                         {reportData.marketAnalysis.iamBreakdown && (
                                           <p className="text-xs text-muted-foreground font-mono">
-                                            (NMA: {reportData.marketAnalysis.iamBreakdown.nma.toFixed(1)} + Precio: {reportData.marketAnalysis.iamBreakdown.price.toFixed(1)} + Mkt: {reportData.marketAnalysis.iamBreakdown.marketing.toFixed(1)})
+                                            (NMA: {reportData.marketAnalysis.iamBreakdown.nma.toFixed(1)}
+                                            {` + Precio: ${reportData.marketAnalysis.iamBreakdown.price.toFixed(1)}`}
+                                            {` + Mkt: ${reportData.marketAnalysis.iamBreakdown.marketing.toFixed(1)}`}
+                                            {reportData.marketAnalysis.iamBreakdown.facilities > 0 ? ` + Inst: ${reportData.marketAnalysis.iamBreakdown.facilities.toFixed(1)}` : ''}
+                                            {reportData.marketAnalysis.iamBreakdown.sustainability > 0 ? ` + Sost: ${reportData.marketAnalysis.iamBreakdown.sustainability.toFixed(1)}` : ''}
+                                            {reportData.marketAnalysis.iamBreakdown.crisis > 0 ? ` + Crisis: ${reportData.marketAnalysis.iamBreakdown.crisis.toFixed(1)}` : ''}
+                                            )
                                           </p>
                                         )}
                                     </div>

@@ -25,25 +25,22 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
   const averageTuition = totalTuition / teams.length;
 
   let totalIamPoints = 0;
-  const teamIamResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number; facilities: number; } }> = {};
+  const teamIamResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number; facilities: number; sustainability: number; crisis: number;} }> = {};
 
   // 2. Calcular el IAM para cada equipo siguiendo la fórmula del manual técnico.
-  // IAM = (NMA * 10) + (Precio medio / Precio del equipo * 30) + (Inversión en Marketing / 1000)
   for (const team of teams) {
-    // a. Componente de Calidad (50%): Se multiplica la NMA por 10 para escalarla.
+    // a. Componente de Calidad (NMA): Se multiplica la NMA por 10 para escalarla.
     const nmaPoints = (team.kpis.nma || 0) * 10;
 
-    // b. Componente de Precio (30%): Se calcula la competitividad del precio en relación a la media del mercado.
+    // b. Componente de Precio: Se calcula la competitividad del precio en relación a la media del mercado.
     const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
     
-    // c. Componente de Marketing (20%): Se calcula en base a la inversión en la campaña "R1".
+    // c. Componente de Marketing: Se calcula en base a la inversión en la campaña "R1".
     const marketingActionId = (team.decisions?.actions || []).find(id => id === 'R1');
     let marketingPoints = 0;
     if (marketingActionId) {
         const investmentInfo = allInvestments.find(inv => inv.id === 'R1');
         if (investmentInfo) {
-            // Asumimos el coste máximo para inversiones de rango por ahora.
-            // Para una simulación más precisa, el coste exacto debería guardarse en el objeto de decisión.
             const cost = team.decisions.investmentCosts?.['R1'] || (investmentInfo.cost.type === 'range' ? investmentInfo.cost.value[1] : investmentInfo.cost.value as number);
             marketingPoints = cost / 1000;
         }
@@ -56,7 +53,6 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     if (team.decisions.crisisResponse?.optionId === 'C4_op5') {
         marketingPoints += 10;
     }
-
 
     // d. Componente de Instalaciones: Bonus fijo por la inversión 'R3'.
     const facilitiesPoints = (team.decisions?.actions || []).includes('R3') ? 5 : 0;
@@ -74,15 +70,12 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
       }
     }
 
-
-    // Sanitize values to ensure they are numbers, defaulting to 0.
     const sanitizedNmaPoints = isNaN(nmaPoints) ? 0 : nmaPoints;
     const sanitizedPricePoints = isNaN(pricePoints) ? 0 : pricePoints;
     const sanitizedMarketingPoints = isNaN(marketingPoints) ? 0 : marketingPoints;
 
-    // Fórmula completa del IAM
     const iam = sanitizedNmaPoints + sanitizedPricePoints + sanitizedMarketingPoints + facilitiesPoints + sustainabilityPoints + crisisC7IamEffect;
-    const finalIam = Math.max(0, iam); // El IAM no puede ser negativo.
+    const finalIam = Math.max(0, iam);
 
     teamIamResults[team.name] = {
         iam: finalIam,
@@ -90,14 +83,16 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
           nma: sanitizedNmaPoints, 
           price: sanitizedPricePoints, 
           marketing: sanitizedMarketingPoints,
-          facilities: facilitiesPoints
+          facilities: facilitiesPoints,
+          sustainability: sustainabilityPoints,
+          crisis: crisisC7IamEffect,
         }
     };
     totalIamPoints += finalIam;
   }
 
   // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
-  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number; }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
+  const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number, sustainability: number, crisis: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
   if (totalIamPoints > 0) {
     for (const team of teams) {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;

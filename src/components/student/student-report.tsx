@@ -101,6 +101,12 @@ export function StudentReport() {
   const totalCosts = reportData.kpis.personnelCost + totalDecisionsCost + (reportData.kpis.loanInterest || 0);
   const finalCash = initialCashForRound + reportData.kpis.income - totalCosts + crisisCost; // We add crisis cost back as it's already negative
 
+  // --- Breakdown texts for financial details ---
+  const publicIncomeBreakdown = `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})`;
+  const privateIncomeBreakdown = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})${reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice ? ' - Crisis Morosidad' : ''}`;
+  const personnelCostBreakdown = `(${reportData.kpis.numTeachers} profesores x 7.500 CC)${reportData.kpis.personnelCost > reportData.kpis.numTeachers * 7500 ? ' + Incremento Salarial' : ''}`;
+
+
   return (
      <Card>
         <CardHeader>
@@ -142,9 +148,9 @@ export function StudentReport() {
                     <AccordionContent className="px-4 space-y-4">
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Cálculos Clave de Ingresos y Gastos</h4>
-                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
-                            <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
-                            <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                            <p className="text-sm text-muted-foreground mt-1">Ingreso Público (Subvención): {formatCurrency(reportData.kpis.publicIncome || 0)} <span className="text-xs">{publicIncomeBreakdown}</span></p>
+                            <p className="text-sm text-muted-foreground">Ingreso Privado (Matrículas): {formatCurrency(reportData.kpis.privateIncome || 0)} <span className="text-xs">{privateIncomeBreakdown}</span></p>
+                            <p className="text-sm text-muted-foreground">Coste de Personal (Salarios): {formatCurrency(reportData.kpis.personnelCost)} <span className="text-xs">{personnelCostBreakdown}</span></p>
                              {reportData.decisions.crisisResponse && (
                                 <div className="mt-2 pt-2 border-t">
                                      <p className="text-sm text-muted-foreground">Impacto Crisis ({reportData.decisions.crisisResponse.crisisName}): {formatCurrency(reportData.kpis.crisisImpact || 0)}</p>
@@ -154,7 +160,7 @@ export function StudentReport() {
                         <div className="p-3 bg-muted/50 rounded-lg border">
                             <h4 className="font-semibold">Inversiones y Acciones Realizadas</h4>
                             <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
+                                {(reportData.decisions.actions || []).length > 0 ? (reportData.decisions.actions || []).map((actionId: string, index: number) => {
                                   const investment = allInvestments.find(inv => inv.id === actionId);
                                   if (investment) {
                                       const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
@@ -169,8 +175,9 @@ export function StudentReport() {
                                       return <li key={`act-${index}`}>{name}: {costString}</li>;
                                   }
                                   return null;
-                                })}
-                                {((reportData.decisions.actions || []).length === 0) && <li>No se realizaron inversiones ni acciones esta ronda.</li>}
+                                }) : (
+                                  <li>No se realizaron inversiones ni acciones esta ronda.</li>
+                                )}
                             </ul>
                         </div>
                     </AccordionContent>

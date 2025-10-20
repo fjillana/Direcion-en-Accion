@@ -317,6 +317,11 @@ export function AIReportForm() {
 
   }, [reportData]);
 
+  // --- Breakdown texts for financial details ---
+  const publicIncomeBreakdown = reportData?.kpis ? `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})` : '';
+  const privateIncomeBreakdown = reportData?.kpis ? `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})${reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice ? ' - Crisis Morosidad' : ''}` : '';
+  const personnelCostBreakdown = reportData?.kpis ? `(${reportData.kpis.numTeachers} profesores x 7.500 CC)${reportData.kpis.personnelCost > reportData.kpis.numTeachers * 7500 ? ' + Incremento Salarial' : ''}`: '';
+
 
   return (
     <Card>
@@ -389,9 +394,9 @@ export function AIReportForm() {
                             <AccordionContent className="px-4 space-y-4">
                                 <div className="p-3 bg-muted/50 rounded-lg border">
                                     <h4 className="font-semibold">Cálculos Clave de Ingresos y Gastos</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)}</p>
-                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {reportData.kpis.numStudents} alumnos x {formatCurrency(reportData.decisions.tuitionPrice)} = {formatCurrency(reportData.kpis.privateIncome || 0)}</p>
-                                    <p className="text-sm text-muted-foreground">Coste Personal: {reportData.kpis.numTeachers} profesores x 7.500 CC = {formatCurrency(reportData.kpis.personnelCost)}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">Ingreso Público: {formatCurrency(reportData.kpis.publicIncome || 0)} <span className="text-xs">{publicIncomeBreakdown}</span></p>
+                                    <p className="text-sm text-muted-foreground">Ingreso Privado: {formatCurrency(reportData.kpis.privateIncome || 0)} <span className="text-xs">{privateIncomeBreakdown}</span></p>
+                                    <p className="text-sm text-muted-foreground">Coste Personal: {formatCurrency(reportData.kpis.personnelCost)} <span className="text-xs">{personnelCostBreakdown}</span></p>
                                     {reportData.decisions.crisisResponse && (
                                         <div className="mt-2 pt-2 border-t">
                                             <p className="text-sm text-muted-foreground">Impacto Crisis ({reportData.decisions.crisisResponse.crisisName}): {formatCurrency(reportData.kpis.crisisImpact || 0)}</p>

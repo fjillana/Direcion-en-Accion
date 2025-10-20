@@ -201,6 +201,11 @@ export function updateKpisForNextRound(
         return sum;
     }
     
+    // El coste de P2 (contratación) se gestiona como un salario recurrente, no un coste de decisión puntual aquí.
+    if (actionId === 'P2') {
+        return sum;
+    }
+
     // Buscar si es una inversión del catálogo
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
@@ -215,8 +220,7 @@ export function updateKpisForNextRound(
 
     // Comprobar acciones del centro con coste fijo que no son inversiones de rango/variable
     if (actionId === 'P7') return sum + 7500; // Coste de despido
-    if (actionId === 'P2') return sum + 7500; // Coste de contratación (primer salario)
-    
+
     return sum;
   }, 0);
   

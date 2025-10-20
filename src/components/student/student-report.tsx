@@ -79,28 +79,27 @@ export function StudentReport() {
       initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
   }
   
-  const totalInvestmentCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
-    const investment = allInvestments.find(inv => inv.id === actionId);
-    if (investment && investment.id !== 'F4') { // F4 is cash injection, not cost
-        if (investment.cost.type === 'fixed') {
-            return acc + (investment.cost.value as number);
-        }
-        return acc + (reportData.decisions.investmentCosts?.[actionId] || investment.cost.value[1]);
+  const totalDecisionsCost = (reportData.decisions?.actions || []).reduce((sum: number, actionId: string) => {
+    if (actionId === 'F4' || actionId === 'P2') {
+        return sum;
     }
-    return acc;
+    const investmentInfo = allInvestments.find(inv => inv.id === actionId);
+    if (investmentInfo) {
+        if(investmentInfo.cost.type === 'fixed') {
+            return sum + (investmentInfo.cost.value as number);
+        }
+        if(investmentInfo.cost.type === 'range') {
+            return sum + (reportData.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+        }
+    }
+    if (actionId === 'P7') return sum + 7500;
+    return sum;
   }, 0);
   
-  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 }; //P2 cost is recurrent salary
-  
-  const totalCenterActionsCost = (reportData.decisions?.actions || []).reduce((acc: number, actionId: string) => {
-      return acc + (centerActionsCostMap[actionId as keyof typeof centerActionsCostMap] || 0);
-  }, 0);
-  
-  const totalDecisionsCost = totalInvestmentCost + totalCenterActionsCost;
+  const totalIncome = reportData.kpis.income || 0;
   const crisisImpact = reportData.kpis.crisisImpact || 0;
-  const cashInjection = reportData.kpis.cashInjection || 0;
+  
   const totalCosts = (reportData.kpis.personnelCost || 0) + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(crisisImpact < 0 ? crisisImpact : 0);
-  const totalIncome = (reportData.kpis.privateIncome || 0) + (reportData.kpis.publicIncome || 0) + (reportData.kpis.loanIncome || 0) + cashInjection + (crisisImpact > 0 ? crisisImpact : 0);
   
   const finalCash = reportData.kpis.cash || 0;
 
@@ -133,13 +132,13 @@ export function StudentReport() {
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Público:</span> <span className="font-mono">{formatCurrency(reportData.kpis.publicIncome || 0)}</span></div>
                             <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Privado:</span> <span className="font-mono">{formatCurrency(reportData.kpis.privateIncome || 0)}</span></div>
                             {reportData.kpis.loanIncome > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Ingreso Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanIncome)}</span></div>}
-                            {cashInjection > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Inyección Liquidez (F4):</span> <span className="font-mono">{formatCurrency(cashInjection)}</span></div>}
-                            {crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
+                            {reportData.kpis.cashInjection > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Inyección Liquidez (F4):</span> <span className="font-mono">{formatCurrency(reportData.kpis.cashInjection)}</span></div>}
+                            {reportData.kpis.crisisImpact > 0 && <div className="pl-4 flex justify-between text-emerald-600/80"><span>&bull; Solución Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
 
                             <div className="flex justify-between text-destructive"><span>(-) Gastos Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
-                            {crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
+                            {reportData.kpis.crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>
@@ -171,6 +170,7 @@ export function StudentReport() {
                                       return <li key={`inv-${index}`}>{investment.name}: {costString}</li>;
                                   }
                                   
+                                  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 };
                                   const centerActionCost = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
                                   if (centerActionCost !== undefined) {
                                       const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';

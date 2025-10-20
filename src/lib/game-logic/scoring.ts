@@ -48,16 +48,21 @@ function calculatePersonnelCostPeb(personnelCost: number, income: number): { peb
 
 // --- Reputation PEB Calculation (Sección 10.2) ---
 function calculateNmaPeb(nma: number): { peb: number, breakdown: string } {
-    let peb = 0;
-    if (nma >= 8.5) {
-        peb = 100;
-    } else if (nma >= 8.0) {
-        peb = 80;
-    } else {
-        peb = 60;
-    }
-    return { peb: Math.min(110, peb), breakdown: `NMA (${nma.toFixed(1)}): ${peb.toFixed(2)} PEB` };
+    const baseNma = 7.5;
+    const basePeb = 70;
+    
+    // 20 PEB por cada punto de NMA por encima o por debajo de la base.
+    const nmaDifference = nma - baseNma;
+    const pebAdjustment = nmaDifference * 20;
+    
+    let peb = basePeb + pebAdjustment;
+    
+    // Limitar el PEB entre 0 y 110.
+    peb = Math.max(0, Math.min(110, peb));
+    
+    return { peb, breakdown: `NMA (${nma.toFixed(1)}): ${peb.toFixed(2)} PEB` };
 }
+
 
 function calculateMarketSharePeb(currentStudents: number, initialStudents: number = 800): { peb: number, breakdown: string } {
     const growth = ((currentStudents - initialStudents) / initialStudents) * 100;
@@ -76,22 +81,19 @@ function calculateMarketSharePeb(currentStudents: number, initialStudents: numbe
 
 // --- Morale PEB Calculation (Sección 10.3) ---
 function calculateStaffMoralePeb(morale: number): { peb: number, breakdown: string } {
-    let peb = 0;
-    if (morale >= 90) {
-        peb = 110;
-    } else if (morale >= 80) {
-        peb = 91 + (morale - 80); // Escala lineal de 91 (en 80) a 100 (en 89)
-    } else if (morale >= 70) {
-        peb = 81 + (morale - 70); // Escala lineal de 81 (en 70) a 90 (en 79)
-    } else if (morale >= 60) {
-        peb = 71 + (morale - 60); // Escala lineal de 71 (en 60) a 80 (en 69)
-    } else if (morale >= 50) {
-        peb = 61 + (morale - 50); // Escala lineal de 61 (en 50) a 70 (en 59)
-    } else {
-        peb = 0; // Por debajo de 50 es 0
-    }
-    return { peb: Math.max(0, Math.min(110, peb)), breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
+    const baseMorale = 80;
+    const basePeb = 90;
+    
+    const moraleDifference = morale - baseMorale;
+    const pebAdjustment = moraleDifference; // 1 PEB por cada punto de moral
+    
+    let peb = basePeb + pebAdjustment;
+    
+    peb = Math.max(0, Math.min(110, peb));
+
+    return { peb, breakdown: `Moral Personal (${morale.toFixed(0)}%): ${peb.toFixed(2)} PEB` };
 }
+
 
 function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdown: string } {
     const basePeb = 70;

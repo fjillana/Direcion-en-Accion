@@ -292,11 +292,12 @@ export function AIReportForm() {
 
   const totalDecisionsCost = useMemo(() => {
      if (!reportData || !reportData.decisions) return 0;
-     const { actions = [], investmentCosts = {} } = reportData.decisions;
+     const { actions = [], investmentCosts = {}, poachingSuccess } = reportData.decisions;
      
      const totalInvestmentCost = actions.reduce((acc: number, actionId: string) => {
         const investment = allInvestments.find(inv => inv.id === actionId);
         if (investment) {
+            if (investment.id === 'P3' && poachingSuccess === false) return acc;
             if (investment.id === 'F4') return acc; // F4 is cash injection, not cost
             if (investment.cost.type === 'fixed') {
                 return acc + (investment.cost.value as number);
@@ -307,7 +308,7 @@ export function AIReportForm() {
     }, 0);
     
     const centerActionsCost = actions.reduce((acc: number, actionId: string) => {
-        if (actionId === 'P7' || actionId === 'P2') return acc + 7500;
+        if (actionId === 'P7' || actionId === 'P2' || actionId === 'F5') return acc + 7500;
         return acc;
     }, 0);
 
@@ -410,18 +411,30 @@ export function AIReportForm() {
                                 <div className="p-3 bg-muted/50 rounded-lg border">
                                     <h4 className="font-semibold">Decisiones Realizadas</h4>
                                     <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                        {(reportData.decisions.actions || []).map((actionId: string, index: number) => {
-                                          const investment = allInvestments.find(inv => inv.id === actionId);
-                                          if (investment) {
-                                            const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
-                                            return <li key={`${actionId}-${index}`}>{investment.name}: {formatCurrency(cost as number)}</li>
-                                          }
-                                          if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente (Coste salarial recurrente)</li>
-                                          if (actionId === 'P7') return <li key={`${actionId}-${index}`}>Despedir Docente: {formatCurrency(7500)}</li>
-                                          if (actionId === 'F5') return <li key={`${actionId}-${index}`}>Ampliación de Aulas: {formatCurrency(50000)}</li>
-                                          return null;
-                                        })}
-                                        {(reportData.decisions.actions || []).length === 0 && <li>No se realizaron decisiones esta ronda.</li>}
+                                        {(reportData.decisions.actions || []).length > 0 ? (reportData.decisions.actions || []).map((actionId: string, index: number) => {
+                                            const investment = allInvestments.find(inv => inv.id === actionId);
+                                            if (investment) {
+                                                if (investment.id === 'P3') {
+                                                    const success = reportData.decisions.poachingSuccess;
+                                                    return (
+                                                        <li key={`${actionId}-${index}`}>
+                                                            {investment.name}: {success ? formatCurrency(investment.cost.value as number) : '0 CC'}.
+                                                            <span className={cn("font-semibold ml-1", success ? 'text-emerald-600' : 'text-amber-600')}>
+                                                                {success ? "Ejecutado con éxito" : "No ha tenido éxito (moral del rival > 70%)"}
+                                                            </span>
+                                                        </li>
+                                                    );
+                                                }
+                                                const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
+                                                return <li key={`${actionId}-${index}`}>{investment.name}: {formatCurrency(cost as number)}</li>;
+                                            }
+                                            if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente (Coste salarial recurrente)</li>
+                                            if (actionId === 'P7') return <li key={`${actionId}-${index}`}>Despedir Docente: {formatCurrency(7500)}</li>
+                                            if (actionId === 'F5') return <li key={`${actionId}-${index}`}>Ampliación de Aulas: {formatCurrency(50000)}</li>
+                                            return null;
+                                        }) : (
+                                            <li>No se realizaron decisiones de inversión esta ronda.</li>
+                                        )}
                                     </ul>
                                 </div>
                             </AccordionContent>

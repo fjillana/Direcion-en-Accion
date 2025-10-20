@@ -11,6 +11,7 @@ import { Loader2, ServerCrash } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import { CrisisReport } from "./crisis-report";
+import { cn } from "@/lib/utils";
 
 export function StudentReport() {
   const { studentGame } = useStudentGame();
@@ -80,9 +81,9 @@ export function StudentReport() {
   }
   
   const totalDecisionsCost = (reportData.decisions?.actions || []).reduce((sum: number, actionId: string) => {
-    if (actionId === 'F4' || actionId === 'P2') {
-        return sum;
-    }
+    if (actionId === 'F4') return sum;
+    if (actionId === 'P3' && reportData.decisions.poachingSuccess === false) return sum;
+    
     const investmentInfo = allInvestments.find(inv => inv.id === actionId);
     if (investmentInfo) {
         if(investmentInfo.cost.type === 'fixed') {
@@ -92,7 +93,10 @@ export function StudentReport() {
             return sum + (reportData.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
         }
     }
+
+    if (actionId === 'P2') return sum + 7500;
     if (actionId === 'P7') return sum + 7500;
+    if (actionId === 'F5') return sum + 50000;
     return sum;
   }, 0);
   
@@ -165,17 +169,31 @@ export function StudentReport() {
                                 {(reportData.decisions.actions || []).length > 0 ? (reportData.decisions.actions || []).map((actionId: string, index: number) => {
                                   const investment = allInvestments.find(inv => inv.id === actionId);
                                   if (investment) {
+                                      if (investment.id === 'P3') {
+                                        const success = reportData.decisions.poachingSuccess;
+                                        return (
+                                            <li key={`inv-${index}`}>
+                                                {investment.name}: {success ? formatCurrency(investment.cost.value as number) : '0 CC'}.
+                                                <span className={cn("font-semibold ml-1", success ? 'text-emerald-600' : 'text-amber-600')}>
+                                                    {success ? "Ejecutado con éxito" : "No ha tenido éxito (moral del rival > 70%)"}
+                                                </span>
+                                            </li>
+                                        );
+                                      }
                                       const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
                                       const costString = typeof cost === 'number' ? formatCurrency(cost) : cost;
                                       return <li key={`inv-${index}`}>{investment.name}: {costString}</li>;
                                   }
                                   
-                                  const centerActionsCostMap: Record<string, number> = { 'F5': 50000, 'P7': 7500, 'P2': 7500 };
-                                  const centerActionCost = centerActionsCostMap[actionId as keyof typeof centerActionsCostMap];
-                                  if (centerActionCost !== undefined) {
-                                      const name = actionId === 'P2' ? 'Contratar Docente' : actionId === 'P7' ? 'Despedir Docente' : 'Ampliación de Aulas';
-                                      const costString = actionId === 'P2' ? 'Coste salarial recurrente' : formatCurrency(centerActionCost);
-                                      return <li key={`act-${index}`}>{name}: {costString}</li>;
+                                  const centerActionsMap: Record<string, {name: string, cost: string | number}> = {
+                                      'F5': { name: 'Ampliación de Aulas', cost: 50000 },
+                                      'P7': { name: 'Despedir Docente', cost: 7500 },
+                                      'P2': { name: 'Contratar Docente', cost: 'Coste salarial recurrente' },
+                                  };
+                                  const centerAction = centerActionsMap[actionId];
+                                  if (centerAction) {
+                                      const costString = typeof centerAction.cost === 'number' ? formatCurrency(centerAction.cost) : centerAction.cost;
+                                      return <li key={`act-${index}`}>{centerAction.name}: {costString}</li>;
                                   }
                                   return null;
                                 }) : (

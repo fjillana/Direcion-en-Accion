@@ -123,6 +123,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
           
           if (targetTeamState && targetTeamState.kpis.morale < 70) {
               // Successful poach
+              poachingTeam.decisions.poachingSuccess = true;
               poachingEffects[poachingTeam.name].teacherChange += 1;
               poachingEffects[targetTeamName].teacherChange -= 1;
               poachingEffects[targetTeamName].moraleChange -= 10;
@@ -133,18 +134,16 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
                     from: 'system',
                     to: targetTeamName,
                     title: '¡ATENCIÓN! Fuga de talento',
-                    content: `¡Te han robado un profesor! Uno de tus competidores ha fichado a un miembro de tu equipo. Esto te hace perder un docente y sufre una penalización de -10 en la moral.`,
+                    content: `¡Te han robado un profesor! Un competidor ha fichado a un miembro de tu equipo. Pierdes un docente y sufres una penalización de -10 en la moral.`,
                     type: 'message',
                     timestamp: Date.now(),
                     readBy: [],
                   });
               }
           } else {
-              // Unsuccessful poach: remove the action and cost
-              poachingTeam.decisions.actions = poachingTeam.decisions.actions.filter(id => id !== 'P3');
-              if (poachingTeam.decisions.investmentCosts) {
-                  delete poachingTeam.decisions.investmentCosts['P3'];
-              }
+              // Unsuccessful poach
+              poachingTeam.decisions.poachingSuccess = false;
+              // We keep the action P3 in the list to show it in reports, but we'll nullify its cost and XP bonus later.
           }
       }
   });
@@ -201,7 +200,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
     const negotiationSuccess = negotiationOutcomes[teamState.name];
-    const wasPoachSuccessful = teamState.decisions.actions.includes('P3');
+    const wasPoachSuccessful = teamState.decisions.poachingSuccess === true;
     const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess, wasPoachSuccessful);
 
     // Clean the decisions object before saving

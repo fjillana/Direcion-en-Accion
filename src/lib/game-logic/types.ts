@@ -18,6 +18,7 @@ export interface TeamDecisions {
   actions: string[];
   tuitionPrice: number;
   crisisResponse: CrisisDecision | null;
+  poachingSuccess?: boolean;
 }
 
 export interface TeamKPIs {

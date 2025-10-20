@@ -30,6 +30,7 @@ export interface StudentGameState {
 export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
     crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
     poachingTarget?: string;
+    poachingSuccess?: boolean;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -341,6 +342,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       // If `poachingTarget` is not set, remove it from the object.
       if (decisionsToSave.poachingTarget === undefined) {
         delete decisionsToSave.poachingTarget;
+      }
+      if (decisionsToSave.poachingSuccess === undefined) {
+        delete decisionsToSave.poachingSuccess;
       }
   
       // MODIFY: Create the new, merged decisions object in memory

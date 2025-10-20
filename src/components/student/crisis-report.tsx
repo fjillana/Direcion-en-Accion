@@ -45,7 +45,10 @@ export function CrisisReport({ report }: CrisisReportProps) {
          <div className="space-y-1 rounded-md bg-background p-3">
           <p className="text-sm font-semibold">Impacto Final:</p>
           <p className="text-sm text-muted-foreground">
-            Esta decisión tuvo un impacto financiero de <span className="font-bold">{report.cost.toLocaleString('es-ES')} CC</span> y afectó a tus puntos de experiencia y KPIs de la ronda. Revisa el reporte de ronda para un análisis completo.
+             {report.outcomeDescription 
+               ? report.outcomeDescription
+               : `Esta decisión tuvo un impacto financiero de ${report.cost.toLocaleString('es-ES')} CC y afectó a tus puntos de experiencia y KPIs de la ronda. Revisa el reporte de ronda para un análisis completo.`
+             }
           </p>
         </div>
       </CardContent>

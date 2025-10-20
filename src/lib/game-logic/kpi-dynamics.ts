@@ -1,7 +1,7 @@
 
 
 import type { TeamState, TeamKPIs } from "./types";
-import type { TeamPerformanceData } from "@/hooks/use-games";
+import type { TeamPerformanceData, CrisisDecision } from "@/hooks/use-games";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import { crises as allCrises } from '@/app/teacher/catalog/crises-data';
 
@@ -87,6 +87,10 @@ export function updateKpisForNextRound(
   // --- Crisis Effects on Income and Morale---
   const crisisId = decisions.crisisResponse?.crisisId;
   const crisisOptionId = decisions.crisisResponse?.optionId;
+  
+  if (teamState.decisions.crisisResponse) {
+    teamState.decisions.crisisResponse.outcomeDescription = `Impacto financiero: ${(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC`;
+  }
 
   if (crisisId && crisisOptionId) {
     const crisis = allCrises.find(c => c.id === crisisId);
@@ -100,7 +104,14 @@ export function updateKpisForNextRound(
       currentPublicIncome -= 25000;
       if (crisisOptionId === 'C2_op1') loanIncome += 25000;
       else if (crisisOptionId === 'C2_op2' || crisisOptionId === 'C2_op5') currentPublicIncome += 25000;
-      else if (crisisOptionId === 'C2_op3' && negotiationSuccess) crisisFinancialImpact += 15000;
+      else if (crisisOptionId === 'C2_op3') {
+          if (negotiationSuccess) {
+            crisisFinancialImpact += 15000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `¡Éxito! Se recuperan 15.000 CC de la subvención y ganas +5 XP Reputación.`;
+          } else {
+             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `La negociación fracasó. No se recuperó la subvención y pierdes -5 XP Finanzas.`;
+          }
+      }
     }
 
     if (crisisId === 'C3') { // Morosidad
@@ -130,12 +141,26 @@ export function updateKpisForNextRound(
     if(crisisId === 'C5') {
       if (crisisOptionId === 'C5_op3') updatedMorale += 5;
       else if (crisisOptionId === 'C5_op4') updatedMorale -= 15;
-      else if (crisisOptionId === 'C5_op5' && negotiationSuccess) crisisFinancialImpact += 5000;
+      else if (crisisOptionId === 'C5_op5') {
+          if (negotiationSuccess) {
+            crisisFinancialImpact += 5000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! La administración aportó 5.000 CC para equipos.';
+          } else {
+             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La negociación fracasó. No se recibió ayuda de la administración.';
+          }
+      }
     }
 
     if (crisisId === 'C6') {
         privateIncome -= 10000; // Sponsorship is a form of income
-        if (crisisOptionId === 'C6_op1' && negotiationSuccess) privateIncome += 5000;
+        if (crisisOptionId === 'C6_op1') {
+            if (negotiationSuccess) {
+                privateIncome += 5000;
+                if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! Se ha recuperado la mitad del patrocinio (5.000 CC).';
+            } else {
+                 if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La renegociación fracasó. No se recuperó el pago.';
+            }
+        }
         if (crisisOptionId === 'C6_op2' || crisisOptionId === 'C6_op4') privateIncome += 10000;
         if (crisisOptionId === 'C6_op3') loanIncome += 10000;
     }
@@ -150,7 +175,11 @@ export function updateKpisForNextRound(
   // --- NEW: Apply F3 Insurance Effect ---
   const hasInsurance = performanceHistory.some(round => round.decisions.actions.includes('F3')) || actions.includes('F3');
   if (hasInsurance && crisisFinancialImpact < 0) {
-    crisisFinancialImpact *= 0.90; // Reduce the negative impact by 10%
+    const reduction = crisisFinancialImpact * 0.10;
+    crisisFinancialImpact -= reduction; // Reduce el impacto negativo (haciéndolo menos negativo)
+    if(decisions.crisisResponse) {
+        decisions.crisisResponse.outcomeDescription = (decisions.crisisResponse.outcomeDescription || '') + ` Gracias al seguro, el impacto negativo se redujo en ${reduction.toLocaleString('es-ES')} CC.`;
+    }
   }
 
 
@@ -225,7 +254,7 @@ export function updateKpisForNextRound(
 
   // --- NEW RULE: Inaction in HR ---
   // If no investment in personnel area is made, apply penalty.
-  const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P8', 'P9', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15'];
+  const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5'];
   const hasHrInvestment = actions.some(actionId => hrInvestmentIds.includes(actionId));
   if (!hasHrInvestment) {
     updatedMorale -= 10;

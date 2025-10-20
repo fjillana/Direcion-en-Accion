@@ -19,6 +19,7 @@ export interface CrisisDecision {
   justification: string;
   optionId: string;
   cost: number;
+  outcomeDescription?: string;
 }
 
 export interface TeamDecision {

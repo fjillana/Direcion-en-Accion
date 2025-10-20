@@ -12,6 +12,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface CenterDataFormProps {
   disabled?: boolean;
@@ -21,6 +22,7 @@ interface CenterDataFormProps {
   onPriceChange: (price: number) => void;
   numStudents: number;
   numTeachers: number;
+  previousTuitionPrice?: number;
 }
 
 const personnelActions = [
@@ -32,8 +34,18 @@ const capacityActions = [
     { id: 'F5', name: 'Ampliación de Aulas', cost: 50000, effect: '+10 XP Finanzas' },
 ];
 
-export function CenterDataForm({ disabled = false, selectedActions, onActionChange, tuitionPrice, onPriceChange, numStudents, numTeachers }: CenterDataFormProps) {
-  
+export function CenterDataForm({ 
+  disabled = false, 
+  selectedActions, 
+  onActionChange, 
+  tuitionPrice, 
+  onPriceChange, 
+  numStudents, 
+  numTeachers,
+  previousTuitionPrice
+}: CenterDataFormProps) {
+  const { toast } = useToast();
+
   const handleCheckboxChange = (actionId: string, checked: boolean) => {
     const newActions = checked 
       ? [...selectedActions, actionId]
@@ -41,6 +53,21 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
     onActionChange(newActions);
   };
   
+  const handlePriceInputChange = (newPrice: number) => {
+    if (previousTuitionPrice !== undefined) {
+      const maxAllowedPrice = previousTuitionPrice * 1.30;
+      if (newPrice > maxAllowedPrice) {
+        toast({
+          variant: "destructive",
+          title: "Subida de Precio Excesiva",
+          description: `No puedes aumentar el precio más de un 30% por ronda. El precio máximo permitido es ${Math.floor(maxAllowedPrice).toLocaleString('es-ES')} CC.`,
+        });
+        return;
+      }
+    }
+    onPriceChange(newPrice);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -70,7 +97,7 @@ export function CenterDataForm({ disabled = false, selectedActions, onActionChan
                     id="tuition-price" 
                     type="number" 
                     value={tuitionPrice}
-                    onChange={(e) => onPriceChange(Number(e.target.value))}
+                    onChange={(e) => handlePriceInputChange(Number(e.target.value))}
                     className="text-center text-lg font-bold"
                 />
               </div>

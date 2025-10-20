@@ -33,7 +33,15 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     const nmaPoints = (team.kpis.nma || 0) * 10;
 
     // b. Componente de Precio: Se calcula la competitividad del precio en relación a la media del mercado.
-    const pricePoints = team.decisions.tuitionPrice > 0 ? (averageTuition / team.decisions.tuitionPrice) * 30 : 0;
+    let pricePoints = 0;
+    const priceRatio = averageTuition / team.decisions.tuitionPrice;
+    if (team.decisions.tuitionPrice <= averageTuition) {
+      // Bonificación lineal por ser más barato o igual que la media
+      pricePoints = priceRatio * 30;
+    } else {
+      // Penalización exponencial por ser más caro. Se eleva al cuadrado.
+      pricePoints = (priceRatio ** 2) * 30;
+    }
     
     // c. Componente de Marketing: Se calcula en base a la inversión en la campaña "R1".
     const marketingActionId = (team.decisions?.actions || []).find(id => id === 'R1');

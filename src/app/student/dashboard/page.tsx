@@ -126,6 +126,16 @@ export default function StudentDashboard() {
   
   const isRoundZero = round === 0;
 
+  const previousTuitionPrice = useMemo(() => {
+    if (!performanceHistory || round === undefined || round === 0) {
+        // For round 0, there is no previous price, but we can set a base for the 30% rule.
+        return 120;
+    }
+    const lastRoundPerformance = performanceHistory.find(p => p.round === round - 1);
+    return lastRoundPerformance?.decisions.tuitionPrice;
+  }, [performanceHistory, round]);
+
+
   if (isRoundZero && !planConfirmed) {
     return (
        <StudentGate>
@@ -312,6 +322,7 @@ export default function StudentDashboard() {
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
           numStudents={kpis?.numStudents || 0}
           numTeachers={kpis?.numTeachers || 0}
+          previousTuitionPrice={previousTuitionPrice}
         />
         
         {lastCrisisReport && (

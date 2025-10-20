@@ -147,6 +147,13 @@ export function updateKpisForNextRound(
     }
   }
 
+  // --- NEW: Apply F3 Insurance Effect ---
+  const hasInsurance = performanceHistory.some(round => round.decisions.actions.includes('F3')) || actions.includes('F3');
+  if (hasInsurance && crisisFinancialImpact < 0) {
+    crisisFinancialImpact *= 0.90; // Reduce the negative impact by 10%
+  }
+
+
   const income = privateIncome + currentPublicIncome + loanIncome;
   let personnelCost = updatedNumTeachers * TEACHER_SALARY;
 
@@ -218,7 +225,7 @@ export function updateKpisForNextRound(
 
   // --- NEW RULE: Inaction in HR ---
   // If no investment in personnel area is made, apply penalty.
-  const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5'];
+  const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P8', 'P9', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15'];
   const hasHrInvestment = actions.some(actionId => hrInvestmentIds.includes(actionId));
   if (!hasHrInvestment) {
     updatedMorale -= 10;

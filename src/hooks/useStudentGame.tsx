@@ -334,7 +334,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const round = fullStudentState.round;
     const teamName = fullStudentState.teamName;
     
-    const decisionsToSave = { ...fullStudentState.decisions };
+    const decisionsToSave: Partial<RoundDecisions> = { ...fullStudentState.decisions };
 
     // Firestore does not support `undefined` values.
     if (decisionsToSave.poachingTarget === undefined) {

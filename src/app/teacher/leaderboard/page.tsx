@@ -45,8 +45,8 @@ type LeaderboardTeam = {
     name: string;
     type: 'H' | 'IA';
     totalXp: number;
-    kpis: TeamPerformanceData['kpis'];
-    decisions: TeamPerformanceData['decisions'];
+    kpis?: TeamPerformanceData['kpis'];
+    decisions?: TeamPerformanceData['decisions'];
     strategicPlan?: Game['strategicPlan'];
     achievements: Achievement[];
 };
@@ -107,47 +107,46 @@ export default function TeacherLeaderboardPage() {
     }
   }, [activeGame, getStudentGamesByGameId]);
 
-  const teams = useMemo(() => {
-      if (!activeGame || !activeGame.performance) return [];
-      
-      const performanceDataForSelectedRound = activeGame.performance[parseInt(selectedRound)];
-      if (!performanceDataForSelectedRound) return [];
+  const teams: LeaderboardTeam[] = useMemo(() => {
+    if (!activeGame || !activeGame.performance) return [];
+    
+    const performanceDataForSelectedRound = activeGame.performance[parseInt(selectedRound)];
+    if (!performanceDataForSelectedRound) return [];
 
-      const teamNames = [...activeGame.teamNames, ...Object.values(activeGame.performance).flat().filter(p => p.type === 'IA').map(p => p.name).filter((v, i, a) => a.indexOf(v) === i)];
+    const allPerformanceHistory = Object.values(activeGame.performance).flat();
+    const teamNames = [...new Set(allPerformanceHistory.map(p => p.name))];
 
-      const allPerformanceHistory = Object.values(activeGame.performance).flat();
-
-      return teamNames.map(name => {
-          const teamHistory = allPerformanceHistory.filter(hist => hist.name === name);
-          const cumulativeXp = teamHistory.reduce((acc, round) => acc + round.totalXp, 0);
-
-          const performanceForRound = performanceDataForSelectedRound.find(p => p.name === name);
-          
-          let strategicPlan;
-          if (performanceForRound?.type === 'H') {
-              const studentState = studentGamesData.find(s => s.teamName === name);
-              if (studentState) {
-                  strategicPlan = studentState.strategicPlan;
-              }
-          }
-          
-          const achievements = getAchievementsStatus(teamHistory);
-          
-          return {
-              name,
-              type: performanceForRound?.type || 'IA',
-              totalXp: cumulativeXp,
-              kpis: performanceForRound?.kpis,
-              decisions: performanceForRound?.decisions,
-              strategicPlan: strategicPlan,
-              achievements: achievements,
-          }
-      })
-      .sort((a, b) => b.totalXp - a.totalXp)
-      .map((team, index) => ({
-          ...team,
-          rank: index + 1
-      }));
+    return teamNames.map(name => {
+        const teamHistory = allPerformanceHistory.filter(hist => hist.name === name);
+        const cumulativeXp = teamHistory.reduce((acc, round) => acc + round.totalXp, 0);
+        
+        const performanceForRound = performanceDataForSelectedRound.find(p => p.name === name);
+        
+        let strategicPlan;
+        if (performanceForRound?.type === 'H') {
+            const studentState = studentGamesData.find(s => s.teamName === name);
+            if (studentState) {
+                strategicPlan = studentState.strategicPlan;
+            }
+        }
+        
+        const achievements = getAchievementsStatus(teamHistory);
+        
+        return {
+            name,
+            type: performanceForRound?.type || 'IA',
+            totalXp: cumulativeXp,
+            kpis: performanceForRound?.kpis,
+            decisions: performanceForRound?.decisions,
+            strategicPlan: strategicPlan,
+            achievements: achievements,
+        };
+    })
+    .sort((a, b) => b.totalXp - a.totalXp)
+    .map((team, index) => ({
+        ...team,
+        rank: index + 1
+    }));
   }, [activeGame, studentGamesData, selectedRound]);
 
 
@@ -215,6 +214,8 @@ export default function TeacherLeaderboardPage() {
                 <TableHead className="text-right">Moral</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
+                <TableHead className="text-right">Precio Matrícula</TableHead>
+                <TableHead className="text-right">Nº Alumnos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -250,6 +251,8 @@ export default function TeacherLeaderboardPage() {
                   <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.morale, team.strategicPlan?.targets?.morale) : '')}>{team.kpis ? kpiConfig.morale.format(team.kpis.morale) : 'N/A'}</TableCell>
                   <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare) : '')}>{team.kpis ? kpiConfig.marketShare.format(team.kpis.marketShare) : 'N/A'}</TableCell>
                   <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio) : '')}>{team.kpis ? kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio) : 'N/A'}</TableCell>
+                  <TableCell className="text-right font-mono">{team.decisions ? kpiConfig.tuitionPrice.format(team.decisions.tuitionPrice) : 'N/A'}</TableCell>
+                  <TableCell className="text-right font-mono">{team.kpis ? kpiConfig.numStudents.format(team.kpis.numStudents) : 'N/A'}</TableCell>
                 </TableRow>
               ))}
                {teams.length === 0 && (
@@ -348,3 +351,5 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
+
+    

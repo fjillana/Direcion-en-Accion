@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ export default function InboxPage() {
   const { activeGame } = useGame();
   const { addMessage, markMessageAsRead } = useGames();
   const { user } = useAuth();
+  const processedMessages = useRef<Set<string>>(new Set());
 
   const teams = useMemo(() => activeGame?.teamNames.map(name => ({ id: name, name, avatar: `https://picsum.photos/seed/${name}/40/40` })) || [], [activeGame]);
   
@@ -44,15 +45,24 @@ export default function InboxPage() {
   }, [teams, selectedTeamId]);
 
   useEffect(() => {
-    if(selectedTeamId && activeGame?.id && user?.id) {
-        const teamMessages = activeGame.messages?.filter(msg => msg.from === selectedTeamId && !msg.readBy.includes(user.id)) || [];
-        if(teamMessages.length > 0) {
-            teamMessages.forEach(msg => {
-                markMessageAsRead(activeGame.id, msg.id, user.id);
-            });
-        }
+    // This effect runs once when the component mounts or when dependencies change.
+    // It marks ALL unread messages for the teacher as read.
+    if (activeGame?.id && user?.id && activeGame.messages) {
+      const allUnreadMessages = activeGame.messages.filter(
+        msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)
+      );
+
+      if (allUnreadMessages.length > 0) {
+        allUnreadMessages.forEach(msg => {
+          // Check if we've already tried to process this message to avoid loops
+          if (!processedMessages.current.has(msg.id)) {
+            markMessageAsRead(activeGame.id, msg.id, user.id);
+            processedMessages.current.add(msg.id);
+          }
+        });
+      }
     }
-  }, [selectedTeamId, activeGame, markMessageAsRead, user?.id]);
+  }, [activeGame, user, markMessageAsRead]);
 
   const messages = useMemo(() => {
     if (!activeGame || !activeGame.messages || !selectedTeamId) return [];

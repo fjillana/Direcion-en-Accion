@@ -163,8 +163,6 @@ export function AIReportForm() {
         previousKpis: previousKpis ? JSON.stringify(previousKpis, null, 2) : undefined
       };
       
-      console.log(`[GPS] 6. Generating AI Report for ${selectedTeam}. Payload:`, reportPayload);
-
       const result = await generateRoundReport(reportPayload);
       
       const teamMarketResult = marketAnalysis[selectedTeam];
@@ -291,29 +289,33 @@ export function AIReportForm() {
   }, [reportData, activeGame, getGameById, selectedTeam]);
 
   const totalDecisionsCost = useMemo(() => {
-     if (!reportData || !reportData.decisions) return 0;
-     const { actions = [], investmentCosts = {}, poachingSuccess } = reportData.decisions;
-     
-     const totalInvestmentCost = actions.reduce((acc: number, actionId: string) => {
-        const investment = allInvestments.find(inv => inv.id === actionId);
-        if (investment) {
-            if (investment.id === 'P3' && poachingSuccess === false) return acc;
-            if (investment.id === 'F4') return acc; // F4 is cash injection, not cost
-            if (investment.cost.type === 'fixed') {
-                return acc + (investment.cost.value as number);
-            }
-            return acc + (investmentCosts?.[actionId] || investment.cost.value[1]);
-        }
-        return acc;
-    }, 0);
+    if (!reportData || !reportData.decisions) return 0;
+    const { actions = [], investmentCosts = {}, poachingSuccess } = reportData.decisions;
     
-    const centerActionsCost = actions.reduce((acc: number, actionId: string) => {
-        if (actionId === 'P7' || actionId === 'P2' || actionId === 'F5') return acc + 7500;
-        return acc;
+    const centerActionsCostMap: Record<string, number> = {
+      'P2': 7500,
+      'P7': 7500,
+      'F5': 50000,
+    };
+
+    return actions.reduce((acc: number, actionId: string) => {
+      // Cost from center actions
+      if (centerActionsCostMap[actionId]) {
+        return acc + centerActionsCostMap[actionId];
+      }
+
+      // Cost from investments catalog
+      const investment = allInvestments.find(inv => inv.id === actionId);
+      if (investment) {
+        if (investment.id === 'P3' && poachingSuccess === false) return acc;
+        if (investment.id === 'F4') return acc;
+        if (investment.cost.type === 'fixed') {
+          return acc + (investment.cost.value as number);
+        }
+        return acc + (investmentCosts?.[actionId] || investment.cost.value[1]);
+      }
+      return acc;
     }, 0);
-
-    return centerActionsCost + totalInvestmentCost;
-
   }, [reportData]);
   
   const totalCosts = useMemo(() => {
@@ -428,7 +430,7 @@ export function AIReportForm() {
                                                 const cost = reportData.decisions.investmentCosts?.[actionId] || (investment.cost.type === 'fixed' ? investment.cost.value : (investment.cost.value as number[])[1]);
                                                 return <li key={`${actionId}-${index}`}>{investment.name}: {formatCurrency(cost as number)}</li>;
                                             }
-                                            if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente (Coste salarial recurrente)</li>
+                                            if (actionId === 'P2') return <li key={`${actionId}-${index}`}>Contratar Docente: {formatCurrency(7500)}</li>
                                             if (actionId === 'P7') return <li key={`${actionId}-${index}`}>Despedir Docente: {formatCurrency(7500)}</li>
                                             if (actionId === 'F5') return <li key={`${actionId}-${index}`}>Ampliación de Aulas: {formatCurrency(50000)}</li>
                                             return null;
@@ -592,5 +594,3 @@ export function AIReportForm() {
     </Card>
   );
 }
-
-    

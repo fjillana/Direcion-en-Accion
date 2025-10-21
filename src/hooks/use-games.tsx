@@ -450,9 +450,18 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
+
+    const decisionsToSave: Partial<TeamDecision> = { ...decisions, roundConfirmed: true };
+
+    if (decisionsToSave.poachingTarget === undefined) {
+      delete decisionsToSave.poachingTarget;
+    }
+    if (decisionsToSave.poachingSuccess === undefined) {
+      delete decisionsToSave.poachingSuccess;
+    }
     
     const updateData = {
-      [`decisions.${round}.${teamName}`]: { ...decisions, roundConfirmed: true }
+      [`decisions.${round}.${teamName}`]: decisionsToSave
     };
   
     updateDoc(gameRef, updateData).catch(async (serverError) => {

@@ -58,24 +58,34 @@ export function Leaderboard({ performanceHistory }: LeaderboardProps) {
     if (!game || !game.performance) return [];
 
     const currentRound = game.round;
-    // Show current round data if available, otherwise fallback to the last completed round.
-    const roundData = game.performance[currentRound] || game.performance[currentRound - 1] || game.performance[0];
+    const roundForKpis = game.performance[currentRound] ? currentRound : (currentRound > 0 ? currentRound - 1 : 0);
+    const roundDataForKpis = game.performance[roundForKpis];
+    if (!roundDataForKpis) return [];
 
-    if (!roundData) return [];
-    
-    return roundData
-      .map(p => ({
-        name: p.name,
-        type: p.type,
-        xp: p.totalXp,
-        kpis: {
-          nma: p.reputation.peb,
-          marketShare: p.kpis.marketShare,
-          studentTeacherRatio: p.morale.peb,
-          tuitionPrice: p.decisions.tuitionPrice,
-          numStudents: p.kpis.numStudents,
-        },
-      }))
+    const allPerformanceHistory = Object.values(game.performance).flat();
+    const teamNames = [...new Set(allPerformanceHistory.map(p => p.name))];
+
+    return teamNames
+      .map(name => {
+        const teamHistory = allPerformanceHistory.filter(p => p.name === name);
+        const cumulativeXp = teamHistory.reduce((acc, round) => acc + round.totalXp, 0);
+        
+        const kpiData = roundDataForKpis.find(p => p.name === name);
+        const type = kpiData?.type || (game.teamNames.includes(name) ? 'H' : 'IA');
+        
+        return {
+          name,
+          type,
+          xp: cumulativeXp,
+          kpis: {
+            nma: kpiData?.reputation.peb || 0,
+            marketShare: kpiData?.kpis.marketShare || 0,
+            studentTeacherRatio: kpiData?.morale.peb || 0,
+            tuitionPrice: kpiData?.decisions.tuitionPrice || 0,
+            numStudents: kpiData?.kpis.numStudents || 0,
+          },
+        };
+      })
       .sort((a, b) => b.xp - a.xp)
       .map((team, index) => ({ ...team, rank: index + 1 }));
   }, [studentGame, getGameById, performanceHistory]);
@@ -86,7 +96,7 @@ export function Leaderboard({ performanceHistory }: LeaderboardProps) {
         <CardHeader>
           <CardTitle>Leaderboard</CardTitle>
           <CardDescription>
-            Clasificación global y KPIs públicos de todos los equipos.
+            Clasificación global por XP acumulado. Los KPIs corresponden a la última ronda finalizada.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -95,12 +105,11 @@ export function Leaderboard({ performanceHistory }: LeaderboardProps) {
               <TableRow>
                 <TableHead className="w-[80px]">Ranking</TableHead>
                 <TableHead>Equipo</TableHead>
+                <TableHead className="text-right">XP Acumulado</TableHead>
                 <TableHead className="w-[50px] text-center">Tipo</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
-                <TableHead className="text-right">Precio Matrícula</TableHead>
-                <TableHead className="text-right">Nº Alumnos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -108,12 +117,11 @@ export function Leaderboard({ performanceHistory }: LeaderboardProps) {
                 <TableRow key={team.name} className={cn(team.name === studentGame?.teamName && 'bg-accent/50 hover:bg-accent/60')}>
                   <TableCell className="font-bold text-lg text-center">{team.rank}</TableCell>
                   <TableCell className="font-medium">{team.name}</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-primary">{team.xp.toFixed(2)}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
                   <TableCell className="text-right font-mono">{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.kpis.tuitionPrice)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

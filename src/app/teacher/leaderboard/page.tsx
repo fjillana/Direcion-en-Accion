@@ -111,29 +111,34 @@ export default function TeacherLeaderboardPage() {
       if (!activeGame || !activeGame.performance) return [];
       
       const performanceDataForSelectedRound = activeGame.performance[parseInt(selectedRound)];
-
       if (!performanceDataForSelectedRound) return [];
-      
+
+      const teamNames = [...activeGame.teamNames, ...Object.values(activeGame.performance).flat().filter(p => p.type === 'IA').map(p => p.name).filter((v, i, a) => a.indexOf(v) === i)];
+
       const allPerformanceHistory = Object.values(activeGame.performance).flat();
 
-      return performanceDataForSelectedRound.map(p => {
+      return teamNames.map(name => {
+          const teamHistory = allPerformanceHistory.filter(hist => hist.name === name);
+          const cumulativeXp = teamHistory.reduce((acc, round) => acc + round.totalXp, 0);
+
+          const performanceForRound = performanceDataForSelectedRound.find(p => p.name === name);
+          
           let strategicPlan;
-          if (p.type === 'H') {
-              const studentState = studentGamesData.find(s => s.teamName === p.name);
+          if (performanceForRound?.type === 'H') {
+              const studentState = studentGamesData.find(s => s.teamName === name);
               if (studentState) {
                   strategicPlan = studentState.strategicPlan;
               }
           }
           
-          const teamHistory = allPerformanceHistory.filter(hist => hist.name === p.name);
           const achievements = getAchievementsStatus(teamHistory);
           
           return {
-              name: p.name,
-              type: p.type,
-              totalXp: p.totalXp,
-              kpis: p.kpis,
-              decisions: p.decisions,
+              name,
+              type: performanceForRound?.type || 'IA',
+              totalXp: cumulativeXp,
+              kpis: performanceForRound?.kpis,
+              decisions: performanceForRound?.decisions,
               strategicPlan: strategicPlan,
               achievements: achievements,
           }
@@ -176,7 +181,7 @@ export default function TeacherLeaderboardPage() {
           <div>
             <CardTitle>Leaderboard: {activeGame.name}</CardTitle>
             <CardDescription>
-              Clasificación global y KPIs públicos. Haz clic en un equipo para ver el detalle de objetivos estratégicos.
+              Clasificación global por XP acumulado. Los KPIs corresponden a la ronda seleccionada.
             </CardDescription>
           </div>
            <div className="w-[180px]">
@@ -203,15 +208,13 @@ export default function TeacherLeaderboardPage() {
               <TableRow>
                 <TableHead className="w-[80px]">Ranking</TableHead>
                 <TableHead>Equipo</TableHead>
+                <TableHead className="text-right">XP Acumulado</TableHead>
                 <TableHead className="w-[50px] text-center">Tipo</TableHead>
                 <TableHead className="text-right">Tesorería</TableHead>
-                <TableHead className="text-right">Coste Personal</TableHead>
                 <TableHead className="text-right">NMA</TableHead>
                 <TableHead className="text-right">Moral</TableHead>
                 <TableHead className="text-right">Cuota Mercado</TableHead>
                 <TableHead className="text-right">Ratio Alumno/Prof</TableHead>
-                <TableHead className="text-right">Precio Matrícula</TableHead>
-                <TableHead className="text-right">Nº Alumnos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -240,15 +243,13 @@ export default function TeacherLeaderboardPage() {
                         </TooltipProvider>
                     </div>
                   </TableCell>
+                  <TableCell className="text-right font-mono font-bold text-primary">{team.totalXp.toFixed(2)}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono text-xs">{team.type}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.cash.format(team.kpis.cash)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.personnelCost.format(team.kpis.personnelCost, team.kpis.income)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma))}>{kpiConfig.nma.format(team.kpis.nma)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.morale, team.strategicPlan?.targets?.morale))}>{kpiConfig.morale.format(team.kpis.morale)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare))}>{kpiConfig.marketShare.format(team.kpis.marketShare)}</TableCell>
-                  <TableCell className={cn("text-right font-mono", getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio))}>{kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.tuitionPrice.format(team.decisions.tuitionPrice)}</TableCell>
-                  <TableCell className="text-right font-mono">{kpiConfig.numStudents.format(team.kpis.numStudents)}</TableCell>
+                  <TableCell className="text-right font-mono">{team.kpis ? kpiConfig.cash.format(team.kpis.cash) : 'N/A'}</TableCell>
+                  <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.nma, team.strategicPlan?.targets?.nma) : '')}>{team.kpis ? kpiConfig.nma.format(team.kpis.nma) : 'N/A'}</TableCell>
+                  <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.morale, team.strategicPlan?.targets?.morale) : '')}>{team.kpis ? kpiConfig.morale.format(team.kpis.morale) : 'N/A'}</TableCell>
+                  <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.marketShare, team.strategicPlan?.targets?.marketShare) : '')}>{team.kpis ? kpiConfig.marketShare.format(team.kpis.marketShare) : 'N/A'}</TableCell>
+                  <TableCell className={cn("text-right font-mono", team.kpis ? getKpiColor(team.kpis.studentTeacherRatio, team.strategicPlan?.targets?.studentTeacherRatio) : '')}>{team.kpis ? kpiConfig.studentTeacherRatio.format(team.kpis.studentTeacherRatio) : 'N/A'}</TableCell>
                 </TableRow>
               ))}
                {teams.length === 0 && (
@@ -270,7 +271,7 @@ export default function TeacherLeaderboardPage() {
               <DialogHeader>
                 <DialogTitle>Análisis Estratégico: {selectedTeam.name}</DialogTitle>
                 <DialogDescription>
-                  Comparativa de KPIs actuales contra los objetivos de la Ronda 0.
+                  Comparativa de KPIs actuales (Ronda {selectedRound}) contra los objetivos de la Ronda 0.
                 </DialogDescription>
               </DialogHeader>
               {selectedTeam.strategicPlan?.rankingGoal && (
@@ -284,12 +285,12 @@ export default function TeacherLeaderboardPage() {
                     <TableRow>
                       <TableHead>KPI</TableHead>
                       <TableHead>Plan Estratégico</TableHead>
-                      <TableHead>Actual</TableHead>
+                      <TableHead>Actual (Ronda {selectedRound})</TableHead>
                       <TableHead className="w-[200px]">Progreso</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets ? Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
+                     {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets && selectedTeam.kpis ? Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
                        if (!goal) return null;
                        const kpiKey = key as keyof typeof kpiConfig;
                        const kpiInfo = kpiConfig[kpiKey];
@@ -328,7 +329,7 @@ export default function TeacherLeaderboardPage() {
                      }) : (
                         <TableRow>
                             <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                                {selectedTeam.type === 'IA' ? 'Los equipos de IA no tienen un plan estratégico definido.' : 'No se han definido objetivos estratégicos para este equipo.'}
+                                {selectedTeam.type === 'IA' ? 'Los equipos de IA no tienen un plan estratégico definido.' : 'No se han definido objetivos estratégicos o no hay datos de KPI para este equipo en la ronda seleccionada.'}
                             </TableCell>
                         </TableRow>
                      )}
@@ -347,5 +348,3 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
-
-    

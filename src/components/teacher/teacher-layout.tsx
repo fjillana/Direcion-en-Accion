@@ -20,8 +20,8 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
 
   const unreadMessagesCount = useMemo(() => {
     if (!activeGame || !activeGame.messages || !user) return 0;
-    // Count messages from teams to the teacher that are not read
-    return activeGame.messages.filter(msg => msg.to === 'teacher' && !msg.readBy.includes('teacher-user-id')).length;
+    // Count messages from teams to the teacher that are not read by the current teacher
+    return activeGame.messages.filter(msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)).length;
   }, [activeGame, user]);
 
   const navItems = [

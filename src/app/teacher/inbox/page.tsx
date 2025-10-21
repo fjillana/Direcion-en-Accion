@@ -28,7 +28,7 @@ export default function InboxPage() {
     if (!activeGame || !activeGame.messages || !user) return counts;
     
     activeGame.teamNames.forEach(teamId => {
-      counts[teamId] = activeGame.messages.filter(msg => msg.from === teamId && !msg.readBy.includes('teacher-user-id')).length;
+      counts[teamId] = activeGame.messages.filter(msg => msg.from === teamId && !msg.readBy.includes(user.id)).length;
     });
 
     return counts;
@@ -44,15 +44,15 @@ export default function InboxPage() {
   }, [teams, selectedTeamId]);
 
   useEffect(() => {
-    if(selectedTeamId && activeGame?.id) {
-        const teamMessages = activeGame.messages?.filter(msg => msg.from === selectedTeamId && !msg.readBy.includes('teacher-user-id')) || [];
+    if(selectedTeamId && activeGame?.id && user?.id) {
+        const teamMessages = activeGame.messages?.filter(msg => msg.from === selectedTeamId && !msg.readBy.includes(user.id)) || [];
         if(teamMessages.length > 0) {
             teamMessages.forEach(msg => {
-                markMessageAsRead(activeGame.id, msg.id, 'teacher-user-id');
+                markMessageAsRead(activeGame.id, msg.id, user.id);
             });
         }
     }
-  }, [selectedTeamId, activeGame, markMessageAsRead]);
+  }, [selectedTeamId, activeGame, markMessageAsRead, user?.id]);
 
   const messages = useMemo(() => {
     if (!activeGame || !activeGame.messages || !selectedTeamId) return [];

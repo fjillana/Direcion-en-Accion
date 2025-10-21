@@ -117,52 +117,54 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     const actions = decisions.actions || [];
 
     for (const actionId of actions) {
-        // Special handling for poaching XP bonus
-        if (actionId === 'P3') {
-            if (wasPoachSuccessful) {
-                bonus.morale += 15;
-            }
-            continue; // Skip the generic bonus logic for P3
-        }
         
-        // Special handling for firing penalty
-        if (actionId === 'P7') {
+        // --- Handle fixed center actions ---
+        if (actionId === 'P2') { // Contratar Docente
+            bonus.morale += 10;
+        }
+        if (actionId === 'P7') { // Despedir Docente
             bonus.morale -= 15;
-            continue;
         }
-
-        const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
-        if (!investmentInfo) continue;
+        if (actionId === 'F5') { // Ampliación de Aulas
+            bonus.finances += 10;
+        }
+        if (actionId === 'P3' && wasPoachSuccessful) { // Poaching
+            bonus.morale += 15;
+        }
         
-        // Apply XP bonus from investments
-        if (investmentInfo.xpBonus) {
-            const applyBonus = (area: 'finances' | 'reputation' | 'morale') => {
-                const bonusValue = investmentInfo.xpBonus[area];
-                if (bonusValue) {
-                    if (investmentInfo.xpBonus.type === 'fixed') {
-                        bonus[area] += bonusValue as number;
-                    } else if (investmentInfo.xpBonus.type === 'scaled') {
-                        const [minBonus, maxBonus] = bonusValue as [number, number];
-                        const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
-                        const actualCost = decisions.investmentCosts?.[actionId] || maxCost;
-                        
-                        if (maxCost > minCost) {
-                            const ratio = (actualCost - minCost) / (maxCost - minCost);
-                            bonus[area] += minBonus + (maxBonus - minBonus) * ratio;
-                        } else {
-                             bonus[area] += maxBonus;
+        // --- Handle investment-based bonuses ---
+        const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
+        if (investmentInfo) {
+            // Apply XP bonus from investments
+            if (investmentInfo.xpBonus) {
+                const applyBonus = (area: 'finances' | 'reputation' | 'morale') => {
+                    const bonusValue = investmentInfo.xpBonus[area];
+                    if (bonusValue) {
+                        if (investmentInfo.xpBonus.type === 'fixed') {
+                            bonus[area] += bonusValue as number;
+                        } else if (investmentInfo.xpBonus.type === 'scaled') {
+                            const [minBonus, maxBonus] = bonusValue as [number, number];
+                            const [minCost, maxCost] = investmentInfo.cost.value as [number, number];
+                            const actualCost = decisions.investmentCosts?.[actionId] || maxCost;
+                            
+                            if (maxCost > minCost) {
+                                const ratio = (actualCost - minCost) / (maxCost - minCost);
+                                bonus[area] += minBonus + (maxBonus - minBonus) * ratio;
+                            } else {
+                                 bonus[area] += maxBonus;
+                            }
                         }
                     }
-                }
-            };
-            applyBonus('finances');
-            applyBonus('reputation');
-            applyBonus('morale');
-        }
+                };
+                applyBonus('finances');
+                applyBonus('reputation');
+                applyBonus('morale');
+            }
 
-        // Apply direct reputation penalties from effects
-        if (investmentInfo.effects.reputationPenalty) {
-            bonus.reputation += investmentInfo.effects.reputationPenalty;
+            // Apply direct reputation penalties from effects
+            if (investmentInfo.effects.reputationPenalty) {
+                bonus.reputation += investmentInfo.effects.reputationPenalty;
+            }
         }
     }
     

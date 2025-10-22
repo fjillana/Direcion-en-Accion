@@ -36,7 +36,13 @@ export function updateKpisForNextRound(
   let updatedNumTeachers = currentKpis.numTeachers;
   let updatedCapacity = currentKpis.capacity || BASE_CAPACITY;
   let updatedMorale = currentKpis.morale;
-  let updatedNma = currentKpis.nma;
+  
+  // NMA LOGIC CHANGE: Start from the previous round's base NMA, not the final one with modifiers.
+  // The 'baseNma' will be the NMA before ratio bonuses/penalties were applied.
+  const previousRoundPerformance = performanceHistory.length > 0 ? performanceHistory[performanceHistory.length - 1] : null;
+  let baseNma = previousRoundPerformance ? previousRoundPerformance.kpis.baseNma || previousRoundPerformance.kpis.nma : currentKpis.nma;
+  let updatedNma = baseNma; // Start with the base NMA
+  
   let cashInjection = 0;
   let personnelCostMultiplier = 1.0;
   let crisisFinancialImpact = 0;
@@ -246,17 +252,18 @@ export function updateKpisForNextRound(
   
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
+  let finalNma = updatedNma;
 
   // Bonificación por ratio bajo
   if (updatedStudentTeacherRatio > 0 && updatedStudentTeacherRatio < LOW_RATIO_THRESHOLD) {
     const bonusLevels = Math.floor(LOW_RATIO_THRESHOLD - updatedStudentTeacherRatio);
-    updatedNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
+    finalNma += (bonusLevels + 1) * LOW_RATIO_NMA_BONUS;
   }
   
   // Impacto de sobrecarga (PENALTY)
   if (updatedStudentTeacherRatio > OVERLOAD_RATIO) {
     updatedMorale -= OVERLOAD_MORALE_PENALTY;
-    updatedNma -= OVERLOAD_NMA_PENALTY;
+    finalNma -= OVERLOAD_NMA_PENALTY;
   }
 
   // --- NEW RULE: Inaction in HR ---
@@ -268,7 +275,7 @@ export function updateKpisForNextRound(
   }
   
   // Limitar valores para que no se salgan de rangos lógicos
-  updatedNma = Math.max(0, Math.min(10, updatedNma));
+  finalNma = Math.max(0, Math.min(10, finalNma));
   updatedMorale = Math.max(0, Math.min(100, updatedMorale));
 
   const finalKPIs: TeamKPIs = {
@@ -279,7 +286,8 @@ export function updateKpisForNextRound(
       numStudents: updatedNumStudents,
       numTeachers: updatedNumTeachers,
       capacity: updatedCapacity,
-      nma: updatedNma,
+      baseNma: updatedNma, // Store the base NMA before ratio modifiers
+      nma: finalNma, // Store the final NMA with all modifiers
       morale: updatedMorale,
       studentTeacherRatio: updatedStudentTeacherRatio,
       privateIncome,

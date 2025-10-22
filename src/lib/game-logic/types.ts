@@ -27,6 +27,7 @@ export interface TeamKPIs {
     income: number;
     privateIncome: number;
     publicIncome: number;
+    baseNma?: number; // NMA before ratio modifiers
     nma: number;
     marketShare: number;
     morale: number;

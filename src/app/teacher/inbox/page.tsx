@@ -15,26 +15,13 @@ import { useAuth } from '@/hooks/use-auth';
 
 export default function InboxPage() {
   const { activeGame } = useGame();
-  const { addMessage, markMessageAsRead } = useGames();
-  const { user } = useAuth();
-  const processedMessages = useRef<Set<string>>(new Set());
+  const { addMessage } = useGames();
 
   const teams = useMemo(() => activeGame?.teamNames.map(name => ({ id: name, name, avatar: `https://picsum.photos/seed/${name}/40/40` })) || [], [activeGame]);
   
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   
-  const unreadMessagesByTeam = useMemo(() => {
-    const counts: Record<string, number> = {};
-    if (!activeGame || !activeGame.messages || !user) return counts;
-    
-    activeGame.teamNames.forEach(teamId => {
-      counts[teamId] = activeGame.messages.filter(msg => msg.from === teamId && !msg.readBy.includes(user.id)).length;
-    });
-
-    return counts;
-  }, [activeGame, user]);
-
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
       setSelectedTeamId(teams[0].id);
@@ -44,25 +31,6 @@ export default function InboxPage() {
     }
   }, [teams, selectedTeamId]);
 
-  useEffect(() => {
-    // This effect runs once when the component mounts or when dependencies change.
-    // It marks ALL unread messages for the teacher as read.
-    if (activeGame?.id && user?.id && activeGame.messages) {
-      const allUnreadMessages = activeGame.messages.filter(
-        msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)
-      );
-
-      if (allUnreadMessages.length > 0) {
-        allUnreadMessages.forEach(msg => {
-          // Check if we've already tried to process this message to avoid loops
-          if (!processedMessages.current.has(msg.id)) {
-            markMessageAsRead(activeGame.id, msg.id, user.id);
-            processedMessages.current.add(msg.id);
-          }
-        });
-      }
-    }
-  }, [activeGame, user, markMessageAsRead]);
 
   const messages = useMemo(() => {
     if (!activeGame || !activeGame.messages || !selectedTeamId) return [];
@@ -79,6 +47,7 @@ export default function InboxPage() {
       from: 'teacher',
       to: selectedTeamId,
       content: newMessage,
+      type: 'message',
     });
     setNewMessage('');
   };
@@ -123,11 +92,6 @@ export default function InboxPage() {
                   <div className="flex-1 truncate">
                     <p className="font-semibold">{team.name}</p>
                   </div>
-                  {unreadMessagesByTeam[team.id] > 0 && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                        {unreadMessagesByTeam[team.id]}
-                      </div>
-                  )}
                 </button>
               ))}
               {teams.length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No hay equipos en esta partida.</p>}

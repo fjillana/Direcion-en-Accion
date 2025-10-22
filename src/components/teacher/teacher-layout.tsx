@@ -10,12 +10,14 @@ import { useGame } from "@/hooks/use-game-context";
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useGames } from "@/hooks/use-games";
 
 export function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeGame, clearActiveGame } = useGame();
   const { logout, user } = useAuth();
+  const { markMessageAsRead } = useGames();
   const router = useRouter();
 
   const unreadMessagesCount = useMemo(() => {
@@ -23,6 +25,20 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     // Count messages from teams to the teacher that are not read by the current teacher
     return activeGame.messages.filter(msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)).length;
   }, [activeGame, user]);
+
+  // EFFECT TO MARK ALL MESSAGES AS READ WHEN GAME DATA IS LOADED
+  useEffect(() => {
+    if (activeGame?.id && user?.id && activeGame.messages) {
+      const unread = activeGame.messages.filter(
+        msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)
+      );
+      if (unread.length > 0) {
+        unread.forEach(msg => {
+          markMessageAsRead(activeGame.id, msg.id, user.id);
+        });
+      }
+    }
+  }, [activeGame, user, markMessageAsRead]);
 
   const navItems = [
     { href: "/teacher/dashboard", label: "Dashboard" },

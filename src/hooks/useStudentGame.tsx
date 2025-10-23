@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -169,11 +168,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const clientRound = fullStudentState?.round;
 
     let useInitialDecisions = false;
-    // BUG FIX: If the game ID has changed, it's a new game. Reset all decisions.
+    // If the game ID has changed, it's a new game. Reset all decisions.
     if (clientGameId && clientGameId !== gameData.id) {
         useInitialDecisions = true;
     }
-    // BUG FIX: If the round has advanced, reset decisions for the new round.
+    // If the round has advanced, reset decisions for the new round.
     else if (clientRound !== undefined && serverRound > clientRound) {
         useInitialDecisions = true;
     }
@@ -235,7 +234,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore]);
+  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round, fullStudentState?.gameId]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -409,3 +408,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

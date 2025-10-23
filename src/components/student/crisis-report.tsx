@@ -43,8 +43,8 @@ export function CrisisReport({ report }: CrisisReportProps) {
           </blockquote>
         </div>
          <div className="space-y-1 rounded-md bg-background p-3">
-          <p className="text-sm font-semibold">Impacto Final:</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-semibold">Análisis y Consecuencias:</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
              {report.outcomeDescription 
                ? report.outcomeDescription
                : `Esta decisión tuvo un impacto financiero de ${report.cost.toLocaleString('es-ES')} CC y afectó a tus puntos de experiencia y KPIs de la ronda. Revisa el reporte de ronda para un análisis completo.`

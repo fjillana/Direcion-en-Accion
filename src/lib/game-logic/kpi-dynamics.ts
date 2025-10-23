@@ -92,9 +92,11 @@ export function updateKpisForNextRound(
   const crisisId = decisions.crisisResponse?.crisisId;
   const crisisOptionId = decisions.crisisResponse?.optionId;
   
+  // Set a default outcome description if none is set by specific logic below
   if (teamState.decisions.crisisResponse) {
     if(!teamState.decisions.crisisResponse.outcomeDescription) {
-        teamState.decisions.crisisResponse.outcomeDescription = `Impacto financiero: ${(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC`;
+        const costText = (decisions.crisisResponse?.cost || 0) < 0 ? `${Math.abs(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC de coste` : `${(decisions.crisisResponse?.cost || 0).toLocaleString('es-ES')} CC de ingreso`;
+        teamState.decisions.crisisResponse.outcomeDescription = `La decisión ha tenido un impacto financiero de ${costText}. Revisa el reporte para ver otras consecuencias.`;
     }
   }
 
@@ -105,6 +107,26 @@ export function updateKpisForNextRound(
     if (option) {
         crisisFinancialImpact += option.cost; // cost is often negative
     }
+
+    if (crisisId === 'C1') {
+      if (crisisOptionId === 'C1_op1') {
+        updatedMorale += 30;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `Se han aceptado todas las demandas. La moral sube +30 puntos y la huelga termina, pero tiene un coste de 25.000 CC. Ganas +5 XP Personal y pierdes -5 XP Finanzas.`;
+      } else if (crisisOptionId === 'C1_op2') {
+        updatedMorale += 20;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `Se ha negociado un acuerdo. La moral sube +20 puntos y la huelga termina. El coste es de 15.000 CC. Ganas +3 XP Personal y pierdes -3 XP Finanzas.`;
+      } else if (crisisOptionId === 'C1_op3') {
+        updatedMorale = 40;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `Se ha ignorado la huelga. La moral se desploma y se fija en 40. Esta decisión conlleva una penalización de -15 XP en todas las áreas (Finanzas, Reputación y Moral).`;
+      } else if (crisisOptionId === 'C1_op4') {
+        updatedMorale += 15;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `Los mediadores han resuelto el conflicto. La moral sube +15 puntos y la huelga termina con un coste de 8.000 CC. Ganas +2 XP Personal.`;
+      } else if (crisisOptionId === 'C1_op5') {
+        updatedMorale -= 30;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `Se ha despedido a los líderes. La moral se hunde (-30 puntos) y daña la reputación (-10 XP), aunque se considera una medida de ahorro (+5 XP Finanzas). Coste de 10.000 CC.`;
+      }
+    }
+
 
     if (crisisId === 'C2') { // Pérdida de subvención
       currentPublicIncome -= 25000;
@@ -133,13 +155,6 @@ export function updateKpisForNextRound(
         }
     }
   
-    if (crisisId === 'C1') {
-        if (crisisOptionId === 'C1_op1') updatedMorale += 30;
-        else if (crisisOptionId === 'C1_op2') updatedMorale += 20;
-        else if (crisisOptionId === 'C1_op3') updatedMorale = 40;
-        else if (crisisOptionId === 'C1_op4') updatedMorale += 15;
-        else if (crisisOptionId === 'C1_op5') updatedMorale -= 30;
-    }
     
     if (crisisId === 'C4') {
       if (crisisOptionId === 'C4_op1') updatedMorale -= 10;

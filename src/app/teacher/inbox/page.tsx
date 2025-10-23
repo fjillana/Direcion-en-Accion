@@ -37,7 +37,7 @@ export default function InboxPage() {
     return activeGame.messages.filter(msg => 
       (msg.from === selectedTeamId && msg.to === 'teacher') ||
       (msg.from === 'teacher' && msg.to === selectedTeamId)
-    ).sort((a, b) => a.timestamp - b.timestamp);
+    ).sort((a, b) => b.timestamp - a.timestamp);
   }, [activeGame, selectedTeamId]);
 
 

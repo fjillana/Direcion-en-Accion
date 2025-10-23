@@ -52,7 +52,7 @@ export default function InboxPage() {
     }
   }, [messages, gameId, userId, markMessageAsRead]);
 
-  const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+  const sortedMessages = [...messages].sort((a, b) => b.timestamp - a.timestamp);
 
   const getSenderName = (from: string) => {
     if (from === 'teacher') return 'Profesor';

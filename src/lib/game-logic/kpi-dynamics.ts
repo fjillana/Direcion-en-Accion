@@ -129,7 +129,7 @@ export function updateKpisForNextRound(
              // Represents saving from cut activities, it's a negative cost (a gain)
              // This is now an income, not a negative cost on the expense side.
             crisisFinancialImpact += 10000; 
-            updatedMorale -= 5;
+            // updatedMorale -= 5;
         }
     }
   

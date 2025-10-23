@@ -110,26 +110,49 @@ function XpCard({ title, xp, icon, peb, pebBreakdown, round, bonusXp, bonusSourc
   );
 }
 
-const getBonusSourceName = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
-    if (!team || !team.decisions?.actions) return "(Bonus)";
+const getBonusSourceNames = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
+    if (!team?.decisions) return "";
 
-    const areaInvestments = (team.decisions.actions)
-      .map(actionId => allInvestments.find(inv => inv.id === actionId))
-      .filter((inv): inv is Investment => !!inv && !!inv.xpBonus[area]);
+    const sources: string[] = [];
 
-    if (areaInvestments.length === 0) return "";
-
-    const mainContributor = areaInvestments.reduce((max, current) => {
-        const maxBonusConfig = max.xpBonus[area];
-        const currentBonusConfig = current.xpBonus[area];
-        
-        const maxBonusValue = Array.isArray(maxBonusConfig) ? maxBonusConfig[1] : maxBonusConfig;
-        const currentBonusValue = Array.isArray(currentBonusConfig) ? currentBonusConfig[1] : currentBonusConfig;
-        
-        return (currentBonusValue ?? 0) > (maxBonusValue ?? 0) ? current : max;
+    // Check investment-based bonuses
+    (team.decisions.actions || []).forEach(actionId => {
+        const investment = allInvestments.find(inv => inv.id === actionId);
+        if (investment && investment.xpBonus[area]) {
+            sources.push(investment.name);
+        }
+        if (investment && investment.effects.reputationPenalty && area === 'reputation') {
+            sources.push(`${investment.name} (Penalización)`);
+        }
+        // Handle center actions with XP
+        if (actionId === 'P2' && area === 'morale') sources.push('Contratar Docente');
+        if (actionId === 'P7' && area === 'morale') sources.push('Despedir Docente');
+        if (actionId === 'F5' && area === 'finances') sources.push('Ampliación de Aulas');
+        if (actionId === 'P3' && team.decisions.poachingSuccess && area === 'morale') sources.push('Poaching Exitoso');
     });
 
-    return `(${mainContributor.name})`;
+    // Check crisis-based bonuses/penalties
+    const crisisId = team.decisions.crisisResponse?.crisisId;
+    const optionId = team.decisions.crisisResponse?.optionId;
+    if (crisisId && optionId) {
+        // This mapping should ideally come from a central place, but for now, we hardcode it.
+        const crisisXpEffects: Record<string, Record<string, Partial<Record<'finances' | 'reputation' | 'morale', number>>>> = {
+            'C1': { 'C1_op1': { morale: 5, finances: -5 }, 'C1_op2': { morale: 3, finances: -3 }, 'C1_op3': { finances: -15, reputation: -15, morale: -15 }, 'C1_op4': { morale: 2 }, 'C1_op5': { finances: 5, reputation: -10 } },
+            'C2': { 'C2_op2': { reputation: -15 }, 'C2_op3': { reputation: 5, finances: -5 }, 'C2_op5': { finances: 8, reputation: -8 } },
+            'C3': { 'C3_op1': { reputation: 2, finances: -2 }, 'C3_op2': { finances: 5, reputation: -5 }, 'C3_op4': { finances: 3, reputation: -4 }, 'C3_op5': { reputation: 3, finances: 2 } },
+            'C4': { 'C4_op1': { reputation: -5 }, 'C4_op2': { reputation: -2, morale: 2 }, 'C4_op3': { finances: 5 }, 'C4_op4': { reputation: 5 }, 'C4_op5': { reputation: 3 } },
+            'C5': { 'C5_op1': { reputation: -3, finances: -5 }, 'C5_op2': { reputation: 5, morale: 3 }, 'C5_op3': { morale: 3 }, 'C5_op4': { reputation: -10 }, 'C5_op5': { finances: -2, reputation: 2 } },
+            'C6': { 'C6_op1': { finances: -2, reputation: 2 }, 'C6_op2': { finances: 4, reputation: 2 }, 'C6_op4': { finances: 4, reputation: -5 }, 'C6_op5': { finances: -2 } },
+            'C7': { 'C7_op1': { reputation: -8 }, 'C7_op2': { reputation: -4, morale: 3 }, 'C7_op3': { reputation: 5, morale: 3 }, 'C7_op4': { reputation: -2, morale: 2 }, 'C7_op5': { reputation: -10, finances: 5 } }
+        };
+        const effect = crisisXpEffects[crisisId]?.[optionId];
+        if (effect && effect[area]) {
+            sources.push(effect[area]! > 0 ? "Bonus Crisis" : "Penalización Crisis");
+        }
+    }
+
+    if (sources.length === 0) return "";
+    return `(${sources.join(', ')})`;
 };
 
 
@@ -228,7 +251,7 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
               pebBreakdown={selectedRoundData.finances.pebBreakdown} 
               round={selectedRound}
               bonusXp={selectedRoundData.xpFinancesBonus}
-              bonusSource={getBonusSourceName(selectedRoundData, 'finances')}
+              bonusSource={getBonusSourceNames(selectedRoundData, 'finances')}
             />
             <XpCard 
               title="Reputación" 
@@ -238,7 +261,7 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
               pebBreakdown={selectedRoundData.reputation.pebBreakdown} 
               round={selectedRound}
               bonusXp={selectedRoundData.xpReputationBonus}
-              bonusSource={getBonusSourceName(selectedRoundData, 'reputation')}
+              bonusSource={getBonusSourceNames(selectedRoundData, 'reputation')}
             />
             <XpCard 
               title="Moral" 
@@ -248,7 +271,7 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
               pebBreakdown={selectedRoundData.morale.pebBreakdown} 
               round={selectedRound}
               bonusXp={selectedRoundData.xpMoraleBonus}
-              bonusSource={getBonusSourceName(selectedRoundData, 'morale')}
+              bonusSource={getBonusSourceNames(selectedRoundData, 'morale')}
             />
           </div>
         </div>
@@ -262,3 +285,5 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
     </Card>
   );
 }
+
+    

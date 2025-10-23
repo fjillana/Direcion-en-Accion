@@ -180,6 +180,11 @@ export default function GameDetailsPage() {
         if (investment && investment.effects.reputationPenalty && area === 'reputation') {
             sources.push(`${investment.name} (Penalización)`);
         }
+        // Handle center actions with XP
+        if (actionId === 'P2' && area === 'morale') sources.push('Contratar Docente');
+        if (actionId === 'P7' && area === 'morale') sources.push('Despedir Docente');
+        if (actionId === 'F5' && area === 'finances') sources.push('Ampliación de Aulas');
+        if (actionId === 'P3' && team.decisions.poachingSuccess && area === 'morale') sources.push('Poaching Exitoso');
     });
 
     // Check crisis-based bonuses/penalties
@@ -508,3 +513,5 @@ export default function GameDetailsPage() {
     </>
   );
 }
+
+    

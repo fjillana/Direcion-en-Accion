@@ -326,9 +326,6 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const marketShare = calculateMarketSharePeb(kpis.numStudents);
     let pebReputacion = (nma.peb + marketShare.peb) / 2;
     
-    if(decisions.crisisResponse?.optionId === 'C1_op3') {
-        pebReputacion -= 40;
-    }
     pebReputacion = Math.max(0, Math.min(110, pebReputacion));
 
 

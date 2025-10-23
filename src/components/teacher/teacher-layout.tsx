@@ -22,10 +22,20 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
 
   const unreadMessagesCount = useMemo(() => {
     if (!activeGame || !activeGame.messages || !user) return 0;
-    // Count messages from teams to the teacher that are not read by the current teacher
     return activeGame.messages.filter(msg => msg.to === 'teacher' && !msg.readBy.includes(user.id)).length;
   }, [activeGame, user]);
 
+  const navItems = useMemo(() => {
+    const allItems = [
+      { href: "/teacher/dashboard", label: "Dashboard" },
+      { href: "/teacher/catalog", label: "Catálogos" },
+      { href: "/teacher/leaderboard", label: "Leaderboard", requiresActiveGame: true },
+      { href: "/teacher/inbox", label: "Inbox" },
+      { href: "/teacher/settings", label: "Ajustes", requiresActiveGame: true },
+    ];
+    return allItems.filter(item => !item.requiresActiveGame || activeGame);
+  }, [activeGame]);
+  
   // EFFECT TO MARK ALL MESSAGES AS READ WHEN GAME DATA IS LOADED
   useEffect(() => {
     if (activeGame?.id && user?.id && activeGame.messages) {
@@ -40,19 +50,11 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
     }
   }, [activeGame, user, markMessageAsRead]);
 
-  const navItems = [
-    { href: "/teacher/dashboard", label: "Dashboard" },
-    { href: "/teacher/catalog", label: "Catálogos" },
-    { href: "/teacher/leaderboard", label: "Leaderboard" },
-    { href: "/teacher/inbox", label: "Inbox", badgeCount: unreadMessagesCount },
-    { href: "/teacher/settings", label: "Ajustes" },
-  ];
-  
   const getHref = (baseHref: string) => {
       if (baseHref === '/teacher/dashboard' && activeGame) {
           return `/teacher/game/${activeGame.id}`;
       }
-      if (baseHref === '/teacher/catalog' || baseHref === '/teacher/settings') {
+      if (baseHref === '/teacher/catalog' || baseHref === '/teacher/settings' || baseHref === '/teacher/inbox') {
           return baseHref;
       }
       return activeGame ? `${baseHref}?gameId=${activeGame.id}` : baseHref;
@@ -90,9 +92,9 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
               )}
             >
               {item.label}
-              {item.badgeCount && item.badgeCount > 0 && (
+              {item.href === '/teacher/inbox' && unreadMessagesCount > 0 && (
                   <span className="absolute -right-3 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                    {item.badgeCount}
+                    {unreadMessagesCount}
                   </span>
               )}
             </Link>
@@ -124,9 +126,9 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                   )}
                 >
                   {item.label}
-                   {item.badgeCount && item.badgeCount > 0 && (
+                   {item.href === '/teacher/inbox' && unreadMessagesCount > 0 && (
                       <span className="absolute left-20 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                        {item.badgeCount}
+                        {unreadMessagesCount}
                       </span>
                   )}
                 </Link>

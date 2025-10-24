@@ -168,11 +168,19 @@ export default function GameDetailsPage() {
   
   const getBonusSourceNames = (team: TeamPerformanceData, area: 'finances' | 'reputation' | 'morale'): string => {
     if (!team?.decisions) return "";
-
+  
     const sources: string[] = [];
-
+  
     // Check investment-based bonuses
     (team.decisions.actions || []).forEach(actionId => {
+        // Special handling for Poaching to avoid double counting
+        if (actionId === 'P3') {
+            if (team.decisions.poachingSuccess && area === 'morale') {
+                sources.push('Poaching Exitoso');
+            }
+            return; // Skip further processing for P3
+        }
+  
         const investment = allInvestments.find(inv => inv.id === actionId);
         if (investment && investment.xpBonus[area]) {
             sources.push(investment.name);
@@ -180,18 +188,17 @@ export default function GameDetailsPage() {
         if (investment && investment.effects.reputationPenalty && area === 'reputation') {
             sources.push(`${investment.name} (Penalización)`);
         }
+  
         // Handle center actions with XP
         if (actionId === 'P2' && area === 'morale') sources.push('Contratar Docente');
         if (actionId === 'P7' && area === 'morale') sources.push('Despedir Docente');
         if (actionId === 'F5' && area === 'finances') sources.push('Ampliación de Aulas');
-        if (actionId === 'P3' && team.decisions.poachingSuccess && area === 'morale') sources.push('Poaching Exitoso');
     });
-
+  
     // Check crisis-based bonuses/penalties
     const crisisId = team.decisions.crisisResponse?.crisisId;
     const optionId = team.decisions.crisisResponse?.optionId;
     if (crisisId && optionId) {
-        // This mapping should ideally come from a central place, but for now, we hardcode it.
         const crisisXpEffects: Record<string, Record<string, Partial<Record<'finances' | 'reputation' | 'morale', number>>>> = {
             'C1': { 'C1_op1': { morale: 5, finances: -5 }, 'C1_op2': { morale: 3, finances: -3 }, 'C1_op3': { finances: -15, reputation: -15, morale: -15 }, 'C1_op4': { morale: 2 }, 'C1_op5': { finances: 5, reputation: -10 } },
             'C2': { 'C2_op2': { reputation: -15 }, 'C2_op3': { reputation: 5, finances: -5 }, 'C2_op5': { finances: 8, reputation: -8 } },
@@ -206,7 +213,7 @@ export default function GameDetailsPage() {
             sources.push(effect[area]! > 0 ? "Bonus Crisis" : "Penalización Crisis");
         }
     }
-
+  
     if (sources.length === 0) return "";
     return `(${sources.join(', ')})`;
   };

@@ -1,8 +1,35 @@
+
+"use client";
+
 import { AuthPage } from "@/components/auth/auth-page";
 import Image from "next/image";
-import { Briefcase, Target, Users, Wand2 } from "lucide-react";
+import { Briefcase, Target, Users, Wand2, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (user.role === 'teacher') {
+        router.push('/teacher/dashboard');
+      } else {
+        router.push('/student/dashboard');
+      }
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || user) {
+    return (
+      <main className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen w-full">
       <Image

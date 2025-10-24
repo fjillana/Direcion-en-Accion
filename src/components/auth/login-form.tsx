@@ -49,25 +49,16 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (isLogin) {
-        const user = await login(values.email, values.password);
-        if (user.role === 'teacher') {
-          router.push("/teacher/dashboard");
-        } else {
-          router.push("/student/dashboard");
-        }
+        await login(values.email, values.password);
       } else {
         const role = values.role || 'student';
-        const user = await register(values.email, values.password, role);
+        await register(values.email, values.password, role);
         toast({
           title: "¡Cuenta Creada!",
           description: `Bienvenido/a. Redirigiendo a tu panel de ${role === 'teacher' ? 'profesor' : 'estudiante'}...`,
         });
-        if (user.role === 'teacher') {
-          router.push("/teacher/dashboard");
-        } else {
-          router.push("/student/dashboard");
-        }
       }
+      router.push('/');
     } catch (error: any) {
         let description = "Ha ocurrido un error inesperado.";
         if (error instanceof FirebaseError) {

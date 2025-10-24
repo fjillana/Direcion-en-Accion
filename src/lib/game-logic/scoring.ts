@@ -128,9 +128,6 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         if (actionId === 'F5') { // Ampliación de Aulas
             bonus.finances += 10;
         }
-        if (actionId === 'P3' && wasPoachSuccessful) { // Poaching
-            bonus.morale += 15;
-        }
         
         // --- Handle investment-based bonuses ---
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);

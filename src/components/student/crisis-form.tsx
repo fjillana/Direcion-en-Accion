@@ -19,13 +19,14 @@ interface CrisisOption {
   id: string;
   label: string;
   cost: number;
+  effect: string; // Keep effect for display purposes in catalog
 }
 
+// The component receives the full crisis data, but the options are simplified for the form
 interface CrisisProps extends Omit<Crisis, 'options'> {
   options: CrisisOption[];
   disabled?: boolean;
 }
-
 
 interface FullCrisisFormProps extends CrisisProps {
     onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; }) => void;
@@ -37,25 +38,29 @@ export function CrisisForm({ id, name, description, options, disabled = false, o
   const handleOptionChange = (optionId: string) => {
     const selectedOption = options.find(o => o.id === optionId);
     if (!selectedOption) return;
+    
+    // Construct the response using props from the current crisis to avoid mismatches
     onResponseChange({
-      crisisId: id,
-      optionId: optionId,
-      justification: currentResponse?.justification || "",
-      crisisName: name,
+      crisisId: id, // Use the ID from props
+      crisisName: name, // Use the name from props
+      optionId: selectedOption.id,
       option: selectedOption.label,
-      cost: selectedOption.cost
+      cost: selectedOption.cost,
+      justification: currentResponse?.justification || "",
     });
   };
 
   const handleJustificationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const selectedOption = options.find(o => o.id === currentResponse?.optionId);
+    
+    // Ensure we are building the response object with the correct crisis data from props
     onResponseChange({
-      crisisId: id,
+      crisisId: id, // Use ID from props
+      crisisName: name, // Use name from props
       optionId: currentResponse?.optionId || "",
-      justification: e.target.value,
-      crisisName: name,
       option: selectedOption?.label || currentResponse?.option || "",
-      cost: selectedOption?.cost || currentResponse?.cost || 0
+      cost: selectedOption?.cost || currentResponse?.cost || 0,
+      justification: e.target.value,
     });
   };
 
@@ -81,6 +86,7 @@ export function CrisisForm({ id, name, description, options, disabled = false, o
                 <div className="flex-1">
                   <Label htmlFor={option.id} className="font-normal cursor-pointer flex-1">
                     <span className="font-semibold block">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.effect}</span>
                   </Label>
                 </div>
                 <div className="font-mono text-sm">{option.cost.toLocaleString('es-ES')} CC</div>

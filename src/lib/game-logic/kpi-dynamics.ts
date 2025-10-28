@@ -170,8 +170,8 @@ export function updateKpisForNextRound(
         }
         else if (crisisOptionId === 'C3_op4') {
             crisisFinancialImpact += 10000; 
-            // updatedMorale -= 5;
-            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar actividades extraescolares ha compensado el déficit financiero (+3 XP Finanzas), pero ha empeorado la oferta del centro (-4 XP Reputación) y afectado a la moral del personal.";
+            updatedMorale -= 5;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar actividades extraescolares ha compensado el déficit financiero (+3 XP Finanzas), pero ha empeorado la oferta del centro (-4 XP Reputación) y afectado a la moral del personal (-5 puntos).";
         }
          else if (crisisOptionId === 'C3_op5') {
             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Invertir en captar nuevos alumnos ha ayudado a paliar el déficit (+2 XP Finanzas) y ha mejorado la imagen y el atractivo del centro (+3 XP Reputación, +10 IAM).";

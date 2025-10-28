@@ -108,7 +108,22 @@ export function StudentReport() {
   const finalCash = reportData.kpis.cash || 0;
 
   const publicIncomeText = `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})`;
-  const privateIncomeText = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})${reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice ? ' - Crisis Morosidad' : ''}`;
+  
+  const getPrivateIncomeText = () => {
+    let text = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})`;
+    const crisisResponse = reportData.decisions.crisisResponse;
+
+    if (crisisResponse?.crisisId === 'C3') {
+        if (crisisResponse.optionId === 'C3_op2') {
+            text += ' (+10.000 CC por solución de crisis)';
+        } else if (reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice) {
+            text += ' - Crisis Morosidad';
+        }
+    }
+    return text;
+  };
+
+  const privateIncomeText = getPrivateIncomeText();
   const personnelCostText = `(${reportData.kpis.numTeachers} profesores x 7.500 CC)${reportData.kpis.personnelCost > reportData.kpis.numTeachers * 7500 ? ' + Incremento Salarial' : ''}`;
 
 

@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -92,8 +93,8 @@ const prompt = ai.definePrompt({
         - **ratioAlumnosProfesor:** Un número con dos decimales, usando coma (ej: "26,09").
       - **Describe el Cálculo y los Factores:** En el campo 'analysis', describe en palabras cómo se llegó al valor.
           - Para **Tesoreria**: Menciona el saldo inicial (usa el KPI 'cash' de 'previousKpis' si existe), los ingresos y los gastos totales (personal, inversiones, crisis). NO inventes el saldo inicial.
-          - Para **Coste Personal**: Basa el análisis en el número de profesores.
-          - Para **NMA**: Compara con el valor anterior y menciona el impacto de inversiones (ej: P1, R2) o por sobrecarga/baja carga de profesorado (penalización si ratio > 26, bonificación si ratio < 24).
+          - Para **Coste Personal**: Basa el análisis en el número de profesores y si hubo incremento salarial.
+          - Para **NMA**: Compara con el valor anterior. Analiza el impacto de inversiones (ej: P1, R2). MUY IMPORTANTE: Explica si la nota cambia por el ratio alumnos/profesor. Si baja, puede ser por perder el bonus que tenía al subir el ratio por encima de 24. Si sube, puede ser por ganar el bonus al bajar el ratio de 24. También menciona la penalización de -0.3 por sobrecarga si el ratio es > 26.
           - Para **Cuota de Mercado**: Analízalo en función de la competitividad del precio y las inversiones en marketing (ej: R1).
           - Para **Moral**: Compara con el valor anterior y analiza el impacto de inversiones (P1, P2, P4, P5), despidos (P7), la importante penalización de -15 puntos si el ratio de alumnos/profesor es superior a 26, y la penalización de -10 por "Inacción en RR.HH" si no se ha realizado ninguna inversión del área 'Personal'.
           - Para **Ratio Alumnos/Profesor**: Explica que se calcula dividiendo el número final de alumnos entre el número final de profesores.

@@ -166,7 +166,7 @@ export function updateKpisForNextRound(
         }
         else if (crisisOptionId === 'C3_op3') {
             loanIncome += 10000;
-            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has solicitado un préstamo para cubrir el déficit de 10.000 CC. Aunque soluciona la liquidez a corto plazo, la deuda genera una penalización directa de -20 XP en Finanzas.";
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has solicitado un préstamo para cubrir el déficit de 10.000 CC. Aunque soluciona la liquidez a corto plazo, la deuda genera una fuerte penalización directa de -20 XP en Finanzas.";
         }
         else if (crisisOptionId === 'C3_op4') {
             crisisFinancialImpact += 10000; 

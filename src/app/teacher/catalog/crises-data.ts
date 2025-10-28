@@ -44,7 +44,7 @@ export const crises: Crisis[] = [
       name: 'Pérdida parcial de la subvención',
       description: 'La consejería de educación recorta 25.000 CC de la subvención pública este trimestre por un error administrativo.',
       options: [
-        { id: 'C2_op1', label: 'Solicitar un préstamo de emergencia', cost: 0, effect: 'Suma 25.000 CC a tesorería pero genera deuda y una penalización de -20 PEB en Finanzas.' },
+        { id: 'C2_op1', label: 'Solicitar un préstamo de emergencia', cost: 0, effect: 'Suma 25.000 CC a tesorería pero genera deuda y una penalización de -20 puntos al PEB de Finanzas.' },
         { id: 'C2_op2', label: 'Recortar inversiones planificadas', cost: 0, effect: 'Evita la pérdida de la subvención a cambio de una penalización de -15 XP de Reputación.' },
         { id: 'C2_op3', label: 'Negociar con la consejería', cost: -3000, effect: 'Gasto de 3.000 CC; 50% de probabilidad de recuperar 15.000 CC. Éxito: +5 XP Reputación. Fracaso: -5 XP Finanzas.' },
         { id: 'C2_op4', label: 'Utilizar reservas de tesorería', cost: 0, effect: 'Se asume la pérdida de 25.000 CC directamente contra la tesorería actual. No genera penalizaciones directas.' },
@@ -58,7 +58,7 @@ export const crises: Crisis[] = [
       options: [
         { id: 'C3_op1', label: 'Ofrecer un plan de pagos', cost: 0, effect: 'Impacto: se recupera el 80% del déficit; +2 XP Reputación; −2 XP Finanzas' },
         { id: 'C3_op2', label: 'Subir temporalmente la matrícula a los alumnos solventes', cost: 0, effect: 'Impacto: −5 XP Reputación, +5 XP Finanzas; se compensa el déficit pero se genera mala imagen.' },
-        { id: 'C3_op3', label: 'Solicitar un préstamo de emergencia', cost: 0, effect: 'Suma 10.000 CC a tesorería pero genera deuda y una penalización de -20 PEB en Finanzas.' },
+        { id: 'C3_op3', label: 'Solicitar un préstamo de emergencia', cost: 0, effect: 'Suma 10.000 CC a tesorería pero genera deuda y una penalización de -20 XP en Finanzas.' },
         { id: 'C3_op4', label: 'Recortar actividades extraescolares', cost: 0, effect: 'Impacto: se compensa el déficit; +3 XP Finanzas, −4 XP Reputación; puede bajar la moral en 5 puntos' },
         { id: 'C3_op5', label: 'Invertir en marketing para captar nuevos alumnos', cost: -10000, effect: 'Impacto: −10.000 CC en marketing, +10 puntos de IAM, +3 XP Reputación, +2 XP Finanzas.' },
       ]

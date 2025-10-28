@@ -21,9 +21,9 @@ function calculateTreasuryPeb(cash: number, income: number, hasLoan: boolean): {
 
     let peb = cash < 0 ? 0 : cash < minRemanent ? (cash / minRemanent) * 100 : (cash > minRemanent * 2) ? 110 : 100;
     
-    // Apply loan penalty
+    // Apply loan penalty for C2 loan
     if (hasLoan) {
-        peb -= 20; // -20 PEB penalty for taking the loan
+        peb -= 20; // -20 PEB penalty for taking the C2 loan
     }
 
     return { peb: Math.max(0, peb), breakdown: `Tesorería (${(cash).toLocaleString('es-ES')} CC): ${peb.toFixed(2)} PEB` };
@@ -220,6 +220,8 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         } else if (optionId === 'C3_op2') {
             bonus.finances += 5;
             bonus.reputation -= 5;
+        } else if (optionId === 'C3_op3') {
+            bonus.finances -= 20; // Apply -20 XP Finance penalty directly
         } else if (optionId === 'C3_op4') {
             bonus.finances += 3;
             bonus.reputation -= 4;
@@ -312,12 +314,12 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const { kpis, decisions } = teamState;
     
     const hasC2Loan = decisions.crisisResponse?.optionId === 'C2_op1';
-    const hasC3Loan = decisions.crisisResponse?.optionId === 'C3_op3';
     const hasC6Loan = decisions.crisisResponse?.optionId === 'C6_op3';
-    const hasLoan = hasC2Loan || hasC3Loan || hasC6Loan;
+    // The C3 loan does not affect PEB, it affects XP directly.
+    const hasPebLoan = hasC2Loan || hasC6Loan;
 
     // --- PEB Calculation ---
-    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, hasLoan);
+    const treasury = calculateTreasuryPeb(kpis.cash, kpis.income, hasPebLoan);
     const personnelCost = calculatePersonnelCostPeb(kpis.personnelCost, kpis.income);
     let pebFinanzas = (treasury.peb + personnelCost.peb) / 2;
 

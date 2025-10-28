@@ -130,46 +130,88 @@ export function updateKpisForNextRound(
 
     if (crisisId === 'C2') { // Pérdida de subvención
       currentPublicIncome -= 25000;
-      if (crisisOptionId === 'C2_op1') loanIncome += 25000;
-      else if (crisisOptionId === 'C2_op2' || crisisOptionId === 'C2_op5') currentPublicIncome += 25000;
+      if (crisisOptionId === 'C2_op1') {
+        loanIncome += 25000;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has solicitado un préstamo de emergencia para cubrir la pérdida de 25.000 CC. La tesorería se estabiliza, pero esta deuda genera una penalización directa de -20 puntos a tu PEB de Finanzas.";
+      }
+      else if (crisisOptionId === 'C2_op2') {
+        currentPublicIncome += 25000;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has evitado la pérdida de la subvención, pero para ello has tenido que recortar inversiones ya planificadas, lo que daña tu imagen. Sufres una penalización de -15 XP de Reputación.";
+      }
+      else if (crisisOptionId === 'C2_op5') {
+        currentPublicIncome += 25000;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Retrasar pagos a proveedores ha generado liquidez inmediata (+8 XP Finanzas), pero ha dañado tu fiabilidad y reputación en el mercado (-8 XP Reputación).";
+      }
       else if (crisisOptionId === 'C2_op3') {
           if (negotiationSuccess) {
             crisisFinancialImpact += 15000;
-            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `¡Éxito! Se recuperan 15.000 CC de la subvención y ganas +5 XP Reputación.`;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `¡Éxito! Tras un gasto de 3.000 CC en gestiones, la negociación con la consejería ha permitido recuperar 15.000 CC de la subvención. Ganas +5 XP Reputación por tu habilidad diplomática.`;
           } else {
-             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `La negociación fracasó. No se recuperó la subvención y pierdes -5 XP Finanzas.`;
+             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = `La negociación fracasó. A pesar del gasto de 3.000 CC, no se recuperó parte de la subvención, lo que resulta en una penalización de -5 XP Finanzas.`;
           }
+      } else if (crisisOptionId === 'C2_op4') {
+          if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has decidido asumir la pérdida de 25.000 CC directamente contra la tesorería del centro. Es un golpe duro a la liquidez, pero no genera penalizaciones adicionales en XP ni PEB.";
       }
     }
 
     if (crisisId === 'C3') { // Morosidad
         privateIncome -= 10000;
-        if(crisisOptionId === 'C3_op1') privateIncome += 8000;
-        else if (crisisOptionId === 'C3_op2') privateIncome += 10000;
-        else if (crisisOptionId === 'C3_op3') loanIncome += 10000;
+        if(crisisOptionId === 'C3_op1') {
+            privateIncome += 8000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Ofrecer un plan de pagos ha funcionado. Se recupera el 80% de la deuda (8.000 CC), ganas +2 XP Reputación por la flexibilidad, pero pierdes -2 XP Finanzas por el coste de gestión.";
+        }
+        else if (crisisOptionId === 'C3_op2') {
+            privateIncome += 10000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Subir la matrícula al resto de familias compensa el déficit, pero genera una mala imagen. Ganas +5 XP Finanzas pero pierdes -5 XP Reputación.";
+        }
+        else if (crisisOptionId === 'C3_op3') {
+            loanIncome += 10000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Has solicitado un préstamo para cubrir el déficit de 10.000 CC. Aunque soluciona la liquidez a corto plazo, la deuda genera una penalización de -20 puntos a tu PEB de Finanzas.";
+        }
         else if (crisisOptionId === 'C3_op4') {
-             // Represents saving from cut activities, it's a negative cost (a gain)
-             // This is now an income, not a negative cost on the expense side.
             crisisFinancialImpact += 10000; 
             // updatedMorale -= 5;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar actividades extraescolares ha compensado el déficit financiero (+3 XP Finanzas), pero ha empeorado la oferta del centro (-4 XP Reputación) y afectado a la moral del personal.";
+        }
+         else if (crisisOptionId === 'C3_op5') {
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Invertir en captar nuevos alumnos ha ayudado a paliar el déficit (+2 XP Finanzas) y ha mejorado la imagen y el atractivo del centro (+3 XP Reputación, +10 IAM).";
         }
     }
   
     
     if (crisisId === 'C4') {
-      if (crisisOptionId === 'C4_op1') updatedMorale -= 10;
-      else if (crisisOptionId === 'C4_op4') updatedMorale += 5;
+      if (crisisOptionId === 'C4_op1') {
+        updatedMorale -= 10;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Ignorar el incidente ha sido una mala decisión. La falta de transparencia ha provocado una caída de 10 puntos en la moral y una penalización de -5 XP en Reputación.";
+      } else if (crisisOptionId === 'C4_op2') {
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Afrontar el problema con honestidad ha mitigado el daño. La reputación solo sufre una pequeña penalización (-2 XP), y la transparencia ha sido valorada por el personal (+2 XP Personal).";
+      } else if (crisisOptionId === 'C4_op4') {
+        updatedMorale += 5;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Realizar mejoras inmediatas ha sido una respuesta proactiva. La reputación mejora (+5 XP) y la moral del personal sube 5 puntos, aunque ha supuesto un coste de 20.000 CC.";
+      } else if (crisisOptionId === 'C4_op3') {
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Contratar un seguro adicional es una medida financiera prudente (+5 XP Finanzas) que protege al centro, aunque no aborda la causa raíz del problema de reputación.";
+      } else if (crisisOptionId === 'C4_op5') {
+          if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Lanzar una campaña positiva ha ayudado a contrarrestar la noticia negativa, mejorando la reputación (+3 XP) y el atractivo del centro (+10 IAM) a un coste de 8.000 CC.";
+      }
     }
 
     if(crisisId === 'C5') {
-      if (crisisOptionId === 'C5_op3') updatedMorale += 5;
-      else if (crisisOptionId === 'C5_op4') updatedMorale -= 15;
-      else if (crisisOptionId === 'C5_op5') {
+      if (crisisOptionId === 'C5_op1') {
+          if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Suspender toda actividad ha generado pérdidas económicas (-5 XP Finanzas) y ha dañado la imagen de continuidad del centro (-3 XP Reputación).";
+      } else if (crisisOptionId === 'C5_op2') {
+          if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "La inversión en TIC ha permitido continuar con las clases online, mejorando la reputación (+5 XP) y la competencia del personal (+3 XP) a un coste de 10.000 CC.";
+      } else if (crisisOptionId === 'C5_op3') {
+        updatedMorale += 5;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Contratar personal sanitario ha sido bien recibido, mejorando la moral (+5) y la sensación de seguridad (+3 XP Personal) con un coste de 5.000 CC.";
+      } else if (crisisOptionId === 'C5_op4') {
+        updatedMorale -= 15;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Ignorar las recomendaciones ha sido una decisión muy arriesgada, causando un grave daño a la reputación (-10 XP) y un desplome de la moral (-15 puntos).";
+      } else if (crisisOptionId === 'C5_op5') {
           if (negotiationSuccess) {
             crisisFinancialImpact += 5000;
-            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! La administración aportó 5.000 CC para equipos.';
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! La administración aportó 5.000 CC para equipos, mejorando la reputación (+2 XP) con un bajo coste administrativo (-2 XP Finanzas).';
           } else {
-             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La negociación fracasó. No se recibió ayuda de la administración.';
+             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La negociación fracasó. No se recibió ayuda, resultando en un coste administrativo inútil (-2 XP Finanzas).';
           }
       }
     }
@@ -179,19 +221,39 @@ export function updateKpisForNextRound(
         if (crisisOptionId === 'C6_op1') {
             if (negotiationSuccess) {
                 privateIncome += 5000;
-                if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! Se ha recuperado la mitad del patrocinio (5.000 CC).';
+                if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! Se ha recuperado la mitad del patrocinio (5.000 CC), resultando en un balance neto de +2 XP Reputación y -2 XP Finanzas.';
             } else {
-                 if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La renegociación fracasó. No se recuperó el pago.';
+                 if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La renegociación fracasó. No se recuperó el pago, lo que ha generado un coste neto y penalizaciones de XP.';
             }
+        } else if (crisisOptionId === 'C6_op2') {
+            privateIncome += 10000;
+             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Buscar otro patrocinador ha sido un éxito. A pesar del coste de 4.000 CC, se recuperaron los 10.000 CC íntegros, generando un beneficio de XP (+4 Finanzas, +2 Reputación).";
+        } else if (crisisOptionId === 'C6_op3') {
+            loanIncome += 10000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "El préstamo cubre el déficit, pero la deuda resultante reduce el PEB de Finanzas a la mitad y generará costes de intereses en el futuro.";
+        } else if (crisisOptionId === 'C6_op4') {
+            privateIncome += 10000;
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar gastos de marketing ha compensado la pérdida, pero a costa de la visibilidad del centro (-5 XP Reputación), aunque mejora el ratio financiero (+4 XP Finanzas).";
+        } else if (crisisOptionId === 'C6_op5') {
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Asumir la pérdida de 10.000 CC impacta en la tesorería (-2 XP Finanzas), pero mantiene la reputación intacta al no tomar medidas drásticas.";
         }
-        if (crisisOptionId === 'C6_op2' || crisisOptionId === 'C6_op4') privateIncome += 10000;
-        if (crisisOptionId === 'C6_op3') loanIncome += 10000;
     }
 
     if(crisisId === 'C7') {
-      if (crisisOptionId === 'C7_op1') updatedMorale -= 5;
-      else if (crisisOptionId === 'C7_op2') updatedMorale += 5;
-      else if (crisisOptionId === 'C7_op5') updatedMorale -= 10;
+      if (crisisOptionId === 'C7_op1') {
+        updatedMorale -= 5;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Minimizar el caso ha dañado gravemente la reputación (-8 XP) y la moral del personal (-5 puntos). Además, afectará negativamente a la captación de alumnos.";
+      } else if (crisisOptionId === 'C7_op2') {
+        updatedMorale += 5;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "La investigación interna ha sido un primer paso correcto. Aunque la reputación sufre un golpe inicial (-4 XP), la moral del personal mejora 5 puntos por la gestión proactiva (+3 XP Personal).";
+      } else if (crisisOptionId === 'C7_op3') {
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Implementar un programa anti-bullying es una gran medida preventiva. Mejora la reputación a largo plazo (+5 XP), la moral (+3 XP Personal) y el atractivo del centro (+10 IAM).";
+      } else if (crisisOptionId === 'C7_op4') {
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Un comunicado público honesto ha limitado los daños. La reputación sufre un impacto menor (-2 XP) y la transparencia es valorada por el personal (+2 XP Personal).";
+      } else if (crisisOptionId === 'C7_op5') {
+        updatedMorale -= 10;
+        if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Demandear a los denunciantes ha sido una estrategia muy agresiva y mal recibida. La reputación se desploma (-10 XP) y la moral cae 10 puntos, aunque la IA financiera lo valora como un ahorro (+5 XP Finanzas).";
+      }
     }
   }
 
@@ -285,7 +347,7 @@ export function updateKpisForNextRound(
   // If no investment in personnel area is made, apply penalty.
   const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5'];
   const hasHrInvestment = actions.some(actionId => hrInvestmentIds.includes(actionId));
-  if (!hasHrInvestment) {
+  if (!hasHrInvestment && decisions.crisisResponse?.crisisId !== 'C1') {
     updatedMorale -= 10;
   }
   

@@ -86,7 +86,6 @@ export function CrisisForm({ id, name, description, options, disabled = false, o
                 <div className="flex-1">
                   <Label htmlFor={option.id} className="font-normal cursor-pointer flex-1">
                     <span className="font-semibold block">{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.effect}</span>
                   </Label>
                 </div>
                 <div className="font-mono text-sm">{option.cost.toLocaleString('es-ES')} CC</div>

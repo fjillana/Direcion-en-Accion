@@ -132,6 +132,14 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         // --- Handle investment-based bonuses ---
         const investmentInfo = fullInvestmentsList.find(inv => inv.id === actionId);
         if (investmentInfo) {
+            // Special handling for Poaching to count it only once and when successful
+            if (actionId === 'P3') {
+                if (wasPoachSuccessful) {
+                    bonus.morale += 15;
+                }
+                continue; // Skip the generic bonus application below for P3
+            }
+
             // Apply XP bonus from investments
             if (investmentInfo.xpBonus) {
                 const applyBonus = (area: 'finances' | 'reputation' | 'morale') => {

@@ -165,19 +165,17 @@ const getBonusSourceNames = (team: TeamPerformanceData, area: 'finances' | 'repu
 
 
 export function XpSummary({ performanceHistory }: XpSummaryProps) {
-
+  
   const latestRoundNumber = useMemo(() => {
     if (!performanceHistory || performanceHistory.length === 0) return 0;
-    return performanceHistory.reduce((max, p) => p.round > max ? p.round : max, 0);
+    return Math.max(...performanceHistory.map(p => p.round));
   }, [performanceHistory]);
 
   const [selectedRound, setSelectedRound] = useState<number>(latestRoundNumber);
 
   useEffect(() => {
-    if (latestRoundNumber !== selectedRound) {
-        setSelectedRound(latestRoundNumber);
-    }
-  }, [latestRoundNumber, selectedRound]);
+    setSelectedRound(latestRoundNumber);
+  }, [latestRoundNumber]);
 
 
   if (!performanceHistory || performanceHistory.length === 0) {
@@ -293,5 +291,7 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
     </Card>
   );
 }
+
+    
 
     

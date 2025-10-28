@@ -347,9 +347,9 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     
     const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess, wasPoachSuccessful);
 
-    const xpFinanzas = Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances);
-    const xpReputacion = Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation);
-    const xpMoral = Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale);
+    const xpFinanzas = Math.max(0, Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances));
+    const xpReputacion = Math.max(0, Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation));
+    const xpMoral = Math.max(0, Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale));
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;
 

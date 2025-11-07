@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -140,13 +141,16 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    // Safety check: If student is in a game that no longer exists, reset their state.
     if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
         const gameExists = games.some(g => g.id === studentGameState.gameId);
         if (!gameExists) {
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
             if(firestore) {
+              // This write operation resets the student's state on the backend.
               setDoc(doc(firestore, "studentGames", user.id), resetState);
             }
+            // This local state update will trigger a re-render and UI update.
             setStudentGameState(resetState); 
             return;
         }
@@ -276,18 +280,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
 
   const abandonGame = async () => {
-    if (!firestore || !user || !studentGameState?.gameId || !studentGameState?.teamName) return;
+    if (!firestore || !user || !studentGameState) return;
     
-    const game = games.find(g => g.id === studentGameState.gameId);
-    if (game) {
-      const updatedTeamNames = game.teamNames.filter(name => name !== studentGameState.teamName);
-      await updateGame(game.id, { teamNames: updatedTeamNames });
-    }
+    const { gameId, teamName } = studentGameState;
 
-    await setDoc(doc(firestore, "studentGames", user.id), {
+    // First, always reset the student's own state. This ensures they can escape even if the game was deleted.
+    const studentGameRef = doc(firestore, "studentGames", user.id);
+    await setDoc(studentGameRef, {
         ...initialStudentState,
         userId: user.id,
     }, { merge: true });
+
+    // Then, if the game still exists, try to remove the team from it.
+    if (gameId && teamName) {
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+            const updatedTeamNames = game.teamNames.filter(name => name !== teamName);
+            await updateGame(gameId, { teamNames: updatedTeamNames });
+        }
+    }
 
     router.push('/student/join-game');
   };
@@ -308,7 +319,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (newDecisions.roundConfirmed) {
           const finalDecisions: TeamDecision = {
             ...updatedDecisions,
-            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
+            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0, outcomeDescription: "" } : null,
           };
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
@@ -343,15 +354,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       delete decisionsToSave.poachingSuccess;
     }
 
-    const newDecisions = {
-      ...(gameData.decisions || {}),
-      [round]: {
-        ...(gameData.decisions?.[round] || {}),
-        [teamName]: decisionsToSave,
-      }
+    const updateData = {
+      [`decisions.${round}.${teamName}`]: decisionsToSave
     };
-    
-    const updateData = { decisions: newDecisions };
 
     updateDoc(gameRef, updateData).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -408,5 +413,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

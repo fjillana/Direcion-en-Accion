@@ -120,7 +120,7 @@ interface GamesContextType {
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
   acceptJoinRequests: (gameId: string, requests: JoinRequest[]) => Promise<void>;
-  removeTeamFromGame: (gameId: string, teamName: string) => Promise<void>;
+  removeTeamFromGame: (gameId: string, teamName: string, userId?: string) => Promise<void>;
   getStudentGamesByGameId: (gameId: string) => Promise<StudentGameState[]>;
 }
 
@@ -198,33 +198,46 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   };
   
- const removeTeamFromGame = async (gameId: string, teamNameToRemove: string) => {
+ const removeTeamFromGame = async (gameId: string, teamNameToRemove: string, userId?: string) => {
     if (!firestore || !user) return;
 
     const gameRef = doc(firestore, "games", gameId);
+    const batch = writeBatch(firestore);
+
+    // Remove team name from the game's teamNames array
+    const gameDoc = await getDoc(gameRef);
+    if (gameDoc.exists()) {
+        const gameData = gameDoc.data() as Game;
+        const teamNamesToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
+        batch.update(gameRef, { teamNames: teamNamesToKeep });
+    }
+
+    // If a userId is provided, reset the student's game state
+    if (userId) {
+        const studentRef = doc(firestore, "studentGames", userId);
+        batch.set(studentRef, {
+            status: 'no-game',
+            gameId: null,
+            gameName: null,
+            teamName: null,
+            userId: userId,
+            planConfirmed: false,
+            strategicPlan: {}, // Reset strategic plan
+            unlockedAchievements: [],
+        }, { merge: true });
+    }
 
     try {
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) throw new Error("Game not found");
-        const gameData = gameDoc.data() as Game;
-
-        const teamNamesToKeep = gameData.teamNames.filter(name => name !== teamNameToRemove);
-        const gameUpdateData = { teamNames: teamNamesToKeep };
-        
-        await updateDoc(gameRef, gameUpdateData);
-
-        const studentRequest = (gameData.pendingJoinRequests || []).find(req => req.teamName === teamNameToRemove);
-        if (studentRequest) {
-            const studentRef = doc(firestore, "studentGames", studentRequest.userId);
-            await updateDoc(studentRef, { status: 'no-game', gameId: null, gameName: null, teamName: null });
-        }
-    } catch (error: any) {
+        await batch.commit();
+    } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: gameRef.path,
                 operation: 'update',
             });
             errorEmitter.emit('permission-error', permissionError);
+        } else {
+            console.error("Error removing team with batch:", error);
         }
     }
 };
@@ -455,7 +468,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
 
     // Create a clean copy of the decisions object
-    const decisionsToSave = { ...decisions };
+    const decisionsToSave: Partial<TeamDecision> = { ...decisions };
 
     // Remove any undefined properties to prevent Firestore errors
     Object.keys(decisionsToSave).forEach(keyStr => {
@@ -466,14 +479,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
      // Also clean inside crisisResponse
     if (decisionsToSave.crisisResponse) {
-        const crisisResponse = { ...decisionsToSave.crisisResponse };
+        const crisisResponse: Partial<CrisisDecision> = { ...decisionsToSave.crisisResponse };
         Object.keys(crisisResponse).forEach(keyStr => {
             const key = keyStr as keyof CrisisDecision;
             if (crisisResponse[key] === undefined) {
                 delete crisisResponse[key];
             }
         });
-        decisionsToSave.crisisResponse = crisisResponse;
+        decisionsToSave.crisisResponse = crisisResponse as CrisisDecision;
     }
 
 

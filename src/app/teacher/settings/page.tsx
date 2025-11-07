@@ -47,7 +47,7 @@ import { useFirestore } from "@/firebase";
 
 export default function SettingsPage() {
   const { activeGame } = useGame();
-  const { updateGame, acceptJoinRequests, removeTeamFromGame, loading: gamesLoading } = useGames();
+  const { updateGame, acceptJoinRequests, removeTeamFromGame, loading: gamesLoading, getStudentGamesByGameId } = useGames();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -131,7 +131,13 @@ export default function SettingsPage() {
   const handleRemoveTeam = async (teamNameToRemove: string) => {
     if (!activeGame) return;
     try {
-      await removeTeamFromGame(activeGame.id, teamNameToRemove);
+      // Find the user associated with the team name to reset their state
+      const studentGames = await getStudentGamesByGameId(activeGame.id);
+      const studentToRemove = studentGames.find(sg => sg.teamName === teamNameToRemove);
+      const userIdToRemove = studentToRemove?.userId;
+
+      await removeTeamFromGame(activeGame.id, teamNameToRemove, userIdToRemove);
+      
       toast({
         title: "Equipo eliminado",
         description: `${teamNameToRemove} ha sido eliminado de la partida.`

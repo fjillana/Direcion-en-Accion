@@ -19,7 +19,6 @@ interface CrisisOption {
   id: string;
   label: string;
   cost: number;
-  effect: string; // Keep effect for display purposes in catalog
 }
 
 // The component receives the full crisis data, but the options are simplified for the form
@@ -29,8 +28,8 @@ interface CrisisProps extends Omit<Crisis, 'options'> {
 }
 
 interface FullCrisisFormProps extends CrisisProps {
-    onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; }) => void;
-    currentResponse: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; } | null;
+    onResponseChange: (response: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; outcomeDescription?: string; }) => void;
+    currentResponse: { crisisId: string; optionId: string; justification: string; crisisName: string; option: string; cost: number; outcomeDescription?: string; } | null;
 }
 
 export function CrisisForm({ id, name, description, options, disabled = false, onResponseChange, currentResponse }: FullCrisisFormProps) {
@@ -47,6 +46,7 @@ export function CrisisForm({ id, name, description, options, disabled = false, o
       option: selectedOption.label,
       cost: selectedOption.cost,
       justification: currentResponse?.justification || "",
+      outcomeDescription: currentResponse?.outcomeDescription || "",
     });
   };
 
@@ -61,6 +61,7 @@ export function CrisisForm({ id, name, description, options, disabled = false, o
       option: selectedOption?.label || currentResponse?.option || "",
       cost: selectedOption?.cost || currentResponse?.cost || 0,
       justification: e.target.value,
+      outcomeDescription: currentResponse?.outcomeDescription || "",
     });
   };
 

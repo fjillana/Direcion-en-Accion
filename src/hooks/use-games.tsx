@@ -455,14 +455,27 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
 
     // Create a clean copy of the decisions object
-    const decisionsToSave: Partial<TeamDecision> = { ...decisions, roundConfirmed: true };
+    const decisionsToSave = { ...decisions };
 
     // Remove any undefined properties to prevent Firestore errors
-    Object.keys(decisionsToSave).forEach(key => {
-        if (decisionsToSave[key as keyof TeamDecision] === undefined) {
-            delete decisionsToSave[key as keyof TeamDecision];
+    Object.keys(decisionsToSave).forEach(keyStr => {
+        const key = keyStr as keyof TeamDecision;
+        if (decisionsToSave[key] === undefined) {
+            delete decisionsToSave[key];
         }
     });
+     // Also clean inside crisisResponse
+    if (decisionsToSave.crisisResponse) {
+        const crisisResponse = { ...decisionsToSave.crisisResponse };
+        Object.keys(crisisResponse).forEach(keyStr => {
+            const key = keyStr as keyof CrisisDecision;
+            if (crisisResponse[key] === undefined) {
+                delete crisisResponse[key];
+            }
+        });
+        decisionsToSave.crisisResponse = crisisResponse;
+    }
+
 
     const updateData = {
       [`decisions.${round}.${teamName}`]: decisionsToSave
@@ -488,7 +501,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const roundDecisions = gameData.decisions?.[round]?.[teamName] || {};
     const roundSettings = gameData.roundSettings?.[round];
     
-    let crisisResponse = null;
+    let crisisResponse: CrisisDecision | null = null;
     const teamCrisis = roundSettings?.teamCrises.find(tc => tc.teamName === teamName);
     if (teamCrisis && teamCrisis.crisisIds.length > 0) {
       const crisisId = teamCrisis.crisisIds[0];
@@ -501,7 +514,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
           option: firstOption.label,
           optionId: firstOption.id,
           cost: firstOption.cost,
-          justification: "Decisión forzada por el profesor por inactividad."
+          justification: "Decisión forzada por el profesor por inactividad.",
+          outcomeDescription: "" // Initialize as empty string
         }
       }
     }

@@ -22,20 +22,21 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
         crisisResponse: null,
         roundConfirmed: false,
         investmentCosts: {},
-        poachingTarget: undefined,
-        poachingSuccess: false, // Default to false
-        forcedByTeacher: false, // Default to false
+        poachingTarget: null,
+        poachingSuccess: false,
+        forcedByTeacher: false,
     };
     
     if (teamDecision) {
+        // Build the return object field by field to ensure no 'undefined' values slip through.
         const decisionsToReturn: RoundDecisions = {
             actions: teamDecision.actions || [],
             tuitionPrice: teamDecision.tuitionPrice || 120,
             crisisResponse: teamDecision.crisisResponse || null,
             roundConfirmed: teamDecision.roundConfirmed || false,
             investmentCosts: teamDecision.investmentCosts || {},
-            // Ensure optional fields have a valid fallback, not undefined
-            poachingTarget: teamDecision.poachingTarget,
+            // Explicitly default optional fields to a valid value (null/false) instead of undefined.
+            poachingTarget: teamDecision.poachingTarget || null,
             poachingSuccess: teamDecision.poachingSuccess || false,
             forcedByTeacher: teamDecision.forcedByTeacher || false,
         };

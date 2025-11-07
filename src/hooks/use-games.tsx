@@ -30,6 +30,7 @@ export interface TeamDecision {
   investmentCosts?: Record<string, number>;
   poachingTarget?: string;
   poachingSuccess?: boolean;
+  forcedByTeacher?: boolean;
 }
 
 export interface TeamPerformanceData {
@@ -113,6 +114,7 @@ interface GamesContextType {
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => Promise<void>;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => Promise<void>;
   confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => Promise<void>;
+  forceStudentDecisions: (gameId: string, teamName: string, round: number) => Promise<void>;
   getGameById: (gameId: string) => Game | undefined;
   setActiveGameId: (gameId: string | null) => void;
   activeGameId: string | null;
@@ -474,6 +476,46 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const forceStudentDecisions = async (gameId: string, teamName: string, round: number) => {
+    if (!firestore) return;
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+    const gameData = gameDoc.data() as Game;
+
+    const roundDecisions = gameData.decisions?.[round]?.[teamName] || {};
+    const roundSettings = gameData.roundSettings?.[round];
+    
+    let crisisResponse = null;
+    const teamCrisis = roundSettings?.teamCrises.find(tc => tc.teamName === teamName);
+    if (teamCrisis && teamCrisis.crisisIds.length > 0) {
+      const crisisId = teamCrisis.crisisIds[0];
+      const crisisData = fullCrisesList.find(c => c.id === crisisId);
+      if (crisisData && crisisData.options.length > 0) {
+        const firstOption = crisisData.options[0];
+        crisisResponse = {
+          crisisId: crisisData.id,
+          crisisName: crisisData.name,
+          option: firstOption.label,
+          optionId: firstOption.id,
+          cost: firstOption.cost,
+          justification: "Decisión forzada por el profesor por inactividad."
+        }
+      }
+    }
+
+    const forcedDecisions: TeamDecision = {
+      tuitionPrice: roundDecisions.tuitionPrice || 120,
+      actions: [],
+      investmentCosts: {},
+      crisisResponse,
+      roundConfirmed: true,
+      forcedByTeacher: true,
+    };
+    
+    await confirmStudentDecisions(gameId, teamName, round, forcedDecisions);
+  };
+
   const getGameById = (gameId: string) => games.find(g => g.id === gameId);
 
   const getStudentGamesByGameId = useCallback(async (gameId: string): Promise<StudentGameState[]> => {
@@ -525,6 +567,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         addMessage,
         markMessageAsRead,
         confirmStudentDecisions,
+        forceStudentDecisions,
         acceptJoinRequests,
         removeTeamFromGame,
         getStudentGamesByGameId,

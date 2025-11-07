@@ -313,9 +313,9 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
 export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean, wasPoachSuccessful?: boolean) {
     const { kpis, decisions } = teamState;
     
+    // C3 loan has XP penalty, C2 & C6 have PEB penalties
     const hasC2Loan = decisions.crisisResponse?.optionId === 'C2_op1';
     const hasC6Loan = decisions.crisisResponse?.optionId === 'C6_op3';
-    // The C3 loan does not affect PEB, it affects XP directly.
     const hasPebLoan = hasC2Loan || hasC6Loan;
 
     // --- PEB Calculation ---
@@ -347,9 +347,16 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     
     const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess, wasPoachSuccessful);
 
-    const xpFinanzas = Math.max(0, Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances));
-    const xpReputacion = Math.max(0, Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation));
-    const xpMoral = Math.max(0, Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale));
+    let xpFinanzas = Math.max(0, Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances));
+    let xpReputacion = Math.max(0, Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation));
+    let xpMoral = Math.max(0, Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale));
+    
+    // Apply inactivity penalty
+    if (decisions.forcedByTeacher) {
+      xpFinanzas *= 0.5;
+      xpReputacion *= 0.5;
+      xpMoral *= 0.5;
+    }
 
     const totalXp = xpFinanzas + xpReputacion + xpMoral;
 

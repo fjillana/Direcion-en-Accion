@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, Loader2, LogOut } from "lucide-react";
+import { PlayCircle, Loader2, LogOut, CheckCircle, AlertCircle } from "lucide-react";
 import { AIReportForm } from "@/components/teacher/ai-report-form";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
@@ -45,13 +45,15 @@ import { simulateRound } from "@/lib/game-logic/round-simulation";
 import { Separator } from "@/components/ui/separator";
 import { investments as allInvestments } from "@/app/teacher/catalog/investment-data";
 import { crises as fullCrisesList } from "@/app/teacher/catalog/crises-data";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games, setActiveGameId, updateGame, updateTeamPerformance, getStudentGamesByGameId } = useGames();
+  const { games, setActiveGameId, updateGame, updateTeamPerformance, getStudentGamesByGameId, forceStudentDecisions } = useGames();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [game, setGame] = useState<Game | null>(null);
   const [currentRoundTab, setCurrentRoundTab] = useState<string>("0");
@@ -83,6 +85,24 @@ export default function GameDetailsPage() {
         setMonitoringData(performanceForRound || []);
     }
   }, [currentRoundTab, game]);
+
+  const handleForceDecision = async (teamName: string) => {
+    if (!game) return;
+    try {
+      await forceStudentDecisions(game.id, teamName, game.round);
+      toast({
+        title: "Decisión Forzada",
+        description: `Las decisiones para ${teamName} han sido enviadas.`,
+      });
+    } catch (error) {
+      console.error("Error forcing decision:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo forzar la decisión para el equipo.",
+      });
+    }
+  }
 
 
   const handleProcessRound = async () => {
@@ -202,7 +222,7 @@ export default function GameDetailsPage() {
         const crisisXpEffects: Record<string, Record<string, Partial<Record<'finances' | 'reputation' | 'morale', number>>>> = {
             'C1': { 'C1_op1': { morale: 5, finances: -5 }, 'C1_op2': { morale: 3, finances: -3 }, 'C1_op3': { finances: -15, reputation: -15, morale: -15 }, 'C1_op4': { morale: 2 }, 'C1_op5': { finances: 5, reputation: -10 } },
             'C2': { 'C2_op2': { reputation: -15 }, 'C2_op3': { reputation: 5, finances: -5 }, 'C2_op5': { finances: 8, reputation: -8 } },
-            'C3': { 'C3_op1': { reputation: 2, finances: -2 }, 'C3_op2': { finances: 5, reputation: -5 }, 'C3_op4': { finances: 3, reputation: -4 }, 'C3_op5': { reputation: 3, finances: 2 } },
+            'C3': { 'C3_op1': { reputation: 2, finances: -2 }, 'C3_op2': { finances: 5, reputation: -5 }, 'C3_op3': { finances: -20 }, 'C3_op4': { finances: 3, reputation: -4 }, 'C3_op5': { reputation: 3, finances: 2 } },
             'C4': { 'C4_op1': { reputation: -5 }, 'C4_op2': { reputation: -2, morale: 2 }, 'C4_op3': { finances: 5 }, 'C4_op4': { reputation: 5 }, 'C4_op5': { reputation: 3 } },
             'C5': { 'C5_op1': { reputation: -3, finances: -5 }, 'C5_op2': { reputation: 5, morale: 3 }, 'C5_op3': { morale: 3 }, 'C5_op4': { reputation: -10 }, 'C5_op5': { finances: -2, reputation: 2 } },
             'C6': { 'C6_op1': { finances: -2, reputation: 2 }, 'C6_op2': { finances: 4, reputation: 2 }, 'C6_op4': { finances: 4, reputation: -5 }, 'C6_op5': { finances: -2 } },
@@ -259,8 +279,9 @@ export default function GameDetailsPage() {
           </p>
 
         <Tabs defaultValue="monitoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="monitoring">Monitorización</TabsTrigger>
+            <TabsTrigger value="decisions">Decisiones</TabsTrigger>
             <TabsTrigger value="reports">Reportes IA</TabsTrigger>
             <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
@@ -334,6 +355,54 @@ export default function GameDetailsPage() {
                         No hay datos disponibles para la ronda {currentRoundTab}.
                     </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="decisions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Estado de Decisiones de la Ronda {game.round}</CardTitle>
+                <CardDescription>
+                  Monitoriza qué equipos han confirmado sus decisiones. Puedes forzar el envío si un equipo está inactivo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Equipo</TableHead>
+                        <TableHead className="text-right">Estado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {game.teamNames.map(teamName => {
+                        const decision = game.decisions?.[game.round]?.[teamName];
+                        const isConfirmed = decision?.roundConfirmed;
+                        const isForced = decision?.forcedByTeacher;
+                        
+                        return (
+                          <TableRow key={teamName}>
+                            <TableCell className="font-medium">{teamName}</TableCell>
+                            <TableCell className="text-right">
+                              {isConfirmed ? (
+                                <Badge variant={isForced ? "destructive" : "default"}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  {isForced ? 'Forzado por Profesor' : 'Decisión Tomada'}
+                                </Badge>
+                              ) : (
+                                <Button variant="outline" size="sm" onClick={() => handleForceDecision(teamName)}>
+                                  <AlertCircle className="mr-2 h-4 w-4" />
+                                  Forzar Decisión
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -520,5 +589,3 @@ export default function GameDetailsPage() {
     </>
   );
 }
-
-    

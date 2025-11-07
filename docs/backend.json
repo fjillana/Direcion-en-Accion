@@ -38,6 +38,18 @@
         "totalXp": { "type": "number" }
       }
     },
+    "TeamDecision": {
+      "title": "Team Decision",
+      "description": "Stores the decisions made by a team in a round.",
+      "type": "object",
+      "properties": {
+        "tuitionPrice": { "type": "number" },
+        "actions": { "type": "array", "items": { "type": "string" } },
+        "crisisResponse": { "type": "object" },
+        "roundConfirmed": { "type": "boolean" },
+        "forcedByTeacher": { "type": "boolean" }
+      }
+    },
     "StudentGame": {
       "title": "Student Game State",
       "description": "Stores the state for a student participating in a game.",
@@ -71,6 +83,10 @@
     "/games/{gameId}/performance/{roundId}": {
       "schema": { "$ref": "#/entities/TeamPerformance" },
       "description": "Sub-collection storing performance data for each round."
+    },
+    "/games/{gameId}/decisions/{teamId}": {
+      "schema": { "$ref": "#/entities/TeamDecision" },
+      "description": "Sub-collection storing team decisions for each round."
     },
     "/studentGames/{userId}": {
       "schema": { "$ref": "#/entities/StudentGame" },

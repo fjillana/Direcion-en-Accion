@@ -309,7 +309,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (newDecisions.roundConfirmed) {
           const finalDecisions: TeamDecision = {
             ...updatedDecisions,
-            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
+            crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0, outcomeDescription: "" } : null,
           };
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
@@ -325,15 +325,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
-    const decisionsToSave = { ...fullStudentState.decisions };
+    const decisionsToSave: Partial<RoundDecisions> = { ...fullStudentState.decisions };
 
-    // Clean up undefined values before saving
-    Object.keys(decisionsToSave).forEach(key => {
-      const K = key as keyof typeof decisionsToSave;
-      if (decisionsToSave[K] === undefined) {
-        delete decisionsToSave[K];
-      }
-    });
+    // Firestore does not support `undefined` values.
+    if (decisionsToSave.poachingTarget === undefined) {
+      delete decisionsToSave.poachingTarget;
+    }
+    if (decisionsToSave.poachingSuccess === undefined) {
+      delete decisionsToSave.poachingSuccess;
+    }
+    if (decisionsToSave.investmentCosts === undefined) {
+      delete decisionsToSave.investmentCosts;
+    }
+
 
     const updateData = {
       [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave
@@ -346,7 +350,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError; // Re-throw for component-level error handling
+        // Re-throw the original error after emitting our custom one
+        throw serverError;
     });
   }
 
@@ -393,3 +398,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

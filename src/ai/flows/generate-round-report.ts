@@ -77,7 +77,7 @@ const prompt = ai.definePrompt({
 
   **Tu Misión (Sigue estas reglas estrictamente):**
   1.  **Analiza en Profundidad**: Examina los datos de rendimiento del equipo en el JSON. Conecta sus decisiones (inversiones, precio, gestión de crisis) con los resultados en sus KPIs (finanzas, reputación, moral) y su puntuación de equilibrio de negocio (PEB).
-  2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico.
+  2.  **Genera un Reporte Cualitativo**: Redacta un párrafo conciso pero sustancioso que explique por qué el equipo obtuvo esos resultados. Destaca tanto los aciertos como los errores estratégicos. Sé directo y pedagógico. **MUY IMPORTANTE:** Si el campo \`decisions.forcedByTeacher\` es \`true\`, DEBES empezar tu análisis con la siguiente frase en negrita: "**Las decisiones de esta ronda fueron forzadas por inacción, resultando en una penalización del 50% en todo el XP ganado.**"
   3.  **Crea Preguntas Mayéuticas**: Formula 2 o 3 preguntas abiertas y reflexivas que el profesor pueda usar. Las preguntas deben obligar al estudiante a pensar críticamente sobre el dilema o "trade-off" principal de su ronda.
   4.  **Ofrece Sugerencias Pedagógicas**: Proporciona una o dos frases con consejos para el profesor sobre qué conceptos clave reforzar con este equipo.
   5.  **Análisis Cuantitativo de KPIs (CRÍTICO):** Para el campo 'kpiAnalysis', genera un análisis para CADA KPI. Tu análisis DEBE explicar el porqué del valor final de forma cuantitativa, basándote en los datos de entrada.

@@ -428,6 +428,11 @@ export default function GameDetailsPage() {
                 <DialogDescription>
                     Cálculo detallado de los Puntos de Equilibrio de Negocio para cada área en la ronda {currentRoundTab}.
                 </DialogDescription>
+                 {fullDecisionsForDialog?.forcedByTeacher && (
+                    <p className="text-sm font-bold text-destructive pt-2">
+                        Decisiones forzadas por inacción. Se ha aplicado una penalización del 50% al XP.
+                    </p>
+                )}
               </DialogHeader>
               <div className="grid md:grid-cols-3 gap-4 py-4 text-sm">
                  <div className="space-y-2 p-3 border rounded-lg">

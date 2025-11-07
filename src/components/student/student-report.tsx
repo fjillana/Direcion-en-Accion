@@ -113,7 +113,7 @@ export function StudentReport() {
     let text = `(${reportData.kpis.numStudents} alumnos x ${formatCurrency(reportData.decisions.tuitionPrice)})`;
     const crisisResponse = reportData.decisions.crisisResponse;
 
-    if (crisisResponse?.crisisId === 'C3') {
+    if (crisisResponse?.crisisId === 'C3') { // Solo aplicar para crisis de morosidad
         if (crisisResponse.optionId === 'C3_op2') {
             text += ' (+10.000 CC por solución de crisis)';
         } else if (reportData.kpis.privateIncome < reportData.kpis.numStudents * reportData.decisions.tuitionPrice) {
@@ -157,7 +157,7 @@ export function StudentReport() {
                             <div className="flex justify-between text-destructive"><span>(-) Gastos Totales:</span> <span className="font-mono">{formatCurrency(totalCosts)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste de Personal:</span> <span className="font-mono">{formatCurrency(reportData.kpis.personnelCost)}</span></div>
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
-                            {reportData.kpis.crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
+                            {crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>

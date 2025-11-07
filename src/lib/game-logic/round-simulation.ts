@@ -15,14 +15,16 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
-    // Fallback if no decisions are found
+    // Fallback if no decisions are found, ensuring no undefined fields.
     const fallbackDecisions: RoundDecisions = {
         actions: [],
-        tuitionPrice: 120, // Default price
+        tuitionPrice: 120,
         crisisResponse: null,
         roundConfirmed: false,
         investmentCosts: {},
         poachingTarget: undefined,
+        poachingSuccess: false, // Default to false
+        forcedByTeacher: false, // Default to false
     };
     
     if (teamDecision) {
@@ -32,9 +34,9 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
             crisisResponse: teamDecision.crisisResponse || null,
             roundConfirmed: teamDecision.roundConfirmed || false,
             investmentCosts: teamDecision.investmentCosts || {},
-            // Sanitize optional fields to prevent undefined values
-            poachingTarget: teamDecision.poachingTarget || undefined,
-            poachingSuccess: teamDecision.poachingSuccess || undefined,
+            // Ensure optional fields have a valid fallback, not undefined
+            poachingTarget: teamDecision.poachingTarget,
+            poachingSuccess: teamDecision.poachingSuccess || false,
             forcedByTeacher: teamDecision.forcedByTeacher || false,
         };
         return decisionsToReturn;
@@ -47,8 +49,6 @@ const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_C
 
 
 export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[]}[] } {
-  
-  console.log(`[GPS] 3. Starting round simulation for Game "${game.name}", Round ${game.round}`);
 
   const numHumanTeams = game.teamNames.length;
   const numIaTeams = numHumanTeams > 0 ? numHumanTeams : 0; // 1 AI for each Human team
@@ -225,7 +225,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
     const negotiationSuccess = negotiationOutcomes[teamState.name];
-    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess);
+    const performance = calculateTeamPerformance(teamState);
 
     // Clean the decisions object before saving
     const finalDecisions = { ...teamState.decisions };

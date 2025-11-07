@@ -311,9 +311,11 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     return bonus;
 }
 
-export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
+export function calculateTeamPerformance(teamState: TeamState) {
     const { kpis, decisions } = teamState;
     
+    const negotiationSuccess = Math.random() < 0.5;
+
     // C3 loan has XP penalty, C2 & C6 have PEB penalties
     const hasC2Loan = decisions.crisisResponse?.optionId === 'C2_op1';
     const hasC6Loan = decisions.crisisResponse?.optionId === 'C6_op3';
@@ -352,7 +354,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     let xpReputacion = Math.max(0, Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation));
     let xpMoral = Math.max(0, Math.min(XP_AREA_MAX, baseXpMoral + xpBonus.morale));
     
-    // Apply inactivity penalty
+    // Apply inactivity penalty if decisions were forced
     if (decisions.forcedByTeacher) {
       xpFinanzas *= 0.5;
       xpReputacion *= 0.5;

@@ -112,9 +112,10 @@ function calculateStudentTeacherRatioPeb(ratio: number): { peb: number, breakdow
 }
 
 // --- XP Bonus Calculation from Decisions ---
-function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean, wasPoachSuccessful?: boolean): { finances: number; reputation: number; morale: number } {
+function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: boolean): { finances: number; reputation: number; morale: number } {
     const bonus = { finances: 0, reputation: 0, morale: 0 };
     const actions = decisions.actions || [];
+    const wasPoachSuccessful = decisions.poachingSuccess;
 
     for (const actionId of actions) {
         
@@ -310,7 +311,7 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
     return bonus;
 }
 
-export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean, wasPoachSuccessful?: boolean) {
+export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: boolean, negotiationSuccess?: boolean) {
     const { kpis, decisions } = teamState;
     
     // C3 loan has XP penalty, C2 & C6 have PEB penalties
@@ -345,7 +346,7 @@ export function calculateTeamPerformance(teamState: TeamState, ratioOverloaded: 
     const baseXpReputacion = pebReputacion * XP_CONVERSION_FACTOR;
     const baseXpMoral = pebMoral * XP_CONVERSION_FACTOR;
     
-    const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess, wasPoachSuccessful);
+    const xpBonus = getXpBonusFromDecisions(decisions, negotiationSuccess);
 
     let xpFinanzas = Math.max(0, Math.min(XP_AREA_MAX, baseXpFinanzas + xpBonus.finances));
     let xpReputacion = Math.max(0, Math.min(XP_AREA_MAX, baseXpReputacion + xpBonus.reputation));

@@ -35,6 +35,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
             roundConfirmed: teamDecision.roundConfirmed || false,
             investmentCosts: teamDecision.investmentCosts || {},
             poachingTarget: teamDecision.poachingTarget,
+            forcedByTeacher: teamDecision.forcedByTeacher,
         };
         console.log(`[GPS] 3b. Parsed decisions for ${teamName}:`, decisionsToReturn);
         return decisionsToReturn;
@@ -228,8 +229,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   const performanceResults: TeamPerformanceData[] = finalTeamsState.map(teamState => {
     const isOverloaded = teamState.kpis.studentTeacherRatio > 26.0;
     const negotiationSuccess = negotiationOutcomes[teamState.name];
-    const wasPoachSuccessful = teamState.decisions.poachingSuccess === true;
-    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess, wasPoachSuccessful);
+    const performance = calculateTeamPerformance(teamState, isOverloaded, negotiationSuccess);
 
     // Clean the decisions object before saving
     const finalDecisions = { ...teamState.decisions };

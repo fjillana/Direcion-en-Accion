@@ -66,7 +66,6 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/');
   }
 
   return (
@@ -142,10 +141,12 @@ export function TeacherLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Partida activa: <span className="text-foreground">{activeGame.name}</span></span>
              </div>
            )}
-           <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar sesión
-            </Button>
+           <Link href="/" passHref>
+             <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
+              </Button>
+           </Link>
           <UserNav />
         </div>
       </header>

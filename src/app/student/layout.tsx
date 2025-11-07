@@ -52,7 +52,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
   const { user, logout } = useAuth();
-  const router = useRouter();
   
   const performanceHistory = studentGame?.performanceHistory || [];
   const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
@@ -74,7 +73,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   const handleLogout = async () => {
     await logout();
-    router.push('/');
   }
 
   return (
@@ -214,10 +212,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar sesión
-            </Button>
+            <Link href="/" passHref>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
+              </Button>
+            </Link>
             <UserNav />
           </div>
         </header>

@@ -11,6 +11,7 @@ import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import type { AIArchetype, StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
 import { getAuth } from "firebase/auth";
+import { crises as fullCrisesList } from '@/app/teacher/catalog/crises-data';
 
 export interface CrisisDecision {
   crisisId: string;
@@ -453,15 +454,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
 
+    // Create a clean copy of the decisions object
     const decisionsToSave: Partial<TeamDecision> = { ...decisions, roundConfirmed: true };
 
-    if (decisionsToSave.poachingTarget === undefined) {
-      delete decisionsToSave.poachingTarget;
-    }
-    if (decisionsToSave.poachingSuccess === undefined) {
-      delete decisionsToSave.poachingSuccess;
-    }
-    
+    // Remove any undefined properties to prevent Firestore errors
+    Object.keys(decisionsToSave).forEach(key => {
+        if (decisionsToSave[key as keyof TeamDecision] === undefined) {
+            delete decisionsToSave[key as keyof TeamDecision];
+        }
+    });
+
     const updateData = {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };

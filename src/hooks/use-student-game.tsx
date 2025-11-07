@@ -24,11 +24,13 @@ export interface StudentGameState {
   teamName: string | null;
   planConfirmed?: boolean;
   strategicPlan?: StrategicPlan;
+  unlockedAchievements?: string[];
 }
 
 export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
     crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
     poachingTarget?: string;
+    poachingSuccess?: boolean;
 }
 
 interface FullStudentState extends StudentGameState {
@@ -68,7 +70,8 @@ const initialStudentState: Omit<StudentGameState, 'userId'> = {
       morale: { target: 85, operator: "min" },
       studentTeacherRatio: { target: 23, operator: "max" },
     }
-  }
+  },
+  unlockedAchievements: []
 };
 
 const initialRoundDecisions: RoundDecisions = {
@@ -125,7 +128,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           operation: 'get',
         });
         errorEmitter.emit('permission-error', permissionError);
-        console.error("Error fetching student game state:", error);
         setIsLoading(false);
     });
 
@@ -163,10 +165,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     const serverRound = gameData.round;
+    const clientGameId = fullStudentState?.gameId;
+    const clientRound = fullStudentState?.round;
+
+    let useInitialDecisions = false;
+    // If the game ID has changed, it's a new game. Reset all decisions.
+    if (clientGameId && clientGameId !== gameData.id) {
+        useInitialDecisions = true;
+    }
+    // If the round has advanced, reset decisions for the new round.
+    else if (clientRound !== undefined && serverRound > clientRound) {
+        useInitialDecisions = true;
+    }
     
     const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
     
-    const clientDecisions = fullStudentState?.decisions;
+    const clientDecisions = useInitialDecisions ? initialRoundDecisions : fullStudentState?.decisions;
 
     let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
     
@@ -221,7 +235,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       kpis: currentKpis
     });
 
-  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round]);
+  }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round, fullStudentState?.gameId]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -297,7 +311,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             ...updatedDecisions,
             crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0 } : null,
           };
-          console.log(`[GPS] 2. Confirming Round ${prev.round} for ${prev.teamName}. Decisions being sent:`, finalDecisions);
           confirmStudentDecisions(prev.gameId!, prev.teamName!, prev.round!, finalDecisions);
         }
 
@@ -309,12 +322,32 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
-    console.log(`[GPS] 1. Saving Decisions for ${fullStudentState.teamName} in Round ${fullStudentState.round}. Data:`, fullStudentState.decisions);
+  
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
+    
+    const decisionsToSave = { ...fullStudentState.decisions };
+
+    // Clean up undefined values before saving
+    Object.keys(decisionsToSave).forEach(key => {
+      const K = key as keyof typeof decisionsToSave;
+      if (decisionsToSave[K] === undefined) {
+        delete decisionsToSave[K];
+      }
+    });
+
     const updateData = {
-      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: fullStudentState.decisions
+      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave
     };
-    await updateDoc(gameRef, updateData);
+
+    updateDoc(gameRef, updateData).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: gameRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError; // Re-throw for component-level error handling
+    });
   }
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {

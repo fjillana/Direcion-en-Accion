@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -479,13 +480,10 @@ export function AIReportForm() {
                                         <p className="text-2xl font-bold">{reportData.marketAnalysis.iam.toFixed(2)}</p>
                                         {reportData.marketAnalysis.iamBreakdown && (
                                           <p className="text-xs text-muted-foreground font-mono">
-                                            (NMA: {reportData.marketAnalysis.iamBreakdown.nma.toFixed(1)}
-                                            {` + Precio: ${reportData.marketAnalysis.iamBreakdown.price.toFixed(1)}`}
-                                            {` + Mkt: ${reportData.marketAnalysis.iamBreakdown.marketing.toFixed(1)}`}
-                                            {reportData.marketAnalysis.iamBreakdown.facilities > 0 ? ` + Inst: ${reportData.marketAnalysis.iamBreakdown.facilities.toFixed(1)}` : ''}
-                                            {reportData.marketAnalysis.iamBreakdown.sustainability > 0 ? ` + Sost: ${reportData.marketAnalysis.iamBreakdown.sustainability.toFixed(1)}` : ''}
-                                            {reportData.marketAnalysis.iamBreakdown.crisis > 0 ? ` + Crisis: ${reportData.marketAnalysis.iamBreakdown.crisis.toFixed(1)}` : ''}
-                                            )
+                                            ({Object.entries(reportData.marketAnalysis.iamBreakdown)
+                                              .filter(([, value]) => value !== 0)
+                                              .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${(value as number).toFixed(1)}`)
+                                              .join(' + ')})
                                           </p>
                                         )}
                                     </div>

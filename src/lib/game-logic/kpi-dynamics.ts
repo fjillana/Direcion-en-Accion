@@ -171,7 +171,7 @@ export function updateKpisForNextRound(
         else if (crisisOptionId === 'C3_op4') {
             crisisFinancialImpact += 10000; 
             updatedMorale -= 5;
-            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar actividades extraescolares ha compensado el déficit financiero (+3 XP Finanzas), pero ha empeorado la oferta del centro (-4 XP Reputación) y afectado a la moral del personal (-5 puntos).";
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar actividades extraescolares ha compensado el déficit financiero (+3 XP Finanzas), but it has worsened the center's offer (-4 XP Reputation) and affected staff morale (-5 points).";
         }
          else if (crisisOptionId === 'C3_op5') {
             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Invertir en captar nuevos alumnos ha ayudado a paliar el déficit (+2 XP Finanzas) y ha mejorado la imagen y el atractivo del centro (+3 XP Reputación, +10 IAM).";
@@ -217,22 +217,26 @@ export function updateKpisForNextRound(
     }
 
     if (crisisId === 'C6') {
-        privateIncome -= 10000; // Sponsorship is a form of income
+        // Sponsorship is a form of income, so we simulate the loss first
+        privateIncome -= 10000;
         if (crisisOptionId === 'C6_op1') {
             if (negotiationSuccess) {
-                privateIncome += 5000;
+                privateIncome += 5000; // Recover half
                 if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = '¡Éxito! Se ha recuperado la mitad del patrocinio (5.000 CC), resultando en un balance neto de +2 XP Reputación y -2 XP Finanzas.';
             } else {
                  if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = 'La renegociación fracasó. No se recuperó el pago, lo que ha generado un coste neto y penalizaciones de XP.';
             }
         } else if (crisisOptionId === 'C6_op2') {
-            privateIncome += 10000;
-             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Buscar otro patrocinador ha sido un éxito. A pesar del coste de 4.000 CC, se recuperaron los 10.000 CC íntegros, generando un beneficio de XP (+4 Finanzas, +2 Reputación).";
+             // Correct logic: Apply the 10,000 income recovery through crisisFinancialImpact
+            crisisFinancialImpact += 10000; 
+            if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Buscar otro patrocinador ha sido un éxito. A pesar del coste de 4.000 CC, se recuperaron los 10.000 CC íntegros, generando un beneficio de XP (+4 Finanzas, +2 Reputación).";
         } else if (crisisOptionId === 'C6_op3') {
             loanIncome += 10000;
             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "El préstamo cubre el déficit, pero la deuda resultante reduce el PEB de Finanzas a la mitad y generará costes de intereses en el futuro.";
         } else if (crisisOptionId === 'C6_op4') {
-            privateIncome += 10000;
+            // Cancel out the loss by not spending on marketing, which is a saved cost
+            // This is modeled as a positive financial impact equivalent to the loss
+            crisisFinancialImpact += 10000;
             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Recortar gastos de marketing ha compensado la pérdida, pero a costa de la visibilidad del centro (-5 XP Reputación), aunque mejora el ratio financiero (+4 XP Finanzas).";
         } else if (crisisOptionId === 'C6_op5') {
             if (decisions.crisisResponse) decisions.crisisResponse.outcomeDescription = "Asumir la pérdida de 10.000 CC impacta en la tesorería (-2 XP Finanzas), pero mantiene la reputación intacta al no tomar medidas drásticas.";

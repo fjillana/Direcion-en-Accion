@@ -15,8 +15,6 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
     const roundDecisions = game.decisions?.[game.round] || {};
     const teamDecision = roundDecisions[teamName];
 
-    console.log(`[GPS] 3a. Retrieving decisions for ${teamName} in Round ${game.round}. Found:`, teamDecision);
-
     // Fallback if no decisions are found
     const fallbackDecisions: RoundDecisions = {
         actions: [],
@@ -37,15 +35,35 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
             poachingTarget: teamDecision.poachingTarget,
             forcedByTeacher: teamDecision.forcedByTeacher,
         };
-        console.log(`[GPS] 3b. Parsed decisions for ${teamName}:`, decisionsToReturn);
         return decisionsToReturn;
     }
     
-    console.log(`[GPS] 3b. No decisions found for ${teamName}. Using fallback.`);
     return fallbackDecisions;
 }
 
 const aiArchetypes: AIArchetype[] = ['BALANCED', 'AGGRESSIVE_GROWTH', 'FINANCE_CONSERVATIVE', 'QUALITY_FOCUSED'];
+
+// --- DEBUGGER FUNCTION ---
+// This function will recursively search for `undefined` values in an object.
+function findUndefined(obj: any, path: string = ''): string[] {
+  if (obj === undefined) {
+    return [path];
+  }
+  if (obj === null || typeof obj !== 'object') {
+    return [];
+  }
+  let undefinedPaths: string[] = [];
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newPath = path ? `${path}.${key}` : key;
+      const results = findUndefined(obj[key], newPath);
+      if (results.length > 0) {
+        undefinedPaths = [...undefinedPaths, ...results];
+      }
+    }
+  }
+  return undefinedPaths;
+}
 
 
 export function simulateRound(game: Game, studentGames: StudentGameState[]): { performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[]}[] } {
@@ -107,7 +125,15 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     });
   }
   
-  console.log('[GPS] 4. Initial team states for this round:', currentTeamsState);
+  // --- DEBUG LOGGING ---
+  console.log('[DEBUG] Initial team states before simulation logic:', currentTeamsState);
+  currentTeamsState.forEach(team => {
+      const undefinedFields = findUndefined(team);
+      if (undefinedFields.length > 0) {
+          console.error(`[DEBUG] FOUND UNDEFINED in initial state for team ${team.name}:`, undefinedFields);
+      }
+  });
+  // --- END DEBUG LOGGING ---
 
   // --- Handle poaching logic ---
   const poachingEffects: Record<string, { teacherChange: number, moraleChange: number }> = {};
@@ -233,10 +259,7 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
 
     // Clean the decisions object before saving
     const finalDecisions = { ...teamState.decisions };
-    if (finalDecisions.poachingTarget === undefined) {
-      delete finalDecisions.poachingTarget;
-    }
-
+    
     const result: TeamPerformanceData = {
       name: teamState.name,
       type: teamState.type,
@@ -252,6 +275,19 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     
     return result;
   });
+
+  // --- DEBUG LOGGING ---
+  console.log('[DEBUG] Final performance results before saving:', performanceResults);
+  performanceResults.forEach(teamPerformance => {
+      const undefinedFields = findUndefined(teamPerformance);
+      if (undefinedFields.length > 0) {
+          console.error(`[DEBUG] FOUND UNDEFINED in final performance data for team ${teamPerformance.name}:`, undefinedFields);
+          console.error(`[DEBUG] Offending object for ${teamPerformance.name}:`, teamPerformance);
+      } else {
+        console.log(`[DEBUG] No undefined fields found for team ${teamPerformance.name}.`);
+      }
+  });
+  // --- END DEBUG LOGGING ---
 
   const automaticCrises: { teamName: string, crisisIds: string[] }[] = [];
 
@@ -292,7 +328,5 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
   });
 
   
-  console.log('[GPS] 6. Final performance results for the round:', performanceResults);
-
   return { performanceData: performanceResults, newMessages, automaticCrises };
 }

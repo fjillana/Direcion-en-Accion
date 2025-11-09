@@ -143,7 +143,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
 
       const gamesCollectionRef = collection(firestore, "games");
-      const unsubscribe = onSnapshot(gamesCollectionRef, 
+      const q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+
+      const unsubscribe = onSnapshot(q, 
         (querySnapshot) => {
           const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
           setGames(gamesData);
@@ -161,7 +163,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       );
 
       return () => unsubscribe();
-    } else if (!isAuthLoading) {
+    } else if (!isAuthLoading && !user) {
       // Clear state if user logs out
       setGames([]);
       setActiveGameIdState(null);

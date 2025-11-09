@@ -11,6 +11,7 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
   type User as FirebaseUser
 } from "firebase/auth";
 import { doc, setDoc, getDoc, getFirestore } from "firebase/firestore";
@@ -42,6 +43,7 @@ interface AuthContextType {
   updateUser: (updatedData: Partial<Omit<User, 'id' | 'role'>>) => void;
   setTheme: (theme: Theme) => void;
   changePassword: (currentPassword: string, newPassword: string) => void;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -182,8 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (!auth) return;
-    setUser(null);
     await signOut(auth);
+    setUser(null);
   };
 
   const updateUser = async (updatedData: Partial<User>) => {
@@ -227,6 +229,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const sendPasswordReset = async (email: string) => {
+    if (!auth) throw new Error("Firebase no está inicializado.");
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const value = useMemo(() => ({
     user,
     isLoading,
@@ -237,6 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUser,
     setTheme,
     changePassword,
+    sendPasswordReset,
   }), [user, isLoading, theme, auth, firestore]);
 
   return (

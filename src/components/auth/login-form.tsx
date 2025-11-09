@@ -20,6 +20,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth, type UserRole } from "@/hooks/use-auth";
 import { FirebaseError } from "firebase/app";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   email: z
@@ -31,11 +42,16 @@ const formSchema = z.object({
   role: z.enum(["teacher", "student", "superadmin"]).optional(),
 });
 
+const resetSchema = z.object({
+    resetEmail: z.string().email({ message: "Por favor, introduce un correo electrónico válido." }),
+});
+
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
+  const [resetEmail, setResetEmail] = useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const { login, register } = useAuth();
+  const { login, register, sendPasswordReset } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,6 +93,30 @@ export function LoginForm() {
     }
   }
 
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+        toast({
+            variant: "destructive",
+            title: "Correo vacío",
+            description: "Por favor, introduce tu correo electrónico.",
+        });
+        return;
+    }
+    try {
+        await sendPasswordReset(resetEmail);
+        toast({
+            title: "Correo enviado",
+            description: "Si tu correo está registrado, recibirás un enlace para restaurar tu contraseña.",
+        });
+    } catch (error: any) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo enviar el correo de recuperación. Inténtalo de nuevo.",
+        });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Form {...form}>
@@ -99,7 +139,36 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white/90">Contraseña</FormLabel>
+                 <div className="flex items-center justify-between">
+                    <FormLabel className="text-white/90">Contraseña</FormLabel>
+                    {isLogin && (
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="link" className="text-xs h-auto p-0 text-white/70 hover:text-white">¿Olvidaste tu contraseña?</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Restaurar Contraseña</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Introduce tu correo electrónico para recibir un enlace de recuperación.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="py-4">
+                                     <Input 
+                                        type="email" 
+                                        placeholder="tu.correo@ejemplo.com"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                    />
+                                </div>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handlePasswordReset}>Enviar Correo</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} className="bg-white/10 border-white/20 text-white placeholder:text-white/60" />
                 </FormControl>

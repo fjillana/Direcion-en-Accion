@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Trash2, Loader2 } from "lucide-react";
+import { MoreHorizontal, Trash2, Loader2, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,8 @@ import { useCollection } from "@/firebase";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import type { UserRole } from "@/hooks/use-auth";
+import { useAuth, type UserRole } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 interface UserProfile {
     id: string;
@@ -42,6 +43,8 @@ export default function SuperAdminDashboard() {
   const { data: users, isLoading } = useCollection<UserProfile>("users");
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user: currentUser, logout } = useAuth();
+  const router = useRouter();
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     if (!firestore) return;
@@ -70,11 +73,22 @@ export default function SuperAdminDashboard() {
     });
   }
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <header className="sticky top-0 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
+        <h1 className="text-xl font-bold tracking-tight font-headline">Panel de Superadministrador</h1>
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Cerrar sesión
+        </Button>
+      </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
         <div className="grid gap-4">
-          <h1 className="text-3xl font-bold tracking-tight font-headline">Panel de Superadministrador</h1>
           <Card>
             <CardHeader>
               <CardTitle>Gestión de Usuarios</CardTitle>
@@ -116,7 +130,7 @@ export default function SuperAdminDashboard() {
                               aria-haspopup="true"
                               size="icon"
                               variant="ghost"
-                              disabled={user.role === 'superadmin'}
+                              disabled={user.id === currentUser?.id}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Toggle menu</span>

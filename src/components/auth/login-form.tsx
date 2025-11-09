@@ -74,7 +74,7 @@ export function LoginForm() {
           description: `Bienvenido/a. Redirigiendo a tu panel...`,
         });
       }
-      router.push('/');
+      // The redirection is handled by the useAuth hook and the root page.
     } catch (error: any) {
         let description = "Ha ocurrido un error inesperado.";
         if (error instanceof FirebaseError) {
@@ -200,12 +200,6 @@ export function LoginForm() {
                           <RadioGroupItem value="teacher" id="r2" />
                         </FormControl>
                         <FormLabel htmlFor="r2" className="font-normal text-white/80">Profesor</FormLabel>
-                      </FormItem>
-                       <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="superadmin" id="r3" />
-                        </FormControl>
-                        <FormLabel htmlFor="r3" className="font-normal text-white/80">Superadmin</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>

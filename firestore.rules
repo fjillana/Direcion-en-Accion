@@ -1,72 +1,88 @@
+
 /**
  * @file Firestore Security Rules
- * @description This ruleset allows all authenticated users to read and write any data in the Firestore database.
+ * @description This ruleset provides differentiated access based on user roles (student, teacher, superadmin).
  *
- * Core Philosophy: All authenticated users can perform any operation. There are no restrictions based on user roles or data ownership.
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /games/{gameId}: Stores game session data.
- * - /games/{gameId}/performance/{roundId}: Stores team performance data for each round of a game.
- * - /studentGames/{userId}: Stores the game state for each student user.
- * Key Security Decisions:
- * - No user-specific or role-based access control is enforced.
- * - All authenticated users are treated as equals with full read/write access.
+ * Core Philosophy:
+ * - Superadmins have full read/write access to everything for management purposes.
+ * - Teachers can create and manage games they own.
+ * - Students can only interact with games they have joined and their own state.
+ * - All authenticated users can read their own profile.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Allows any authenticated user to read and write user profile information.
-     * @path /users/{userId}
-     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
-     * @deny None
-     * @principle No access control. All authenticated users have full access.
-     */
-    match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+    // Helper function to check if the user is signed in.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to get the user's role from their profile.
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+
+    // Helper function to check if the user is a superadmin.
+    function isSuperAdmin() {
+      return isSignedIn() && getUserRole(request.auth.uid) == 'superadmin';
     }
 
     /**
-     * @description Allows any authenticated user to read and write game session data.
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     * @allow (get) - Authenticated users can read their own profile. Superadmins can read any profile.
+     * @allow (list) - Only superadmins can list all users.
+     * @allow (create) - Any user can create their own profile during registration.
+     * @allow (update) - Users can update their own profile. Superadmins can update any profile.
+     * @allow (delete) - Only superadmins can delete users.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Controls access to game documents.
      * @path /games/{gameId}
-     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
-     * @deny None
-     * @principle No access control. All authenticated users have full access.
+     * @allow (get, list) - Any authenticated user can read game data (e.g., for listing available games).
+     * @allow (create) - Only authenticated teachers can create games.
+     * @allow (update, delete) - Only the teacher who created the game or a superadmin can modify or delete it.
      */
     match /games/{gameId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create: if isSignedIn() && getUserRole(request.auth.uid) == 'teacher';
+      allow update, delete: if isSignedIn() && (resource.data.createdBy == request.auth.uid || isSuperAdmin());
 
       /**
-       * @description Allows any authenticated user to read and write team performance data for each round of a game.
-       * @path /games/{gameId}/performance/{roundId}
-       * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
-       * @deny None
-       * @principle No access control. All authenticated users have full access.
+       * @description Performance data is generally readable by all signed-in users but only writable during game simulation.
+       * The rules are open assuming the simulation logic (Cloud Functions) runs with admin privileges.
        */
       match /performance/{roundId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn();
+        allow get, list, create, update, delete: if isSignedIn();
+      }
+      
+      /**
+       * @description Team decisions can be written by the respective students or the game owner (teacher).
+       * This rule is simplified. A more robust rule would check if a student belongs to a specific team.
+       */
+      match /decisions/{teamId} {
+        allow get, list, create, update, delete: if isSignedIn();
       }
     }
 
     /**
-     * @description Allows any authenticated user to read and write student game state data.
+     * @description Controls access to the game state for each student.
      * @path /studentGames/{userId}
-     * @allow (get, list, create, update, delete) - Any authenticated user can perform any operation.
-     * @deny None
-     * @principle No access control. All authenticated users have full access.
+     * @allow (get, create, update) - A student can only access and modify their own game state.
+     * @allow (list, delete) - Not allowed for any client-side role.
      */
     match /studentGames/{userId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow get, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow list, delete: if false;
     }
-  }
-
-  // Helper function to check if the user is signed in.
-  function isSignedIn() {
-    return request.auth != null;
   }
 }

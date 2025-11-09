@@ -136,7 +136,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    if (user && firestore) {
+    if (!isAuthLoading && user && firestore) {
       const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
       if (storedActiveId) {
         setActiveGameIdState(JSON.parse(storedActiveId));
@@ -256,7 +256,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    updateDoc(gameRef, updatedGame, { merge: true }).catch(async (serverError) => {
+    updateDoc(gameRef, updatedGame).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: gameRef.path,
             operation: 'update',
@@ -283,13 +283,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             pendingJoinRequests: remainingRequests
         };
         // Update game doc with new team names and remove pending requests
-        await updateDoc(gameRef, gameUpdateData);
+        await updateDoc(gameRef, gameUpdateData, { merge: true });
 
         // Then, update all student documents in a batch
         const batch = writeBatch(firestore);
         for (const req of requests) {
             const studentRef = doc(firestore, "studentGames", req.userId);
-             batch.update(studentRef, { status: "joined" });
+             batch.set(studentRef, { status: "joined" }, { merge: true });
         }
         await batch.commit();
 
@@ -624,3 +624,6 @@ export function useGames() {
   return context;
 }
 
+
+
+    

@@ -18,9 +18,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper function to check if the user is a superadmin by checking their custom token claims.
+    // Helper function to check if the user is a superadmin by checking their role in the /users collection.
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.role == 'superadmin';
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
     }
 
     // Helper function to get a user's role.

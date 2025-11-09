@@ -167,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         theme: 'light'
     };
 
-    setDoc(doc(firestore, "users", firebaseUser.uid), newUser).catch(async (serverError) => {
+    setDoc(doc(firestore, "users", firebaseUser.uid), newUser, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: `users/${firebaseUser.uid}`,
           operation: 'create',
@@ -261,3 +261,4 @@ export function useAuth() {
   }
   return context;
 }
+

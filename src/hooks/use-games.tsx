@@ -256,7 +256,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    updateDoc(gameRef, updatedGame).catch(async (serverError) => {
+    updateDoc(gameRef, updatedGame, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: gameRef.path,
             operation: 'update',
@@ -293,7 +293,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         }
         await batch.commit();
 
-    } catch (error) {
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: gameRef.path,
@@ -333,7 +333,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updateData = { reports: newReports, messages: newMessages };
 
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
+    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -372,7 +372,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         [`roundSettings.${nextRound}`]: existingNextRoundSettings
     };
     
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
+    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -421,7 +421,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updatedMessages = [...(gameData.messages || []), ...newMessages];
     const updateData = { roundSettings: newSettingsState, messages: updatedMessages };
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
+    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -441,7 +441,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     
     updateDoc(gameRef, {
         messages: arrayUnion(newMessage)
-    }).catch(async (serverError) => {
+    }, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -463,7 +463,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
       return msg;
     });
-    updateDoc(gameRef, { messages: newMessages }).catch(async (serverError) => {
+    updateDoc(gameRef, { messages: newMessages }, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -504,7 +504,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };
   
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
+    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: gameRef.path,
         operation: 'update',
@@ -567,7 +567,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const querySnapshot = await getDocs(q);
         const studentGames = querySnapshot.docs.map(doc => doc.data() as StudentGameState);
         return studentGames;
-    } catch (error) {
+    } catch (error: any) {
         if(error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: 'studentGames',
@@ -623,3 +623,4 @@ export function useGames() {
   }
   return context;
 }
+

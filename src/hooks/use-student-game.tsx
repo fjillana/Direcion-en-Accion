@@ -263,7 +263,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
     };
   
-    updateDoc(gameRef, joinRequestData).catch(async (serverError) => {
+    updateDoc(gameRef, joinRequestData, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: `games/${gameId}`,
         operation: 'update',
@@ -277,18 +277,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
 
   const abandonGame = async () => {
-    if (!firestore || !user || !studentGameState?.gameId || !studentGameState?.teamName) return;
+    if (!firestore || !user || !studentGameState) return;
     
-    const game = games.find(g => g.id === studentGameState.gameId);
-    if (game) {
-      const updatedTeamNames = game.teamNames.filter(name => name !== studentGameState.teamName);
-      await updateGame(game.id, { teamNames: updatedTeamNames });
-    }
+    const { gameId, teamName } = studentGameState;
 
-    await setDoc(doc(firestore, "studentGames", user.id), {
+    // First, always reset the student's own state. This ensures they can escape even if the game was deleted.
+    const studentGameRef = doc(firestore, "studentGames", user.id);
+    await setDoc(studentGameRef, {
         ...initialStudentState,
         userId: user.id,
     }, { merge: true });
+
+    // Then, if the game still exists, try to remove the team from it.
+    if (gameId && teamName) {
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+            const updatedTeamNames = game.teamNames.filter(name => name !== teamName);
+            await updateGame(gameId, { teamNames: updatedTeamNames });
+        }
+    }
 
     router.push('/student/join-game');
   };
@@ -325,6 +332,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
+    // Get the current game document to correctly merge decisions
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) {
+      throw new Error("Game document not found, cannot save decisions.");
+    }
+    const gameData = gameDoc.data();
+    const round = fullStudentState.round;
+    const teamName = fullStudentState.teamName;
+    
     const decisionsToSave: Partial<RoundDecisions> = { ...fullStudentState.decisions };
 
     // Firestore does not support `undefined` values.
@@ -334,16 +350,12 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (decisionsToSave.poachingSuccess === undefined) {
       delete decisionsToSave.poachingSuccess;
     }
-    if (decisionsToSave.investmentCosts === undefined) {
-      delete decisionsToSave.investmentCosts;
-    }
-
 
     const updateData = {
-      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave
+      [`decisions.${round}.${teamName}`]: decisionsToSave
     };
 
-    updateDoc(gameRef, updateData).catch(async (serverError) => {
+    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: gameRef.path,
           operation: 'update',
@@ -399,4 +411,3 @@ export function useStudentGame() {
   return context;
 }
 
-    

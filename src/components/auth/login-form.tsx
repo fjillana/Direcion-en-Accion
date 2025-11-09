@@ -201,6 +201,12 @@ export function LoginForm() {
                         </FormControl>
                         <FormLabel htmlFor="r2" className="font-normal text-white/80">Profesor</FormLabel>
                       </FormItem>
+                       <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="superadmin" id="r3" />
+                        </FormControl>
+                        <FormLabel htmlFor="r3" className="font-normal text-white/80">Superadmin</FormLabel>
+                      </FormItem>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />

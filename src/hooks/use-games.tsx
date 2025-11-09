@@ -143,7 +143,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
 
       const gamesCollectionRef = collection(firestore, "games");
-      const q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+      let q;
+
+      if (user.role === 'teacher') {
+        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+      } else {
+        // Students should be able to see all games to join them.
+        q = query(gamesCollectionRef);
+      }
+      
 
       const unsubscribe = onSnapshot(q, 
         (querySnapshot) => {

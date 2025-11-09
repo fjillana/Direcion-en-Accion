@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -13,14 +13,22 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { studentGame, isLoading: isStudentGameLoading } = useStudentGame();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
         router.push('/');
-    } else if (!isStudentGameLoading && studentGame && studentGame.status === 'no-game') {
-      router.push('/student/join-game');
+        return;
     }
-  }, [user, studentGame, isAuthLoading, isStudentGameLoading, router]);
+    
+    if (!isStudentGameLoading && studentGame) {
+      if (studentGame.status === 'no-game' && pathname !== '/student/join-game') {
+        router.push('/student/join-game');
+      } else if (studentGame.status === 'joined' && pathname === '/student/join-game') {
+        router.push('/student/dashboard');
+      }
+    }
+  }, [user, studentGame, isAuthLoading, isStudentGameLoading, router, pathname]);
 
 
   if (isAuthLoading || isStudentGameLoading) {
@@ -53,6 +61,10 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
 
+  if (pathname === '/student/join-game') {
+      return <>{children}</>;
+  }
+
   // Fallback for redirection or initial load
   return (
     <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -60,5 +72,3 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-    

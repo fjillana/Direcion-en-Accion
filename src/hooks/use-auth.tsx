@@ -21,7 +21,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 
 export type Theme = "light" | "dark";
-export type UserRole = "teacher" | "student";
+export type UserRole = "teacher" | "student" | "superadmin";
 
 export interface User {
   id: string;
@@ -150,7 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
-    const name = role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`;
+    let name = role === 'teacher' ? 'Profesor/a' : `Estudiante ${firebaseUser.uid.substring(0, 5)}`;
+    if (role === 'superadmin') {
+      name = 'Administrador';
+    }
     const avatar = `https://picsum.photos/seed/${firebaseUser.uid}/40/40`;
     await updateProfile(firebaseUser, { displayName: name, photoURL: avatar });
 

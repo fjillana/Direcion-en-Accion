@@ -16,8 +16,10 @@ export default function Home() {
     if (!isLoading && user) {
       if (user.role === 'teacher') {
         router.push('/teacher/dashboard');
-      } else {
+      } else if (user.role === 'student') {
         router.push('/student/dashboard');
+      } else if (user.role === 'superadmin') {
+        router.push('/superadmin/dashboard');
       }
     }
   }, [user, isLoading, router]);

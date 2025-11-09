@@ -7,7 +7,7 @@
       "properties": {
         "name": { "type": "string" },
         "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["teacher", "student"] }
+        "role": { "type": "string", "enum": ["teacher", "student", "superadmin"] }
       },
       "required": ["name", "email", "role"]
     },

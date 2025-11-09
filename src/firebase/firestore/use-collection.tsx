@@ -11,7 +11,8 @@ import {
   type Query,
   type DocumentData,
 } from 'firebase/firestore';
-import { useAuth, useFirestore } from '../provider';
+import { useFirestore } from '../provider';
+import { useUser } from '../auth/use-user';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
@@ -21,14 +22,15 @@ interface UseCollectionOptions {
 
 export function useCollection<T>(path: string, options?: UseCollectionOptions) {
   const firestore = useFirestore();
-  const auth = useAuth();
+  const { user } = useUser();
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Do not attempt to fetch data if firestore or auth is not available
-    if (!firestore || !auth) {
+    // Do not attempt to fetch data if firestore is not available or user is not authenticated
+    if (!firestore || !user) {
         setIsLoading(false);
+        setData(null); // Clear data when user logs out
         return;
     };
 
@@ -61,7 +63,7 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
 
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firestore, auth, path, options?.where?.[0], options?.where?.[1], options?.where?.[2]]);
+  }, [firestore, user, path, options?.where?.[0], options?.where?.[1], options?.where?.[2]]);
 
   return { data, isLoading };
 }

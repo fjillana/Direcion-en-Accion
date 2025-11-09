@@ -31,6 +31,8 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, type UserRole } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 interface UserProfile {
     id: string;
@@ -49,20 +51,20 @@ export default function SuperAdminDashboard() {
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     if (!firestore) return;
     const userRef = doc(firestore, "users", userId);
-    try {
-        await updateDoc(userRef, { role: newRole });
+    
+    updateDoc(userRef, { role: newRole }).then(() => {
         toast({
             title: "Rol Actualizado",
             description: `El usuario ha sido actualizado al rol de ${newRole}.`,
         });
-    } catch (error) {
-        console.error("Error updating role:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No se pudo actualizar el rol del usuario.",
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: { role: newRole },
         });
-    }
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -75,7 +77,6 @@ export default function SuperAdminDashboard() {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/');
   }
 
   return (

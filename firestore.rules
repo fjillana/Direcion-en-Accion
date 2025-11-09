@@ -1,88 +1,11 @@
 
-/**
- * @file Firestore Security Rules
- * @description This ruleset provides differentiated access based on user roles (student, teacher, superadmin).
- *
- * Core Philosophy:
- * - Superadmins have full read/write access to everything for management purposes.
- * - Teachers can create and manage games they own.
- * - Students can only interact with games they have joined and their own state.
- * - All authenticated users can read their own profile.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the user is signed in.
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user is a superadmin by checking their role in the /users collection.
-    function isSuperAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
-    }
-
-    // Helper function to get a user's role.
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-
-    /**
-     * @description Controls access to user profiles.
-     * @path /users/{userId}
-     * @allow (get) - Authenticated users can read their own profile. Superadmins can read any profile.
-     * @allow (list) - Only superadmins can list all users.
-     * @allow (create) - Any user can create their own profile during registration.
-     * @allow (update) - Users can update their own profile. Superadmins can update any profile.
-     * @allow (delete) - Only superadmins can delete users.
-     */
-    match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow list: if isSuperAdmin();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow delete: if isSuperAdmin();
-    }
-
-    /**
-     * @description Controls access to game documents.
-     * @path /games/{gameId}
-     * @allow (get, list) - Any authenticated user can read game data (e.g., for listing available games).
-     * @allow (create) - Only authenticated teachers can create games.
-     * @allow (update, delete) - Only the teacher who created the game or a superadmin can modify or delete it.
-     */
-    match /games/{gameId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && getUserRole() == 'teacher';
-      allow update, delete: if isSignedIn() && (resource.data.createdBy == request.auth.uid || isSuperAdmin());
-
-      /**
-       * @description Performance data is generally readable by all signed-in users but only writable during game simulation.
-       * The rules are open assuming the simulation logic (Cloud Functions) runs with admin privileges.
-       */
-      match /performance/{roundId} {
-        allow get, list, create, update, delete: if isSignedIn();
-      }
-      
-      /**
-       * @description Team decisions can be written by the respective students or the game owner (teacher).
-       * This rule is simplified. A more robust rule would check if a student belongs to a specific team.
-       */
-      match /decisions/{teamId} {
-        allow get, list, create, update, delete: if isSignedIn();
-      }
-    }
-
-    /**
-     * @description Controls access to the game state for each student.
-     * @path /studentGames/{userId}
-     * @allow (get, create, update) - A student can only access and modify their own game state.
-     * @allow (list, delete) - Not allowed for any client-side role.
-     */
-    match /studentGames/{userId} {
-      allow get, create, update: if isSignedIn() && request.auth.uid == userId;
-      allow list, delete: if false;
+    // Default rule: Allow read/write access to all documents
+    // for any authenticated user.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

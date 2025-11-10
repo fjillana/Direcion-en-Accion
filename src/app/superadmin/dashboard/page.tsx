@@ -77,6 +77,7 @@ export default function SuperAdminDashboard() {
 
   const handleLogout = async () => {
     await logout();
+    router.push('/');
   }
 
   return (

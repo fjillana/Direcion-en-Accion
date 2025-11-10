@@ -136,26 +136,34 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   // Effect to derive the full student state by combining studentGameState and the global game data
   useEffect(() => {
-    if (gamesLoading || !studentGameState || !user) {
-        return;
-    }
-
-    // If the student is not in a game, we just set the basic state.
-    if (studentGameState.status === 'no-game' || studentGameState.status === 'pending' || !studentGameState.gameId) {
-        setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
-        return;
-    }
-
-    // From here, we know the student is in a game ('joined').
-    const gameData = games.find(g => g.id === studentGameState.gameId);
-
-    // If the game is not found in the global list (maybe deleted or not loaded yet),
-    // we DON'T reset the student's state. We just show what we have and wait.
-    if (!gameData) {
-        setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
-        return;
+    if (!studentGameState || !user) {
+      setFullStudentState(null);
+      return;
     }
     
+    if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
+        const gameExists = games.some(g => g.id === studentGameState.gameId);
+        if (!gameExists) {
+            const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
+            if(firestore) {
+              setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
+            }
+            setStudentGameState(resetState); 
+            return;
+        }
+    }
+
+    if (!studentGameState.gameId || studentGameState.status !== 'joined') {
+      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
+      return;
+    }
+    
+    const gameData = games.find(g => g.id === studentGameState.gameId);
+    if (!gameData) {
+      setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
+      return;
+    }
+
     const serverRound = gameData.round;
     const clientGameId = fullStudentState?.gameId;
     const clientRound = fullStudentState?.round;

@@ -145,7 +145,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       const gamesCollectionRef = collection(firestore, "games");
       let q;
 
-      if (user.role === 'teacher') {
+      if (user.role === 'teacher' || user.role === 'superadmin') {
         q = query(gamesCollectionRef, where("createdBy", "==", user.id));
       } else {
         // Students should be able to see all games to join them.
@@ -232,7 +232,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             teamName: null,
             userId: userId,
             planConfirmed: false,
-            strategicPlan: {}, // Reset strategic plan
+            strategicPlan: {
+                confirmed: false, rankingGoal: "",
+                targets: {
+                  cash: { target: 50000, operator: "min" },
+                  personnelCost: { target: 75, operator: "max" },
+                  nma: { target: 8.5, operator: "min" },
+                  marketShare: { target: 18, operator: "min" },
+                  morale: { target: 85, operator: "min" },
+                  studentTeacherRatio: { target: 23, operator: "max" },
+                }
+            },
             unlockedAchievements: [],
         }, { merge: true });
     }

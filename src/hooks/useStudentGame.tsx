@@ -136,24 +136,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   // Effect to derive the full student state by combining studentGameState and the global game data
   useEffect(() => {
-    if (!studentGameState || !user) {
-      setFullStudentState(null);
-      return;
-    }
-    
-    if (studentGameState.status === 'no-game' || studentGameState.status === 'pending') {
-      setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
-      return;
+    if (gamesLoading || !studentGameState || !user) {
+        return;
     }
 
+    // If the student is not in a game, we just set the basic state.
+    if (studentGameState.status === 'no-game' || studentGameState.status === 'pending' || !studentGameState.gameId) {
+        setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
+        return;
+    }
+
+    // From here, we know the student is in a game ('joined').
     const gameData = games.find(g => g.id === studentGameState.gameId);
+
+    // If the game is not found in the global list (maybe deleted or not loaded yet),
+    // we DON'T reset the student's state. We just show what we have and wait.
     if (!gameData) {
-      // If game is not found (e.g., deleted), reset student state.
-      if(firestore) {
-        setDoc(doc(firestore, "studentGames", user.id), { ...initialStudentState, userId: user.id });
-      }
-      setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
-      return;
+        setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
+        return;
     }
     
     const serverRound = gameData.round;
@@ -161,15 +161,20 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const clientRound = fullStudentState?.round;
 
     let useInitialDecisions = false;
+    // If the game ID has changed, it's a new game. Reset all decisions.
     if (clientGameId && clientGameId !== gameData.id) {
         useInitialDecisions = true;
-    } else if (clientRound !== undefined && serverRound > clientRound) {
+    }
+    // If the round has advanced, reset decisions for the new round.
+    else if (clientRound !== undefined && serverRound > clientRound) {
         useInitialDecisions = true;
     }
     
     const serverDecisions = gameData.decisions?.[serverRound]?.[studentGameState.teamName!];
+    
     const clientDecisions = useInitialDecisions ? initialRoundDecisions : fullStudentState?.decisions;
-    const currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
+
+    let currentDecisions = serverDecisions || clientDecisions || initialRoundDecisions;
     
     const performanceHistory: TeamPerformanceData[] = [];
     let currentKpis: TeamKPIs | undefined = undefined;
@@ -192,17 +197,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (perfR0) {
             currentKpis = perfR0.kpis;
         } else {
+             // A human team always has an AI rival, so total participants = num human teams * 2
             const totalParticipants = gameData.teams * 2;
              currentKpis = {
                 cash: gameData.initialFunds,
                 personnelCost: 240000, 
-                income: 0, privateIncome: 0, publicIncome: 0,
-                nma: 7.5, marketShare: totalParticipants > 0 ? 100 / totalParticipants : 100,
-                morale: 80, studentTeacherRatio: 25.0,
-                numStudents: 800, numTeachers: 32, capacity: 810,
+                income: 0,
+                privateIncome: 0,
+                publicIncome: 0,
+                nma: 7.5,
+                marketShare: totalParticipants > 0 ? 100 / totalParticipants : 100,
+                morale: 80,
+                studentTeacherRatio: 25.0,
+                numStudents: 800,
+                numTeachers: 32,
+                capacity: 810,
             };
         }
     }
+
 
     setFullStudentState({
       ...studentGameState,
@@ -260,12 +273,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const { gameId, teamName } = studentGameState;
 
+    // First, always reset the student's own state. This ensures they can escape even if the game was deleted.
     const studentGameRef = doc(firestore, "studentGames", user.id);
     await setDoc(studentGameRef, {
         ...initialStudentState,
         userId: user.id,
     }, { merge: true });
 
+    // Then, if the game still exists, try to remove the team from it.
     if (gameId && teamName) {
         const game = games.find(g => g.id === gameId);
         if (game) {
@@ -309,6 +324,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
+    // Get the current game document to correctly merge decisions
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) {
       throw new Error("Game document not found, cannot save decisions.");
@@ -319,6 +335,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const decisionsToSave: Partial<RoundDecisions> = { ...fullStudentState.decisions };
 
+    // Firestore does not support `undefined` values.
     if (decisionsToSave.poachingTarget === undefined) {
       delete decisionsToSave.poachingTarget;
     }
@@ -337,6 +354,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
+        // Re-throw the original error after emitting our custom one
         throw serverError;
     });
   }

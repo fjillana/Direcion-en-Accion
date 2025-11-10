@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,10 +20,10 @@ export function DebriefingQuestions({ questions, suggestions, onGenerate, isGene
   const [editedQuestions, setEditedQuestions] = useState(questions.join("\n\n"));
   const [editedSuggestions, setEditedSuggestions] = useState(suggestions);
 
-  useState(() => {
+  useEffect(() => {
     setEditedQuestions(questions.join("\n\n"));
     setEditedSuggestions(suggestions);
-  });
+  }, [questions, suggestions]);
   
   const hasContent = questions.length > 0 || suggestions;
 

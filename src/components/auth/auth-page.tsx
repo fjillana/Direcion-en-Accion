@@ -3,12 +3,12 @@ import { Briefcase, Target, Users, Wand2 } from "lucide-react";
 
 export function AuthPage() {
   return (
-    <div className="flex flex-col gap-6 text-primary-foreground/90">
+    <div className="flex flex-col gap-6 text-card-foreground/90">
         <div className="flex items-center gap-2">
             <Briefcase className="h-8 w-8 text-primary" />
             <div>
-                <h1 className="text-3xl font-bold font-headline text-primary-foreground">Dirección en Acción</h1>
-                <p className="text-balance text-primary-foreground/80">
+                <h1 className="text-3xl font-bold font-headline text-card-foreground">Dirección en Acción</h1>
+                <p className="text-balance text-card-foreground/80">
                     La simulación de negocios para futuros líderes.
                 </p>
             </div>
@@ -30,7 +30,7 @@ export function AuthPage() {
         </ul>
 
         <div className="space-y-2">
-          <h2 className="font-semibold text-primary-foreground">Comienza ahora</h2>
+          <h2 className="font-semibold text-card-foreground">Comienza ahora</h2>
           <LoginForm />
         </div>
     </div>

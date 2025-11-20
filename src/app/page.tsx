@@ -18,8 +18,8 @@ export default function Home() {
   useEffect(() => {
     // Solo actúa cuando la carga ha terminado y tenemos un usuario definitivo.
     if (!isLoading && user) {
-      if (user.role === 'instructor') {
-        router.push('/instructor/dashboard'); // Redirige al dashboard del instructor
+      if (user.role === 'teacher') {
+        router.push('/teacher/dashboard'); // Redirige al dashboard del instructor
       } else if (user.role === 'student') {
         router.push('/student/dashboard'); // Redirige al dashboard del estudiante
       }

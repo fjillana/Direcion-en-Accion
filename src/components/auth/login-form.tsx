@@ -126,9 +126,9 @@ export function LoginForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white/90">Correo electrónico</FormLabel>
+                <FormLabel>Correo electrónico</FormLabel>
                 <FormControl>
-                  <Input placeholder="nombre@ejemplo.com" {...field} className="bg-white/10 border-white/20 text-white placeholder:text-white/60" />
+                  <Input placeholder="nombre@ejemplo.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -140,11 +140,11 @@ export function LoginForm() {
             render={({ field }) => (
               <FormItem>
                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-white/90">Contraseña</FormLabel>
+                    <FormLabel>Contraseña</FormLabel>
                     {isLogin && (
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="link" className="text-xs h-auto p-0 text-white/70 hover:text-white">¿Olvidaste tu contraseña?</Button>
+                                <Button variant="link" className="text-xs h-auto p-0 text-muted-foreground hover:text-primary">¿Olvidaste tu contraseña?</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
@@ -170,7 +170,7 @@ export function LoginForm() {
                     )}
                 </div>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} className="bg-white/10 border-white/20 text-white placeholder:text-white/60" />
+                  <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -182,7 +182,7 @@ export function LoginForm() {
               name="role"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel className="text-white/90">¿Qué tipo de usuario eres?</FormLabel>
+                  <FormLabel>¿Qué tipo de usuario eres?</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -193,13 +193,13 @@ export function LoginForm() {
                         <FormControl>
                           <RadioGroupItem value="student" id="r1" />
                         </FormControl>
-                        <FormLabel htmlFor="r1" className="font-normal text-white/80">Estudiante</FormLabel>
+                        <FormLabel htmlFor="r1" className="font-normal">Estudiante</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value="teacher" id="r2" />
                         </FormControl>
-                        <FormLabel htmlFor="r2" className="font-normal text-white/80">Profesor</FormLabel>
+                        <FormLabel htmlFor="r2" className="font-normal">Profesor</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>
@@ -208,17 +208,17 @@ export function LoginForm() {
               )}
             />
           )}
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button type="submit" className="w-full">
             {isLogin ? "Iniciar sesión" : "Crear cuenta"}
           </Button>
         </form>
       </Form>
       
-      <p className="text-center text-sm text-white/70">
+      <p className="text-center text-sm text-muted-foreground">
         {isLogin ? "¿No tienes cuenta?" : "¿Ya tienes una cuenta?"}
         <Button
           variant="link"
-          className="px-1 text-primary-foreground/90 hover:text-primary-foreground"
+          className="px-1"
           onClick={() => {
             setIsLogin(!isLogin);
             form.reset({ email: '', password: '', role: 'student'});

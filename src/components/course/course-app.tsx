@@ -14,7 +14,7 @@ export default function CourseApp() {
       />
       <div className="absolute inset-0 bg-black/60 z-10" />
       <div className="relative z-20 flex min-h-screen items-center justify-center md:justify-start p-4 md:p-8 lg:p-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm rounded-xl bg-background/80 p-6 shadow-2xl backdrop-blur-sm border border-white/10">
           <AuthPage />
         </div>
       </div>

@@ -142,7 +142,20 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
-        const gameExists = games.some(g => g.id === studentGameState.gameId);
+        const gameData = games.find(g => g.id === studentGameState.gameId);
+        
+        // **BUG FIX LOGIC STARTS HERE**
+        // If the student state is pending, but the teacher already accepted them, force a sync.
+        if (studentGameState.status === 'pending' && gameData?.teamNames.includes(studentGameState.teamName || '')) {
+            if(firestore) {
+              const studentGameRef = doc(firestore, "studentGames", user.id);
+              updateDoc(studentGameRef, { status: 'joined' });
+            }
+            // The onSnapshot listener for studentGames will pick up this change and re-render everything correctly.
+            return; // Exit early to avoid inconsistent state this render
+        }
+        
+        const gameExists = !!gameData;
         if (!gameExists) {
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
             if(firestore) {
@@ -410,3 +423,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

@@ -142,7 +142,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     // This effect runs when games data is available and the student's gameId is set.
-    if (studentGameState.gameId && !gamesLoading) {
+    if (studentGameState.gameId && !gamesLoading && games.length > 0) {
         const gameData = games.find(g => g.id === studentGameState.gameId);
         
         // If the game doesn't exist in the 'games' list anymore (e.g., was deleted), reset the student's state.

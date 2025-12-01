@@ -141,30 +141,32 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    if ((studentGameState.status === 'pending' || studentGameState.status === 'joined') && studentGameState.gameId && !gamesLoading) {
+    // This effect runs when games data is available and the student's gameId is set.
+    if (studentGameState.gameId && !gamesLoading) {
         const gameData = games.find(g => g.id === studentGameState.gameId);
         
-        // **BUG FIX LOGIC STARTS HERE**
-        // If the student state is pending, but the teacher already accepted them, force a sync.
+        // If the game doesn't exist in the 'games' list anymore (e.g., was deleted), reset the student's state.
+        if (!gameData) {
+            const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
+            if(firestore) {
+              setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
+            }
+            // By setting studentGameState, we trigger a re-render cycle with the corrected state.
+            setStudentGameState(resetState); 
+            return;
+        }
+
+        // If the student is 'pending' but the teacher already accepted them, sync their status.
         if (studentGameState.status === 'pending' && gameData?.teamNames.includes(studentGameState.teamName || '')) {
             if(firestore) {
               const studentGameRef = doc(firestore, "studentGames", user.id);
               updateDoc(studentGameRef, { status: 'joined' });
             }
-            // The onSnapshot listener for studentGames will pick up this change and re-render everything correctly.
-            return; // Exit early to avoid inconsistent state this render
-        }
-        
-        const gameExists = !!gameData;
-        if (!gameExists) {
-            const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
-            if(firestore) {
-              setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
-            }
-            setStudentGameState(resetState); 
-            return;
+            // Exit early to let the onSnapshot listener for studentGames pick up the change.
+            return; 
         }
     }
+
 
     if (!studentGameState.gameId || studentGameState.status !== 'joined') {
       setFullStudentState(studentGameState ? { ...studentGameState, decisions: initialRoundDecisions } : null);
@@ -423,5 +425,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

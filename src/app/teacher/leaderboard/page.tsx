@@ -47,7 +47,7 @@ type LeaderboardTeam = {
     totalXp: number;
     kpis?: TeamPerformanceData['kpis'];
     decisions?: TeamPerformanceData['decisions'];
-    strategicPlan?: Game['strategicPlan'];
+    strategicPlan?: StudentGameState['strategicPlan'];
     achievements: Achievement[];
 };
 
@@ -86,6 +86,7 @@ export default function TeacherLeaderboardPage() {
   const [selectedTeam, setSelectedTeam] = useState<LeaderboardTeam | null>(null);
   const [studentGamesData, setStudentGamesData] = useState<StudentGameState[]>([]);
   const [selectedRound, setSelectedRound] = useState<string>("0");
+  const [isLoadingStudentData, setIsLoadingStudentData] = useState(true);
 
 
   useEffect(() => {
@@ -97,18 +98,20 @@ export default function TeacherLeaderboardPage() {
 
   useEffect(() => {
     if (activeGame) {
+      setIsLoadingStudentData(true);
       // Set the selected round to the latest completed round when the game changes.
       const lastCompletedRound = activeGame.round > 0 ? activeGame.round - 1 : 0;
       setSelectedRound(lastCompletedRound.toString());
 
       getStudentGamesByGameId(activeGame.id).then(data => {
         setStudentGamesData(data);
+        setIsLoadingStudentData(false);
       });
     }
   }, [activeGame, getStudentGamesByGameId]);
 
   const teams: LeaderboardTeam[] = useMemo(() => {
-    if (!activeGame || !activeGame.performance) return [];
+    if (!activeGame || !activeGame.performance || isLoadingStudentData) return [];
     
     const performanceDataForSelectedRound = activeGame.performance[parseInt(selectedRound)];
     if (!performanceDataForSelectedRound) return [];
@@ -147,7 +150,7 @@ export default function TeacherLeaderboardPage() {
         ...team,
         rank: index + 1
     }));
-  }, [activeGame, studentGamesData, selectedRound]);
+  }, [activeGame, studentGamesData, selectedRound, isLoadingStudentData]);
 
 
   if (!activeGame) {
@@ -258,7 +261,7 @@ export default function TeacherLeaderboardPage() {
                {teams.length === 0 && (
                   <TableRow>
                       <TableCell colSpan={11} className="h-24 text-center">
-                          No hay datos disponibles para la ronda {selectedRound}.
+                          {isLoadingStudentData ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : `No hay datos disponibles para la ronda ${selectedRound}.`}
                       </TableCell>
                   </TableRow>
               )}
@@ -351,5 +354,3 @@ export default function TeacherLeaderboardPage() {
     </div>
   );
 }
-
-    

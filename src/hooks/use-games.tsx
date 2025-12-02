@@ -470,6 +470,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       const value = kpis[key as keyof TeamKPIs];
       if (typeof value === 'number' && !isNaN(value)) {
         (newKpis as any)[key] = value;
+      } else if (value === null || value === undefined) {
+        // This allows clearing a value if needed, though typically you'd set to 0.
+        // Be cautious with this part.
       }
     }
     updatedPerformanceData[teamIndex].kpis = newKpis;
@@ -674,7 +677,3 @@ export function useGames() {
   }
   return context;
 }
-
-
-
-    

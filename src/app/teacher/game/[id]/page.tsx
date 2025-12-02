@@ -638,7 +638,7 @@ export default function GameDetailsPage() {
                     <Input
                         id={`kpi-${key}`}
                         type="number"
-                        value={editingKpis[key as keyof TeamKPIs] as number || ''}
+                        value={editingKpis[key as keyof TeamKPIs] as number ?? ''}
                         onChange={(e) => {
                             const value = e.target.value;
                             setEditingKpis(prev => prev ? {

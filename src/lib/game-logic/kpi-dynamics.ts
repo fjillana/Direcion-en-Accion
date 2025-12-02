@@ -73,6 +73,19 @@ export function updateKpisForNextRound(
           if (investment.effects.personnelCostReduction) {
             personnelCostMultiplier -= investment.effects.personnelCostReduction;
           }
+          // NEW: Proportional capacity increase for R3
+          if (investment.id === 'R3') {
+            const cost = teamState.decisions.investmentCosts?.['R3'] || 0;
+            const [minCost, maxCost] = investment.cost.value as [number, number];
+            const maxCapacityBonus = 100; // Max 100 new places
+            if (cost > 0 && maxCost > minCost) {
+                const ratio = (cost - minCost) / (maxCost - minCost);
+                const capacityBonus = Math.round(ratio * maxCapacityBonus);
+                updatedCapacity += capacityBonus;
+            } else if (cost >= maxCost) {
+                updatedCapacity += maxCapacityBonus;
+            }
+          }
       }
   });
 

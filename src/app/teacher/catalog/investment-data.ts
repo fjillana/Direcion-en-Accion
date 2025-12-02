@@ -72,8 +72,8 @@ export const investments: Investment[] = [
     },
     {
       id: 'R3',
-      name: 'Mejora de instalaciones (patios, laboratorios)',
-      description: 'Mejora la atractividad y el bienestar general en el centro.',
+      name: 'Mejora de instalaciones (patios, aulas)',
+      description: 'Mejora la atractividad y el bienestar general en el centro, y aumenta la capacidad en hasta 100 plazas.',
       cost: { type: 'range', value: [10000, 100000] },
       effects: { nma: 0.3, morale: 10, iam: 5 },
       xpBonus: {

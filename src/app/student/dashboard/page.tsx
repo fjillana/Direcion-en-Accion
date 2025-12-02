@@ -322,6 +322,7 @@ export default function StudentDashboard() {
           onPriceChange={(price) => setRoundDecisions({ tuitionPrice: price })}
           numStudents={kpis?.numStudents || 0}
           numTeachers={kpis?.numTeachers || 0}
+          capacity={kpis?.capacity || 810}
           previousTuitionPrice={previousTuitionPrice}
         />
         

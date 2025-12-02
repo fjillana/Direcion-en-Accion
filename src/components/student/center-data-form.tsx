@@ -22,6 +22,7 @@ interface CenterDataFormProps {
   onPriceChange: (price: number) => void;
   numStudents: number;
   numTeachers: number;
+  capacity: number; // Nueva prop
   previousTuitionPrice?: number;
 }
 
@@ -42,6 +43,7 @@ export function CenterDataForm({
   onPriceChange, 
   numStudents, 
   numTeachers,
+  capacity, // Nueva prop
   previousTuitionPrice
 }: CenterDataFormProps) {
   const { toast } = useToast();
@@ -85,7 +87,7 @@ export function CenterDataForm({
               </div>
               <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
                   <p className="text-sm text-muted-foreground">Capacidad Total</p>
-                  <p className="text-2xl font-bold">810</p>
+                  <p className="text-2xl font-bold">{capacity || 810}</p>
               </div>
               <div className="p-4 rounded-lg bg-muted/50 border text-center flex flex-col justify-center">
                   <p className="text-sm text-muted-foreground">Nº de Profesores</p>

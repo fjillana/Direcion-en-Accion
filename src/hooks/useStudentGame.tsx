@@ -146,7 +146,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const gameData = games.find(g => g.id === studentGameState.gameId);
         
         // If the game doesn't exist in the 'games' list anymore (e.g., was deleted), reset the student's state.
-        if (!gameData) {
+        if (!gameData && studentGameState.status !== 'no-game') {
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
             if(firestore) {
               setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
@@ -382,20 +382,45 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
+ const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !studentGameState) return;
+
+    // Create a deep copy to avoid direct state mutation
+    const newPlan = JSON.parse(JSON.stringify(studentGameState.strategicPlan || initialStudentState.strategicPlan));
+
+    // If targets are being updated, merge them carefully
+    if (plan.targets) {
+        for (const key in plan.targets) {
+            const k = key as keyof StrategicPlan['targets'];
+            if (newPlan.targets[k]) {
+                // Ensure operator is preserved from the original/default state
+                newPlan.targets[k] = {
+                    ...newPlan.targets[k], // This keeps the original 'operator'
+                    target: (plan.targets as any)[k].target // This updates the 'target' value
+                };
+            }
+        }
+    }
+
+    // Merge other properties like 'rankingGoal' or 'confirmed'
+    if (plan.rankingGoal !== undefined) {
+        newPlan.rankingGoal = plan.rankingGoal;
+    }
+    if (plan.confirmed !== undefined) {
+        newPlan.confirmed = plan.confirmed;
+    }
+
     const studentGameRef = doc(firestore, "studentGames", user.id);
-    const newPlan = { ...(studentGameState.strategicPlan || {}), ...plan };
     const updateData = {
-      strategicPlan: newPlan,
-      planConfirmed: newPlan.confirmed
+        strategicPlan: newPlan,
+        planConfirmed: newPlan.confirmed
     };
-    
+
     setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: `studentGames/${user.id}`,
-          operation: 'update',
-          requestResourceData: updateData,
+            path: `studentGames/${user.id}`,
+            operation: 'update',
+            requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
     });

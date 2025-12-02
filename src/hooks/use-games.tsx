@@ -112,6 +112,7 @@ interface GamesContextType {
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => Promise<void>;
   updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => Promise<void>;
   updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => Promise<void>;
+  updateTeamKpis: (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => Promise<void>;
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => Promise<void>;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => Promise<void>;
   confirmStudentDecisions: (gameId: string, teamName: string, round: number, decisions: TeamDecision) => Promise<void>;
@@ -446,6 +447,40 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateTeamKpis = async (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => {
+    if (!firestore) return;
+
+    const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) throw new Error("Game not found");
+    
+    const gameData = gameDoc.data();
+    const performanceData = gameData.performance?.[round];
+    if (!performanceData) throw new Error(`No performance data for round ${round}`);
+
+    const teamIndex = performanceData.findIndex((p: TeamPerformanceData) => p.name === teamName);
+    if (teamIndex === -1) throw new Error(`Team ${teamName} not found in performance data for round ${round}`);
+    
+    const updatedPerformanceData = [...performanceData];
+    const currentKpis = updatedPerformanceData[teamIndex].kpis;
+    
+    // Merge only the valid number values
+    const newKpis = { ...currentKpis };
+    for (const key in kpis) {
+      const value = kpis[key as keyof TeamKPIs];
+      if (typeof value === 'number' && !isNaN(value)) {
+        (newKpis as any)[key] = value;
+      }
+    }
+    updatedPerformanceData[teamIndex].kpis = newKpis;
+
+    const updatePayload = {
+      [`performance.${round}`]: updatedPerformanceData,
+    };
+    
+    await updateDoc(gameRef, updatePayload);
+  };
+
   const addMessage = async (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
@@ -618,6 +653,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setActiveGameId, 
         updateTeamPerformance,
         updateRoundSettings,
+        updateTeamKpis,
         addMessage,
         markMessageAsRead,
         confirmStudentDecisions,

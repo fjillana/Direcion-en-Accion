@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, Loader2, LogOut, CheckCircle, AlertCircle } from "lucide-react";
+import { PlayCircle, Loader2, LogOut, CheckCircle, AlertCircle, Edit } from "lucide-react";
 import { AIReportForm } from "@/components/teacher/ai-report-form";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { useParams, useRouter } from 'next/navigation'
 import { RoundConfig } from "@/components/teacher/round-config";
@@ -38,7 +39,6 @@ import type { Investment, Crisis } from "@/components/teacher/catalog-editor";
 import { useGames } from "@/hooks/use-games";
 import type { Game, TeamPerformanceData, TeamDecision } from "@/hooks/use-games";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { simulateRound } from "@/lib/game-logic/round-simulation";
@@ -46,12 +46,14 @@ import { Separator } from "@/components/ui/separator";
 import { investments as allInvestments } from "@/app/teacher/catalog/investment-data";
 import { crises as fullCrisesList } from "@/app/teacher/catalog/crises-data";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import type { TeamKPIs } from "@/lib/game-logic/types";
 
 
 export default function GameDetailsPage() {
   const params = useParams();
   const id = params.id as string;
-  const { games, setActiveGameId, updateGame, updateTeamPerformance, getStudentGamesByGameId, forceStudentDecisions } = useGames();
+  const { games, setActiveGameId, updateGame, updateTeamPerformance, getStudentGamesByGameId, forceStudentDecisions, updateTeamKpis } = useGames();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -62,7 +64,9 @@ export default function GameDetailsPage() {
   const [selectedTeam, setSelectedTeam] = useState<TeamPerformanceData | null>(null);
   const [isDecisionDetailOpen, setDecisionDetailOpen] = useState(false);
   const [isPebDetailOpen, setPebDetailOpen] = useState(false);
-  const [teacherNotes, setTeacherNotes] = useState("");
+  const [isKpiEditorOpen, setKpiEditorOpen] = useState(false);
+  const [editingKpis, setEditingKpis] = useState<Partial<TeamKPIs> | null>(null);
+
   const [monitoringData, setMonitoringData] = useState<TeamPerformanceData[]>([]);
 
   useEffect(() => {
@@ -129,6 +133,32 @@ export default function GameDetailsPage() {
     setSelectedTeam(team);
     setPebDetailOpen(true);
   };
+
+  const handleOpenKpiEditor = (team: TeamPerformanceData) => {
+    setSelectedTeam(team);
+    setEditingKpis(team.kpis);
+    setKpiEditorOpen(true);
+  }
+
+  const handleSaveKpis = async () => {
+    if (!game || !selectedTeam || !editingKpis) return;
+    try {
+      await updateTeamKpis(game.id, parseInt(currentRoundTab), selectedTeam.name, editingKpis);
+      toast({
+        title: "KPIs Actualizados",
+        description: `Los datos para ${selectedTeam.name} han sido guardados.`,
+      });
+      setKpiEditorOpen(false);
+    } catch (error) {
+      console.error("Error updating KPIs:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron actualizar los KPIs.",
+      });
+    }
+  };
+
 
   const getPebColor = (peb: number) => {
     if (peb > 100) return "text-emerald-600";
@@ -328,7 +358,7 @@ export default function GameDetailsPage() {
                             <TableHead className="text-center">PEB Moral</TableHead>
                             <TableHead className="text-center">XP Moral</TableHead>
                             <TableHead className="text-right">Total XP</TableHead>
-                            <TableHead className="w-[100px] text-center">Decisiones</TableHead>
+                            <TableHead className="w-[150px] text-center">Acciones</TableHead>
                         </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -343,8 +373,9 @@ export default function GameDetailsPage() {
                             <TableCell className={cn("text-center font-mono", getPebColor(team.morale.peb))}>{team.morale.peb.toFixed(2)}</TableCell>
                             <TableCell className="text-center font-mono">{team.morale.xp.toFixed(2)}</TableCell>
                             <TableCell className="text-right font-bold font-mono">{team.totalXp.toFixed(2)}</TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center space-x-2">
                                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setDecisionDetailOpen(true); }}>Ver</Button>
+                                <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenKpiEditor(team); }}>Editar KPIs</Button>
                             </TableCell>
                             </TableRow>
                         ))}
@@ -589,6 +620,42 @@ export default function GameDetailsPage() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isKpiEditorOpen} onOpenChange={setKpiEditorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar KPIs para {selectedTeam?.name}</DialogTitle>
+            <DialogDescription>
+              Ajusta manualmente los KPIs del equipo para la ronda {currentRoundTab}. Usa esto con precaución.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            {editingKpis && Object.keys(editingKpis).map((key) => (
+                <div key={key} className="space-y-2">
+                    <Label htmlFor={`kpi-${key}`}>{key}</Label>
+                    <Input
+                        id={`kpi-${key}`}
+                        type="number"
+                        value={editingKpis[key as keyof TeamKPIs] as number || ''}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setEditingKpis(prev => prev ? {
+                                ...prev,
+                                [key]: value === '' ? undefined : Number(value)
+                            } : null);
+                        }}
+                    />
+                </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleSaveKpis}>Guardar Cambios</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

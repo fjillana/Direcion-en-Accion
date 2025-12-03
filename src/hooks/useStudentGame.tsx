@@ -382,7 +382,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     });
   }
 
- const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
+  const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !studentGameState) return;
 
     // Create a deep copy to avoid direct state mutation
@@ -418,9 +418,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: `studentGames/${user.id}`,
-            operation: 'update',
-            requestResourceData: updateData,
+          path: `studentGames/${user.id}`,
+          operation: 'update',
+          requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
     });

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,14 +17,29 @@ export function StudentReport() {
   const { getGameById } = useGames();
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [reportRound, setReportRound] = useState<number>(-1);
 
   useEffect(() => {
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
-      const reportRound = game ? game.round - 1 : -1;
+      if (!game) {
+        setIsLoading(false);
+        return;
+      }
       
-      if (game && reportRound >= 0 && game.reports?.[reportRound]?.[studentGame.teamName]) {
-        const report = game.reports[reportRound][studentGame.teamName];
+      // Correct logic to determine which report to show
+      let roundToShow: number;
+      if (game.status === 'Finalizado') {
+        // If game is finished, show the report for the last playable round
+        roundToShow = game.numRounds; 
+      } else {
+        // If game is ongoing, show the report for the previously completed round
+        roundToShow = game.round > 0 ? game.round - 1 : -1;
+      }
+      setReportRound(roundToShow);
+      
+      if (roundToShow >= 0 && game.reports?.[roundToShow]?.[studentGame.teamName]) {
+        const report = game.reports[roundToShow][studentGame.teamName];
         if (report.published) {
           setReportData(report);
         } else {
@@ -51,7 +65,6 @@ export function StudentReport() {
   }
 
   if (!reportData) {
-    const reportRound = studentGame?.round ? studentGame.round - 1 : 'anterior';
     return (
       <Card>
         <CardHeader>
@@ -60,7 +73,7 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            El reporte para la ronda {reportRound} aún no ha sido publicado.
+            El reporte para la ronda {reportRound >= 0 ? reportRound : 'anterior'} aún no ha sido publicado.
             <br />
             Por favor, espera a que el profesor lo envíe.
           </p>
@@ -308,3 +321,5 @@ export function StudentReport() {
     </Card>
   );
 }
+
+    

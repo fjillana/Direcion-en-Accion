@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -22,7 +21,9 @@ const GenerateRoundReportInputSchema = z.object({
 });
 export type GenerateRoundReportInput = z.infer<typeof GenerateRoundReportInputSchema>;
 
-const KpiAnalysisSchema = z.object({
+// This function creates a new Zod schema object instance each time it's called.
+// This prevents Genkit from creating a schema with "$ref" properties, which Gemini API rejects.
+const createKpiAnalysisSchema = () => z.object({
   value: z.string(),
   analysis: z.string()
 }).describe("Un objeto con el análisis cuantitativo del KPI, explicando el porqué de su valor basado en decisiones y otros KPIs.");
@@ -33,12 +34,12 @@ const GenerateRoundReportOutputSchema = z.object({
   preguntasMayeuticas: z.array(z.string()).describe('Un array con 2-3 preguntas mayéuticas para fomentar la reflexión del estudiante.'),
   sugerenciasPedagogicas: z.string().describe('Sugerencias pedagógicas para que el profesor pueda guiar al equipo.'),
   kpiAnalysis: z.object({
-    tesoreria: KpiAnalysisSchema,
-    costePersonal: KpiAnalysisSchema,
-    nma: KpiAnalysisSchema,
-    cuotaDeMercado: KpiAnalysisSchema,
-    moral: KpiAnalysisSchema,
-    ratioAlumnosProfesor: KpiAnalysisSchema,
+    tesoreria: createKpiAnalysisSchema(),
+    costePersonal: createKpiAnalysisSchema(),
+    nma: createKpiAnalysisSchema(),
+    cuotaDeMercado: createKpiAnalysisSchema(),
+    moral: createKpiAnalysisSchema(),
+    ratioAlumnosProfesor: createKpiAnalysisSchema(),
   }).describe("Un objeto con el análisis cuantitativo de cada KPI, explicando el porqué del valor basado en decisiones y otros KPIs.")
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;

@@ -22,7 +22,7 @@ const GenerateRoundReportInputSchema = z.object({
 });
 export type GenerateRoundReportInput = z.infer<typeof GenerateRoundReportInputSchema>;
 
-const KpiAnalysisObject = z.object({
+const KpiAnalysisSchema = z.object({
   value: z.string(),
   analysis: z.string()
 }).describe("Un objeto con el análisis cuantitativo del KPI, explicando el porqué de su valor basado en decisiones y otros KPIs.");
@@ -33,12 +33,12 @@ const GenerateRoundReportOutputSchema = z.object({
   preguntasMayeuticas: z.array(z.string()).describe('Un array con 2-3 preguntas mayéuticas para fomentar la reflexión del estudiante.'),
   sugerenciasPedagogicas: z.string().describe('Sugerencias pedagógicas para que el profesor pueda guiar al equipo.'),
   kpiAnalysis: z.object({
-    tesoreria: KpiAnalysisObject,
-    costePersonal: KpiAnalysisObject,
-    nma: KpiAnalysisObject,
-    cuotaDeMercado: KpiAnalysisObject,
-    moral: KpiAnalysisObject,
-    ratioAlumnosProfesor: KpiAnalysisObject,
+    tesoreria: KpiAnalysisSchema,
+    costePersonal: KpiAnalysisSchema,
+    nma: KpiAnalysisSchema,
+    cuotaDeMercado: KpiAnalysisSchema,
+    moral: KpiAnalysisSchema,
+    ratioAlumnosProfesor: KpiAnalysisSchema,
   }).describe("Un objeto con el análisis cuantitativo de cada KPI, explicando el porqué del valor basado en decisiones y otros KPIs.")
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;

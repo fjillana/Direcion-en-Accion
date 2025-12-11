@@ -4,40 +4,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Función para verificar si el usuario es el propietario del documento
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Los usuarios pueden leer y escribir su propio perfil y estado de juego
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-    match /studentGames/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Reglas para la colección de partidas (games)
-    match /games/{gameId} {
-      // Los profesores (creadores) pueden hacer de todo en sus partidas
-      allow read, write, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' && resource.data.createdBy == request.auth.uid;
-      
-      // Los superadmins pueden leer todas las partidas (para paneles de admin, etc.)
-      allow get, list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
-
-      // Los estudiantes pueden LEER una partida específica si su documento en studentGames
-      // los vincula a esa partida.
-      allow get: if request.auth != null && get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
-
-      // REGLA CLAVE: Los estudiantes pueden LISTAR partidas SIEMPRE Y CUANDO
-      // la consulta pida explícitamente las que están "En curso".
-      // Esto es para la pantalla de "Unirse a una Partida".
-      allow list: if request.auth != null && request.query.where[0][0] == 'status' && request.query.where[0][1] == '==' && request.query.where[0][2] == 'En curso';
-    }
-    
-    // Fallback: denegar todo lo demás por defecto.
+    // WARNING: This is an insecure rule. 
+    // It allows anyone to read and write to any part of your database.
+    // This should only be used for initial development and MUST be secured
+    // before any real users access the application.
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

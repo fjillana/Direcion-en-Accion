@@ -152,16 +152,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     let q: Query | null = null;
     const gamesCollectionRef = collection(firestore, "games");
   
-    // Only teachers and superadmins query the full list of games they own.
-    // Students do not query the /games collection at all here.
     if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-    } else {
-      // For students, we set games to empty and stop loading.
-      // Their specific game data will be loaded via useStudentGame hook.
-      setGames([]);
-      setLoading(false);
-      return;
+    } else { // For students
+      // Students can ONLY query for games that are "En curso" to join them.
+      q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
   
     const unsubscribe = onSnapshot(

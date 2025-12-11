@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
@@ -95,26 +96,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   
-  // Efecto 1: Escuchar el documento del estudiante en Firestore
+  // Effect to listen to the current student's game state document in Firestore
   useEffect(() => {
-    // Si no hay usuario, no estamos cargando nada aquí.
-    if (!isAuthLoading && !user) {
-      setIsLoading(false);
-      setStudentGameState(null);
-      setFullStudentState(null);
+    if (!firestore || !user?.id) {
+      if (!isAuthLoading) {
+        setIsLoading(false);
+        setStudentGameState(null);
+        setFullStudentState(null);
+      }
       return;
     }
     
-    if (!firestore || !user?.id) {
-      return; // Esperar a que el auth y firestore estén listos
-    }
-    
+    setIsLoading(true);
     const studentGameRef = doc(firestore, "studentGames", user.id);
 
     const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
       if (docSnap.exists()) {
         setStudentGameState(docSnap.data() as StudentGameState);
       } else {
+        // If no document exists, create one with the initial state
         const initialData = { ...initialStudentState, userId: user.id };
         setDoc(studentGameRef, initialData).catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
@@ -126,45 +126,50 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         });
         setStudentGameState(initialData);
       }
-      // NO establecemos isLoading a false aquí. Se hará en el efecto de composición.
     }, (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `studentGames/${user.id}`, operation: 'get' }));
-        setIsLoading(false); // En caso de error, paramos la carga.
+        const permissionError = new FirestorePermissionError({
+          path: `studentGames/${user.id}`,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, [firestore, user, isAuthLoading]);
 
-  // Efecto 2: Componer el estado completo y manejar la bandera `isLoading` de forma robusta.
+  // Effect to derive the full student state by combining studentGameState and the global game data
   useEffect(() => {
-    // La carga solo finaliza cuando TODAS las dependencias de datos están listas.
+    // Wait until all foundational data is loaded
     if (isAuthLoading || gamesLoading || !studentGameState) {
       setIsLoading(true);
       return;
     }
     
-    const { gameId, teamName, status } = studentGameState;
+    const { gameId, teamName, status, userId } = studentGameState;
 
+    // SCENARIO 1: Student is not in a game or is pending
     if (!gameId || status !== 'joined') {
       setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
-      setIsLoading(false); // La carga ha terminado, el usuario no está en un juego.
+      setIsLoading(false);
       return;
     }
 
     const gameData = games.find(g => g.id === gameId);
 
-    // Auto-corrección: si la partida se ha borrado, resetea el estado del estudiante.
+    // SCENARIO 2: Student thinks they are in a game, but the game doesn't exist anymore
     if (!gameData) {
-      if(firestore && user) {
-        setDoc(doc(firestore, "studentGames", user.id), { ...initialStudentState, userId: user.id }, { merge: true });
-      }
-      setStudentGameState({ ...initialStudentState, userId: user!.id });
-      setFullStudentState(null);
-      setIsLoading(false);
-      return;
+        if(firestore && userId) {
+          const resetState: StudentGameState = { ...initialStudentState, userId: userId };
+          setDoc(doc(firestore, "studentGames", userId), resetState, { merge: true });
+        }
+        setStudentGameState({ ...initialStudentState, userId: userId! }); // Trigger a re-render with the reset state
+        setFullStudentState(null); // Clear full state
+        setIsLoading(false);
+        return;
     }
     
-    // Composición del estado final y fiable.
+    // SCENARIO 3: Student is in a valid game. Compose the full state.
     const serverRound = gameData.round;
     const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || initialRoundDecisions;
     
@@ -186,11 +191,25 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     if (serverRound === 0 && !currentKpis) {
         const perfR0 = gameData.performance?.[0]?.find(p => p.name === teamName);
-        currentKpis = perfR0 ? perfR0.kpis : {
-            cash: gameData.initialFunds, personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
-            nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80, studentTeacherRatio: 25.0,
-            numStudents: 800, numTeachers: 32, capacity: 810,
-        };
+        if (perfR0) {
+            currentKpis = perfR0.kpis;
+        } else {
+            const totalParticipants = gameData.teams * 2;
+             currentKpis = {
+                cash: gameData.initialFunds,
+                personnelCost: 240000, 
+                income: 0,
+                privateIncome: 0,
+                publicIncome: 0,
+                nma: 7.5,
+                marketShare: totalParticipants > 0 ? 100 / totalParticipants : 100,
+                morale: 80,
+                studentTeacherRatio: 25.0,
+                numStudents: 800,
+                numTeachers: 32,
+                capacity: 810,
+            };
+        }
     }
     
     const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
@@ -206,7 +225,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       isBlindRound,
     });
     
-    setIsLoading(false); // Solo aquí, cuando todo está compuesto, la carga finaliza.
+    setIsLoading(false);
 
   }, [studentGameState, games, gamesLoading, user, firestore, isAuthLoading]);
 
@@ -254,12 +273,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const { gameId, teamName } = studentGameState;
 
+    // First, always reset the student's own state. This ensures they can escape even if the game was deleted.
     const studentGameRef = doc(firestore, "studentGames", user.id);
     await setDoc(studentGameRef, {
         ...initialStudentState,
         userId: user.id,
     }, { merge: true });
 
+    // Then, if the game still exists, try to remove the team from it.
     if (gameId && teamName) {
         const game = games.find(g => g.id === gameId);
         if (game) {
@@ -303,20 +324,28 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
+    // Get the current game document to correctly merge decisions
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) {
       throw new Error("Game document not found, cannot save decisions.");
     }
-    
+    const gameData = gameDoc.data();
     const round = fullStudentState.round;
     const teamName = fullStudentState.teamName;
     
     const decisionsToSave: Partial<RoundDecisions> = { ...fullStudentState.decisions };
 
-    if (decisionsToSave.poachingTarget === undefined) delete decisionsToSave.poachingTarget;
-    if (decisionsToSave.poachingSuccess === undefined) delete decisionsToSave.poachingSuccess;
+    // Firestore does not support `undefined` values.
+    if (decisionsToSave.poachingTarget === undefined) {
+      delete decisionsToSave.poachingTarget;
+    }
+    if (decisionsToSave.poachingSuccess === undefined) {
+      delete decisionsToSave.poachingSuccess;
+    }
 
-    const updateData = { [`decisions.${round}.${teamName}`]: decisionsToSave };
+    const updateData = {
+      [`decisions.${round}.${teamName}`]: decisionsToSave
+    };
 
     updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -325,6 +354,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           requestResourceData: updateData,
         });
         errorEmitter.emit('permission-error', permissionError);
+        // Re-throw the original error after emitting our custom one
         throw serverError;
     });
   }
@@ -332,22 +362,30 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !studentGameState) return;
 
+    // Create a deep copy to avoid direct state mutation
     const newPlan = JSON.parse(JSON.stringify(studentGameState.strategicPlan || initialStudentState.strategicPlan));
 
+    // If targets are being updated, merge them carefully
     if (plan.targets) {
         for (const key in plan.targets) {
             const k = key as keyof StrategicPlan['targets'];
             if (newPlan.targets[k]) {
+                // Ensure operator is preserved from the original/default state
                 newPlan.targets[k] = {
-                    ...newPlan.targets[k],
-                    target: (plan.targets as any)[k].target
+                    ...newPlan.targets[k], // This keeps the original 'operator'
+                    target: (plan.targets as any)[k].target // This updates the 'target' value
                 };
             }
         }
     }
 
-    if (plan.rankingGoal !== undefined) newPlan.rankingGoal = plan.rankingGoal;
-    if (plan.confirmed !== undefined) newPlan.confirmed = plan.confirmed;
+    // Merge other properties like 'rankingGoal' or 'confirmed'
+    if (plan.rankingGoal !== undefined) {
+        newPlan.rankingGoal = plan.rankingGoal;
+    }
+    if (plan.confirmed !== undefined) {
+        newPlan.confirmed = plan.confirmed;
+    }
 
     const studentGameRef = doc(firestore, "studentGames", user.id);
     const updateData = {
@@ -373,7 +411,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setRoundDecisions,
     saveStudentDecisions,
     setStrategicPlan,
-  }), [fullStudentState, isLoading]);
+  }), [fullStudentState, isLoading, requestToJoinGame, abandonGame, setRoundDecisions, saveStudentDecisions, setStrategicPlan]);
 
   return (
     <StudentGameContext.Provider value={value}>

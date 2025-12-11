@@ -138,48 +138,49 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!isAuthLoading && user && firestore) {
-      const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-      if (storedActiveId) {
-        setActiveGameIdState(JSON.parse(storedActiveId));
-      }
-
-      const gamesCollectionRef = collection(firestore, "games");
-      let q;
-
-      if (user.role === 'teacher' || user.role === 'superadmin') {
-        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-      } else {
-        // Students should be able to see all games to join them.
-        q = query(gamesCollectionRef);
-      }
-      
-
-      const unsubscribe = onSnapshot(q, 
-        (querySnapshot) => {
-          const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-          setGames(gamesData);
-          setLoading(false);
-        },
-        (error) => {
-          setGames([]);
-          setLoading(false);
-          const permissionError = new FirestorePermissionError({
-            path: 'games',
-            operation: 'list',
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        }
-      );
-
-      return () => unsubscribe();
-    } else if (!isAuthLoading && !user) {
-      // Clear state if user logs out
-      setGames([]);
-      setActiveGameIdState(null);
-      localStorage.removeItem(ACTIVE_GAME_ID_STORAGE_KEY);
-      setLoading(false);
+    if (!firestore) {
+      return; // Wait for Firestore to be available
     }
+
+    if (isAuthLoading) {
+      setLoading(true);
+      return; // Wait for auth state to be resolved
+    }
+
+    const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+    if (storedActiveId) {
+      setActiveGameIdState(JSON.parse(storedActiveId));
+    }
+
+    let q: Query;
+    const gamesCollectionRef = collection(firestore, "games");
+
+    if (user?.role === 'teacher' || user?.role === 'superadmin') {
+      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+    } else {
+      // For students or unauthenticated users, we fetch all games.
+      q = query(gamesCollectionRef);
+    }
+
+    const unsubscribe = onSnapshot(q, 
+      (querySnapshot) => {
+        const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+        setGames(gamesData);
+        setLoading(false); // Data is loaded, stop loading.
+      },
+      (error) => {
+        setGames([]);
+        setLoading(false); // Error occurred, stop loading.
+        const permissionError = new FirestorePermissionError({
+          path: 'games',
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      }
+    );
+
+    return () => unsubscribe();
+    
   }, [isAuthLoading, user, firestore]);
 
 

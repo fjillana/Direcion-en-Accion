@@ -148,6 +148,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // For students, this hook does not fetch global games list.
+    // That is handled by specific pages like `join-game`.
     if (user.role === 'student') {
         setGames([]);
         setLoading(false);
@@ -157,6 +159,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     let q: Query | null = null;
     const gamesCollectionRef = collection(firestore, "games");
   
+    // For teachers and superadmins, fetch the games they created.
     if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     }

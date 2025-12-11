@@ -137,38 +137,26 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!firestore || isAuthLoading) {
+    if (!firestore || isAuthLoading || !user) {
       setLoading(true);
-      return;
-    }
-  
-    if (!user) {
-      setGames([]);
-      setLoading(false);
-      return;
-    }
-
-    // For students, this hook does not fetch global games list.
-    // That is handled by specific pages like `join-game`.
-    if (user.role === 'student') {
+      if(!isAuthLoading && !user) {
         setGames([]);
         setLoading(false);
-        return;
+      }
+      return;
     }
-
-    let q: Query | null = null;
+  
     const gamesCollectionRef = collection(firestore, "games");
-  
-    // For teachers and superadmins, fetch the games they created.
-    if (user.role === 'teacher' || user.role === 'superadmin') {
-      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-    }
-  
-    if (!q) {
-        setLoading(false);
-        return;
-    }
+    let q: Query;
 
+    if (user.role === 'student') {
+        // Students should only be able to see games available to join
+        q = query(gamesCollectionRef, where("status", "==", "En curso"));
+    } else {
+        // Teachers and Superadmins see the games they created
+        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+    }
+  
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -179,7 +167,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       },
       (error) => {
-        console.error("Error fetching games:", error);
+        console.error(`Error fetching games for role ${user.role}:`, error);
         setGames([]);
         setLoading(false);
         const permissionError = new FirestorePermissionError({

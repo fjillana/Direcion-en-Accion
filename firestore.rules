@@ -3,13 +3,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // WARNING: This is an insecure rule. 
-    // It allows anyone to read and write to any part of your database.
-    // This should only be used for initial development and MUST be secured
-    // before any real users access the application.
+    
+    // Default-deny all access
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+    
+    // Users can read and update their own profile
+    match /users/{userId} {
+      allow read, update: if request.auth.uid == userId;
+    }
+    
+    // Superadmin can manage user roles
+    match /users/{userId} {
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
+    }
+
+    // Teachers can create games
+    match /games/{gameId} {
+       allow create: if request.auth.uid == request.resource.data.createdBy &&
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+       
+       // Teacher can read, update, and delete games they created
+       allow read, update, delete: if request.auth.uid == resource.data.createdBy;
+
+       // Students can LIST games that are "En curso"
+       allow list: if request.auth != null && request.query.get("status") == "En curso";
+       
+       // A student can read a specific game if they are part of it (their studentGame doc points to it)
+       allow get: if request.auth != null && 
+                    get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
+    }
+    
+    // Any authenticated user can create their own studentGame document
+    match /studentGames/{userId} {
+      allow create, read, update: if request.auth.uid == userId;
     }
   }
 }

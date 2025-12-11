@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useGames } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,46 +13,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
-import type { Game } from "@/hooks/use-games";
-
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { games, loading: gamesLoading } = useGames();
   const { studentGame, requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
-  
-  const firestore = useFirestore();
-  const [availableGames, setAvailableGames] = useState<Game[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(true);
-
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  
-  useEffect(() => {
-    if(!firestore || !user) {
-        setGamesLoading(false);
-        return;
-    }
-
-    setGamesLoading(true);
-    const q = query(collection(firestore, "games"), where("status", "==", "En curso"));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-        setAvailableGames(gamesData);
-        setGamesLoading(false);
-    }, (err) => {
-        console.error("Failed to fetch available games:", err);
-        setError("No se pudieron cargar las partidas. Es posible que no tengas permisos o que no haya partidas disponibles.");
-        setGamesLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore, user]);
-
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
 
@@ -63,10 +33,11 @@ export default function JoinGamePage() {
   }, [studentGame, isLoading, router]);
 
   useEffect(() => {
-    if (!isLoading && availableGames && availableGames.length === 1) {
+    const availableGames = games.filter(g => g.status === "En curso");
+    if (!isLoading && availableGames.length === 1) {
       setSelectedGameId(availableGames[0].id);
     }
-  }, [availableGames, isLoading]);
+  }, [games, isLoading]);
 
   const handleJoinRequest = () => {
     if (!selectedGameId) {
@@ -77,12 +48,14 @@ export default function JoinGamePage() {
       setError("Por favor, introduce un nombre para tu equipo.");
       return;
     }
-    const selectedGame = availableGames.find(g => g.id === selectedGameId);
+    const selectedGame = games.find(g => g.id === selectedGameId);
     if (selectedGame) {
         requestToJoinGame(selectedGameId, selectedGame.name, teamName);
         // The redirection will be handled by the effect once the state updates to 'pending'
     }
   };
+  
+  const availableGames = games.filter(g => g.status === 'En curso');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
@@ -102,7 +75,7 @@ export default function JoinGamePage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="ml-2">Cargando partidas...</span>
                 </div>
-              ) : availableGames && availableGames.length > 0 ? (
+              ) : availableGames.length > 0 ? (
                 availableGames.map((game) => (
                   <button
                     key={game.id}

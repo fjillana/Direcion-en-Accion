@@ -43,14 +43,19 @@ import { useState } from "react";
 import { useGames } from "@/hooks/use-games";
 import type { Game } from "@/hooks/use-games";
 import { useRouter } from "next/navigation";
-import { getAuth } from "firebase/auth";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TeacherDashboard() {
   const { games, addGame, removeGame, setActiveGameId } = useGames();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const router = useRouter();
 
   const handleCreateGame = (data: GameConfig) => {
+    if (!user) {
+        console.error("User must be logged in to create a game.");
+        return;
+    }
     const newGame: Omit<Game, 'id' | 'createdBy'> = {
       name: data.gameName,
       round: 0, // Start at round 0

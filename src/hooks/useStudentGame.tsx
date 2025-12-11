@@ -40,6 +40,7 @@ interface FullStudentState extends StudentGameState {
   messages?: GameMessage[];
   performanceHistory?: TeamPerformanceData[];
   kpis?: TeamKPIs;
+  isBlindRound?: boolean;
 }
 
 interface StudentGameContextType {
@@ -142,11 +143,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     // This effect runs when games data is available and the student's gameId is set.
-    if (studentGameState.gameId && !gamesLoading && games.length > 0) {
-        const gameData = games.find(g => g.id === studentGameState.gameId);
+    if (studentGameState.gameId && !gamesLoading && games && games.length >= 0) {
+        const gameExists = games.some(g => g.id === studentGameState.gameId);
         
         // If the game doesn't exist in the 'games' list anymore (e.g., was deleted), reset the student's state.
-        if (!gameData && studentGameState.status !== 'no-game') {
+        if (!gameExists && studentGameState.status !== 'no-game') {
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
             if(firestore) {
               setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
@@ -156,6 +157,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             return;
         }
 
+        const gameData = games.find(g => g.id === studentGameState.gameId);
         // If the student is 'pending' but the teacher already accepted them, sync their status.
         if (studentGameState.status === 'pending' && gameData?.teamNames.includes(studentGameState.teamName || '')) {
             if(firestore) {
@@ -238,7 +240,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             };
         }
     }
-
+    
+    const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
 
     setFullStudentState({
       ...studentGameState,
@@ -247,7 +250,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       roundSettings: gameData.roundSettings,
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === studentGameState.teamName || m.from === studentGameState.teamName),
       performanceHistory,
-      kpis: currentKpis
+      kpis: currentKpis,
+      isBlindRound,
     });
 
   }, [studentGameState, games, gamesLoading, user, firestore, fullStudentState?.round, fullStudentState?.gameId]);

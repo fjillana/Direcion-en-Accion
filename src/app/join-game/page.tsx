@@ -138,13 +138,13 @@ export default function JoinGamePage() {
             </div>
           )}
 
-          {error && !availableGames.length && (
+          {error && !availableGames.length ? (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          )}
+          ): null}
 
         </CardContent>
         <CardFooter>

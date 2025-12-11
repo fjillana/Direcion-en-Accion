@@ -154,8 +154,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   
     if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-    } else { // For students
-      // Students can ONLY query for games that are "En curso" to join them.
+    } else { // For students, let them see games to join
       q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
   

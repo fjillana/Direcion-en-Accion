@@ -43,11 +43,11 @@ service cloud.firestore {
       // WRITE (Create, Update, Delete):
       // Only a teacher or superadmin who created the game can modify it.
       allow write: if isTeacherOrSuperAdmin();
-    }
-
-    // Allow students to list games that are currently in progress to join them
-    match /games/{gameId} {
-        allow list: if request.query.where.get("status", "") == "En curso";
+      
+      // LIST:
+      // Allow authenticated users to list games that are currently in progress
+      // This is needed for the "Join Game" screen for students.
+      allow list: if request.auth != null && request.query.where[0][0] == 'status' && request.query.where[0][2] == 'En curso';
     }
   }
 }

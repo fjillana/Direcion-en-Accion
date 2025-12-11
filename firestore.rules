@@ -4,45 +4,56 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Función para verificar si el usuario es el propietario del documento
+    // --- Helper Functions ---
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    // Función para verificar si el usuario es un profesor o superadmin
     function isTeacherOrSuperAdmin() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'superadmin'];
     }
+    
+    function isStudentInGame(gameId) {
+      return get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
+    }
 
-    // --- Reglas para la colección `users` ---
+    // --- Rules for `users` collection ---
     match /users/{userId} {
-      // Un usuario puede leer su propio perfil.
-      // Un profesor/superadmin puede leer cualquier perfil (para gestionar usuarios).
+      // A user can read their own profile.
+      // A teacher/superadmin can read any profile (to manage users).
       allow read: if isOwner(userId) || isTeacherOrSuperAdmin();
-      // Un usuario puede crear y actualizar su propio perfil.
+      // A user can create and update their own profile.
       allow write: if isOwner(userId);
     }
     
-    // --- Reglas para la colección `studentGames` ---
+    // --- Rules for `studentGames` collection ---
     match /studentGames/{userId} {
-      // Un estudiante puede leer y escribir su propio estado de juego.
+      // A student can read and write their own game state.
       allow read, write: if isOwner(userId);
+      // A teacher can also read any student's game state to manage the game.
+      allow read: if isTeacherOrSuperAdmin();
     }
 
-    // --- Reglas para la colección `games` ---
+    // --- Rules for `games` collection ---
     match /games/{gameId} {
-      // Lectura:
-      // 1. El creador (profesor) puede leer su propio juego.
-      // 2. Un estudiante que pertenece al juego puede leerlo.
-      allow read: if resource.data.createdBy == request.auth.uid || get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
+      // READ:
+      // A teacher/superadmin can read any game.
+      // A student can read the specific game they are part of.
+      allow read: if isTeacherOrSuperAdmin() || isStudentInGame(gameId);
       
-      // Escritura:
-      // - Creación: Solo un profesor puede crear un juego, y debe ser el propietario.
-      allow create: if isTeacherOrSuperAdmin() && request.resource.data.createdBy == request.auth.uid;
-      // - Actualización: El profesor creador puede actualizarlo. Un estudiante puede actualizar las decisiones de su equipo.
-      allow update: if isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid;
-      // - Eliminación: Solo el profesor creador puede eliminarlo.
-      allow delete: if isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid;
+      // WRITE (Create, Update, Delete):
+      // Only a teacher or superadmin who created the game can modify it.
+      // This is a simplified rule; a more granular approach is below.
+      allow write: if isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid;
+
+      // UPDATE (Granular):
+      allow update: if 
+        // A teacher can update their own game.
+        (isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid) ||
+        // A student can update the 'decisions' and 'pendingJoinRequests' fields of their game.
+        (isStudentInGame(gameId) && (
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['decisions', 'pendingJoinRequests'])
+        ));
     }
   }
 }

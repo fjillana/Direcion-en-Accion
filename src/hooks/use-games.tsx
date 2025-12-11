@@ -139,34 +139,42 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     if (!firestore || isAuthLoading) {
-        setLoading(true);
-        return;
+      setLoading(true);
+      return;
     }
-
-    // No user, no games to fetch, we are done loading.
+  
     if (!user) {
-        setGames([]);
-        setLoading(false);
-        return;
+      setGames([]);
+      setLoading(false);
+      return;
     }
-    
+  
     let q: Query | null = null;
     const gamesCollectionRef = collection(firestore, "games");
-
+  
+    // Only teachers and superadmins query the full list of games they own.
+    // Students do not query the /games collection at all here.
     if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-      // For students, we fetch all games they can potentially join that are in progress.
-      q = query(gamesCollectionRef, where("status", "==", "En curso"));
+      // For students, we set games to empty and stop loading.
+      // Their specific game data will be loaded via useStudentGame hook.
+      setGames([]);
+      setLoading(false);
+      return;
     }
-
-    const unsubscribe = onSnapshot(q, 
+  
+    const unsubscribe = onSnapshot(
+      q,
       (querySnapshot) => {
-        const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+        const gamesData = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as Game)
+        );
         setGames(gamesData);
         setLoading(false);
       },
       (error) => {
+        console.error("Error fetching games:", error);
         setGames([]);
         setLoading(false);
         const permissionError = new FirestorePermissionError({
@@ -176,9 +184,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         errorEmitter.emit('permission-error', permissionError);
       }
     );
-
+  
     return () => unsubscribe();
-    
   }, [isAuthLoading, user, firestore]);
 
   useEffect(() => {

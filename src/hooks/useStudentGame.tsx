@@ -93,101 +93,86 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
   const [fullStudentState, setFullStudentState] = useState<FullStudentState | null>(null);
-  const [internalGameLoading, setInternalGameLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [debugStatus, setDebugStatus] = useState("Iniciando Hook...");
-  const isMounted = useRef(true);
 
-  
-  // Effect to listen to the current student's game state document in Firestore
+
   useEffect(() => {
-    isMounted.current = true;
-    
-    // 1. Fase Auth
     if (isAuthLoading) {
-      setDebugStatus("Esperando a Firebase Auth...");
+      setDebugStatus("Esperando autenticación...");
+      setIsLoading(true);
       return;
     }
 
     if (!user) {
-      setDebugStatus("Auth terminada: No hay usuario.");
+      setDebugStatus("Auth OK, no hay usuario. Carga finalizada.");
+      setIsLoading(false);
       setStudentGameState(null);
-      setInternalGameLoading(false);
+      setFullStudentState(null);
       return;
     }
 
-    // 2. Fase Firestore
-    setDebugStatus(`Usuario detectado (${user.email}). Conectando a Firestore...`);
-    setInternalGameLoading(true);
+    if (!firestore) {
+      setDebugStatus("Usuario OK, esperando Firestore...");
+      setIsLoading(true);
+      return;
+    }
 
-    const safetyTimer = setTimeout(() => {
-      if (isMounted.current && internalGameLoading) {
-        setDebugStatus("⚠️ ALERTA: Tiempo de espera agotado (5s). Firestore no responde o hay un problema de reglas.");
-        setInternalGameLoading(false); // Forzamos salida para que no se quede blanco
+    setDebugStatus(`Usuario y Firestore OK. Suscribiendo a /studentGames/${user.id}`);
+    const studentGameRef = doc(firestore, "studentGames", user.id);
+    const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setStudentGameState(docSnap.data() as StudentGameState);
+        setDebugStatus("Datos del estudiante recibidos.");
+      } else {
+        const initialData = { ...initialStudentState, userId: user.id };
+        setDoc(studentGameRef, initialData);
+        setStudentGameState(initialData);
+        setDebugStatus("Documento de estudiante no encontrado, creando uno nuevo.");
       }
-    }, 5000);
+    }, (error) => {
+      console.error("Error en onSnapshot de studentGames:", error);
+      setDebugStatus(`ERROR al leer studentGames: ${error.message}`);
+      setIsLoading(false);
+    });
 
-    const studentDocRef = doc(firestore, "studentGames", user.id);
+    return () => unsubscribe();
+  }, [isAuthLoading, user, firestore]);
 
-    const unsubscribe = onSnapshot(
-      studentDocRef,
-      (docSnap) => {
-        clearTimeout(safetyTimer);
-        if (!isMounted.current) return;
-
-        if (docSnap.exists()) {
-          setDebugStatus("✅ Datos del estudiante recibidos de Firestore. Componiendo estado...");
-          setStudentGameState(docSnap.data() as StudentGameState);
-        } else {
-          setDebugStatus("ℹ️ Documento del estudiante no existe en Firestore. Creando uno nuevo...");
-          const initialData = { ...initialStudentState, userId: user.id };
-          setDoc(studentDocRef, initialData); // Create the doc
-          setStudentGameState(initialData); // Set the state locally
-        }
-      },
-      (error) => {
-        clearTimeout(safetyTimer);
-        setDebugStatus(`❌ ERROR FIRESTORE: ${error.message} (Código: ${error.code})`);
-        console.error(error);
-        
-        if (isMounted.current) {
-            setStudentGameState({ ...initialStudentState, userId: user.id });
-            setInternalGameLoading(false);
-        }
-      }
-    );
-
-    return () => {
-      isMounted.current = false;
-      clearTimeout(safetyTimer);
-      unsubscribe();
-    };
-  }, [user, isAuthLoading, firestore]);
-
-  // Effect to derive the full student state by combining studentGameState and the global game data
   useEffect(() => {
-    // Wait until all foundational data is loaded
-    if (gamesLoading || !studentGameState) {
-      if(gamesLoading) setDebugStatus("Esperando la lista de partidas globales...");
+    if (gamesLoading) {
+      setDebugStatus("Cargando lista de partidas...");
+      setIsLoading(true);
       return;
     }
     
+    if (!studentGameState) {
+      // If auth is done but we have no studentGameState, the user is new/logged out.
+      // We can consider loading finished.
+      if(!isAuthLoading){
+        setIsLoading(false);
+        setDebugStatus("Estado del estudiante es nulo. Carga finalizada.");
+      }
+      return;
+    }
+
     const { gameId, teamName, status } = studentGameState;
     
-    setDebugStatus(`Estado base del estudiante: ${status}, Partida: ${gameId || 'Ninguna'}`);
-
-    if (!gameId || status !== 'joined') {
+    if (status !== 'joined' || !gameId) {
       setFullStudentState({ ...studentGameState, decisions: initialRoundDecisions });
-      setInternalGameLoading(false);
-      setDebugStatus(`Finalizado: El estudiante no está en una partida. Estado: ${status}`);
+      setIsLoading(false);
+      setDebugStatus(`Estudiante no está en partida. Estado: ${status}. Carga finalizada.`);
       return;
     }
 
     const gameData = games.find(g => g.id === gameId);
 
     if (!gameData) {
-        setDebugStatus(`⚠️ Advertencia: El estudiante cree estar en la partida ${gameId}, pero no se encontró en la lista de partidas cargadas.`);
-        setInternalGameLoading(false);
-        return;
+      // The student thinks they are in a game, but it's not in the 'games' list.
+      // This could be a race condition or the game was deleted.
+      // We wait a bit, but if it persists, we should probably reset the student state.
+      setDebugStatus(`Partida ${gameId} no encontrada en la lista de juegos. Esperando...`);
+      return; // Wait for games list to potentially update.
     }
     
     setDebugStatus(`Partida ${gameId} encontrada. Componiendo estado completo...`);
@@ -215,7 +200,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (perfR0) {
             currentKpis = perfR0.kpis;
         } else {
-            const totalParticipants = gameData.teams * 2;
+            const totalParticipants = gameData.teamNames.length * 2;
              currentKpis = {
                 cash: gameData.initialFunds,
                 personnelCost: 240000, 
@@ -246,10 +231,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       isBlindRound,
     });
     
-    setInternalGameLoading(false);
-    setDebugStatus(`✅ Carga completa. Estado final: ${status}.`);
+    setIsLoading(false);
+    setDebugStatus(`✅ Carga completa.`);
 
-  }, [studentGameState, games, gamesLoading]);
+  }, [studentGameState, games, gamesLoading, isAuthLoading]);
 
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -263,7 +248,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       gameId, gameName, teamName
     };
   
-    setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
+    await setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: `studentGames/${user.id}`,
         operation: 'update',
@@ -277,7 +262,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
     };
   
-    updateDoc(gameRef, joinRequestData, { merge: true }).catch(async (serverError) => {
+    await updateDoc(gameRef, joinRequestData).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: `games/${gameId}`,
         operation: 'update',
@@ -285,8 +270,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-    
-    router.push('/student/dashboard');
   };
   
 
@@ -344,11 +327,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
     
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) {
-      throw new Error("Game document not found, cannot save decisions.");
-    }
-    const gameData = gameDoc.data();
     const round = fullStudentState.round;
     const teamName = fullStudentState.teamName;
     
@@ -365,7 +343,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };
 
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
+    await updateDoc(gameRef, updateData).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: gameRef.path,
           operation: 'update',
@@ -406,7 +384,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         planConfirmed: newPlan.confirmed
     };
 
-    setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
+    await setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: `studentGames/${user.id}`,
           operation: 'update',
@@ -418,14 +396,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
   const value = useMemo(() => ({
     studentGame: fullStudentState,
-    isLoading: isAuthLoading || internalGameLoading,
+    isLoading: isLoading,
     requestToJoinGame,
     abandonGame,
     setRoundDecisions,
     saveStudentDecisions,
     setStrategicPlan,
     debugStatus,
-  }), [fullStudentState, isAuthLoading, internalGameLoading, requestToJoinGame, abandonGame, setRoundDecisions, saveStudentDecisions, setStrategicPlan, debugStatus]);
+  }), [fullStudentState, isLoading, requestToJoinGame, abandonGame, setRoundDecisions, saveStudentDecisions, setStrategicPlan, debugStatus]);
 
   return (
     <StudentGameContext.Provider value={value}>
@@ -441,5 +419,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

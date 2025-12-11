@@ -15,23 +15,37 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isLoading = isAuthLoading || isStudentGameLoading;
+
   useEffect(() => {
-    if (!isAuthLoading && !user) {
-        router.push('/');
-        return;
+    // Wait until all loading is complete before making any redirection decisions
+    if (isLoading) {
+      return;
     }
-    
-    if (!isStudentGameLoading && studentGame) {
-      if (studentGame.status === 'no-game' && pathname !== '/student/join-game') {
+
+    // If loading is done and there's no user, redirect to login
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    // If loading is done and we have the student's game state
+    if (studentGame) {
+      const isJoinGamePage = pathname === '/student/join-game';
+      
+      if (studentGame.status === 'no-game' && !isJoinGamePage) {
+        // If not in a game, they MUST be on the join game page
         router.push('/student/join-game');
-      } else if (studentGame.status === 'joined' && pathname === '/student/join-game') {
+      } else if ((studentGame.status === 'joined' || studentGame.status === 'pending') && isJoinGamePage) {
+        // If they are in a game (or pending) and land on the join page, redirect them away
         router.push('/student/dashboard');
       }
     }
-  }, [user, studentGame, isAuthLoading, isStudentGameLoading, router, pathname]);
+    
+  }, [user, studentGame, isLoading, router, pathname]);
 
 
-  if (isAuthLoading || isStudentGameLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -39,6 +53,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If the user is pending, show the pending message on any page.
   if (studentGame?.status === 'pending') {
     return (
         <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -57,15 +72,17 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (studentGame?.status === 'joined') {
+  // If the user is joined, let them see the content.
+  if (studentGame?.status === 'joined' && pathname !== '/student/join-game') {
       return <>{children}</>;
   }
 
-  if (pathname === '/student/join-game') {
+  // If the user has no game, only let them see the join game page.
+  if (studentGame?.status === 'no-game' && pathname === '/student/join-game') {
       return <>{children}</>;
   }
 
-  // Fallback for redirection or initial load
+  // Fallback loader during the brief moment of redirection.
   return (
     <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
        <Loader2 className="h-12 w-12 animate-spin text-primary" />

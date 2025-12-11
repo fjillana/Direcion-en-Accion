@@ -26,11 +26,11 @@ export default function JoinGamePage() {
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
 
   useEffect(() => {
-    // If the student is already in a game, redirect them to the dashboard.
-    if (studentGame?.status === 'joined' || studentGame?.status === 'pending') {
+    // If the student is already in a game or pending, they should not be on this page.
+    if (!isLoading && studentGame?.status && ['joined', 'pending'].includes(studentGame.status)) {
       router.push('/student/dashboard');
     }
-  }, [studentGame, router]);
+  }, [studentGame, isLoading, router]);
 
   useEffect(() => {
     if (!isLoading && games && games.length === 1) {
@@ -50,7 +50,7 @@ export default function JoinGamePage() {
     const selectedGame = games.find(g => g.id === selectedGameId);
     if (selectedGame) {
         requestToJoinGame(selectedGameId, selectedGame.name, teamName);
-        // The redirection will be handled by the effect once the state updates
+        // The redirection will be handled by the effect once the state updates to 'pending'
     }
   };
 

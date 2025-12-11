@@ -142,21 +142,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // This effect runs when games data is available and the student's gameId is set.
-    if (studentGameState.gameId && !gamesLoading && games.length > 0) {
-        const gameData = games.find(g => g.id === studentGameState.gameId);
+    if (studentGameState.gameId && !gamesLoading && games) {
+        const gameExists = games.some(g => g.id === studentGameState.gameId);
         
         // If the game doesn't exist in the 'games' list anymore (e.g., was deleted), reset the student's state.
-        if (!gameData && studentGameState.status !== 'no-game') {
+        if (!gameExists && studentGameState.status !== 'no-game') {
             const resetState: StudentGameState = { ...initialStudentState, userId: user.id };
             if(firestore) {
+              // Using set with merge to ensure a clean reset without overwriting unrelated fields.
               setDoc(doc(firestore, "studentGames", user.id), resetState, { merge: true });
             }
-            // By setting studentGameState, we trigger a re-render cycle with the corrected state.
+            // Update local state to immediately reflect the change and trigger re-evaluation.
             setStudentGameState(resetState); 
-            return;
+            return; // Exit to wait for the next render cycle with the corrected state.
         }
 
+        const gameData = games.find(g => g.id === studentGameState.gameId);
         // If the student is 'pending' but the teacher already accepted them, sync their status.
         if (studentGameState.status === 'pending' && gameData?.teamNames.includes(studentGameState.teamName || '')) {
             if(firestore) {

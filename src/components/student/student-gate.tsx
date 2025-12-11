@@ -17,17 +17,34 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const isLoading = isAuthLoading || isStudentGameLoading;
 
   useEffect(() => {
-    // Redirect unauthenticated users to the login page.
-    if (!isAuthLoading && !user) {
-      router.push('/');
+    // This effect handles redirections AFTER the loading state is resolved.
+    if (isLoading) {
+      return; // Do nothing while loading
     }
 
-    // Redirect a 'joined' student away from the 'join-game' page.
-    if (pathname === '/student/join-game' && studentGame?.status === 'joined') {
-      router.push('/student/dashboard');
+    // Redirect unauthenticated users
+    if (!user) {
+      router.push('/');
+      return;
     }
     
-  }, [user, isAuthLoading, router, pathname, studentGame?.status]);
+    // Logic for authenticated students
+    if (user.role === 'student') {
+        const isJoined = studentGame?.status === 'joined';
+        const isPending = studentGame?.status === 'pending';
+        const isOnJoinPage = pathname === '/student/join-game';
+        
+        // If joined or pending, they should be on the dashboard, not the join page.
+        if ((isJoined || isPending) && isOnJoinPage) {
+            router.push('/student/dashboard');
+        }
+        // If not in a game, they should be on the join page.
+        else if (!isJoined && !isPending && !isOnJoinPage) {
+            router.push('/student/join-game');
+        }
+    }
+    
+  }, [user, studentGame, isLoading, router, pathname]);
 
   // Loading screen with diagnostics.
   if (isLoading) {
@@ -66,22 +83,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If on the join-game page and not joined, show the page.
-  if (pathname === '/student/join-game') {
-      return <>{children}</>;
-  }
-
-  // If the student is joined, show the protected content.
-  if (studentGame?.status === 'joined') {
-    return <>{children}</>;
-  }
-
-  // Fallback: If for some reason we get here without a valid state
-  // (e.g., user navigates manually to a protected URL without a game),
-  // show a loader while the useEffect logic redirects.
-  return (
-    <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
-       <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  );
+  // If the user is authenticated and loading is finished, render the children.
+  // The useEffect above will handle any necessary redirections.
+  return <>{children}</>;
 }

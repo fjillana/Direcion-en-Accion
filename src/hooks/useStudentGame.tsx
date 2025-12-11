@@ -85,7 +85,7 @@ const initialRoundDecisions: RoundDecisions = {
 };
 
 
-export function StudentGameProvider({ children }: { children: React.ReactNode }) {
+export function StudentGameProvider({ children }: { children: ReactNode }) {
   const { confirmStudentDecisions, updateGame } = useGames();
   const { user, isLoading: isAuthLoading } = useAuth();
   const firestore = useFirestore();
@@ -370,5 +370,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

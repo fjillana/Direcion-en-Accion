@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch, onSnapshot, query, where } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, getDocs, arrayUnion, serverTimestamp, writeBatch, onSnapshot, query, where, Query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -138,39 +138,37 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!firestore) {
-      return; // Wait for Firestore to be available
+    if (!firestore || isAuthLoading) {
+        setLoading(true);
+        return;
     }
 
-    if (isAuthLoading) {
-      setLoading(true);
-      return; // Wait for auth state to be resolved
+    // No user, no games to fetch, we are done loading.
+    if (!user) {
+        setGames([]);
+        setLoading(false);
+        return;
     }
-
-    const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
-    if (storedActiveId) {
-      setActiveGameIdState(JSON.parse(storedActiveId));
-    }
-
-    let q: Query;
+    
+    let q: Query | null = null;
     const gamesCollectionRef = collection(firestore, "games");
 
-    if (user?.role === 'teacher' || user?.role === 'superadmin') {
+    if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-      // For students or unauthenticated users, we fetch all games.
-      q = query(gamesCollectionRef);
+      // For students, we fetch all games they can potentially join that are in progress.
+      q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
 
     const unsubscribe = onSnapshot(q, 
       (querySnapshot) => {
         const gamesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
         setGames(gamesData);
-        setLoading(false); // Data is loaded, stop loading.
+        setLoading(false);
       },
       (error) => {
         setGames([]);
-        setLoading(false); // Error occurred, stop loading.
+        setLoading(false);
         const permissionError = new FirestorePermissionError({
           path: 'games',
           operation: 'list',
@@ -182,6 +180,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
     
   }, [isAuthLoading, user, firestore]);
+
+  useEffect(() => {
+    const storedActiveId = localStorage.getItem(ACTIVE_GAME_ID_STORAGE_KEY);
+    if (storedActiveId) {
+      setActiveGameIdState(JSON.parse(storedActiveId));
+    }
+  }, []);
 
 
   const addGame = async (game: Omit<Game, 'id' | 'createdBy'>) => {

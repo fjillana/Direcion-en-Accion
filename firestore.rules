@@ -1,14 +1,48 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
+  
+    // Función para verificar si el usuario es el propietario del documento
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Función para verificar si el usuario es un profesor o superadmin
+    function isTeacherOrSuperAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'superadmin'];
+    }
+
+    // --- Reglas para la colección `users` ---
+    match /users/{userId} {
+      // Un usuario puede leer su propio perfil.
+      // Un profesor/superadmin puede leer cualquier perfil (para gestionar usuarios).
+      allow read: if isOwner(userId) || isTeacherOrSuperAdmin();
+      // Un usuario puede crear y actualizar su propio perfil.
+      allow write: if isOwner(userId);
+    }
+    
+    // --- Reglas para la colección `studentGames` ---
+    match /studentGames/{userId} {
+      // Un estudiante puede leer y escribir su propio estado de juego.
+      allow read, write: if isOwner(userId);
+    }
+
+    // --- Reglas para la colección `games` ---
+    match /games/{gameId} {
+      // Lectura:
+      // 1. El creador (profesor) puede leer su propio juego.
+      // 2. Un estudiante que pertenece al juego puede leerlo.
+      allow read: if resource.data.createdBy == request.auth.uid || get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
+      
+      // Escritura:
+      // - Creación: Solo un profesor puede crear un juego, y debe ser el propietario.
+      allow create: if isTeacherOrSuperAdmin() && request.resource.data.createdBy == request.auth.uid;
+      // - Actualización: El profesor creador puede actualizarlo. Un estudiante puede actualizar las decisiones de su equipo.
+      allow update: if isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid;
+      // - Eliminación: Solo el profesor creador puede eliminarlo.
+      allow delete: if isTeacherOrSuperAdmin() && resource.data.createdBy == request.auth.uid;
     }
   }
 }

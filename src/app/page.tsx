@@ -29,11 +29,11 @@ export default function Home() {
         router.push('/teacher/dashboard');
       } else if (user.role === 'superadmin') {
         router.push('/superadmin/dashboard');
-      } else if (user.role === 'student' && studentGame) {
+      } else if (user.role === 'student') {
         // Para estudiantes, studentGame ya tiene su estado definitivo.
-        if (studentGame.status === 'joined' || studentGame.status === 'pending') {
+        if (studentGame?.status === 'joined' || studentGame?.status === 'pending') {
           router.push('/student/dashboard');
-        } else { // 'no-game'
+        } else { // 'no-game' o null
           router.push('/student/join-game');
         }
       }

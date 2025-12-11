@@ -16,24 +16,13 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const isLoading = isAuthLoading || isStudentGameLoading;
 
   useEffect(() => {
-    // 1. No tomar ninguna decisión de enrutamiento mientras algo esté cargando.
-    // Esta es la barrera clave contra la condición de carrera.
-    if (isLoading) {
-      return;
-    }
-
-    // 2. Si la carga ha terminado y NO hay usuario, esta ruta no debería ser accesible.
-    if (!user) {
+    // This gate now primarily handles cases where the user somehow ends up
+    // on a protected route without being logged in. The initial routing logic
+    // is now handled by the root page.tsx.
+    if (!isAuthLoading && !user) {
         router.push('/');
-        return;
     }
-
-    // 3. Si la carga ha terminado y el estudiante NO tiene partida, y NO está ya en la página de unirse, redirigir allí.
-    if (studentGame?.status === 'no-game' && window.location.pathname !== '/student/join-game') {
-        router.push('/student/join-game');
-    }
-
-  }, [user, studentGame, isLoading, router]);
+  }, [user, isAuthLoading, router]);
 
   // Pantalla de carga con diagnóstico visual.
   if (isLoading) {
@@ -43,6 +32,11 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
             <h1 className="text-xl font-bold">Cargando tu partida...</h1>
             <p className="text-muted-foreground">Esto solo tardará un momento.</p>
+             {debugStatus && (
+                <div className="mt-4 bg-black text-green-400 p-2 rounded font-mono text-xs max-w-md w-full border border-gray-400 shadow-lg">
+                    <p><strong>ESTADO:</strong> {debugStatus}</p>
+                </div>
+            )}
         </div>
       </div>
     );
@@ -67,6 +61,16 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // Si estamos en la página de unirse a partida, la mostramos sin comprobar si está en una partida
+  if (window.location.pathname === '/student/join-game') {
+      if(studentGame?.status === 'joined'){
+          router.push('/student/dashboard');
+          return null;
+      }
+      return <>{children}</>;
+  }
+
+
   // Si la carga ha terminado y el estudiante está en una partida
   if (studentGame?.status === 'joined') {
     return <>{children}</>;

@@ -53,6 +53,7 @@ export interface TeamPerformanceData {
 export type RoundSettings = {
   investments: Investment[];
   teamCrises: { teamName: string; crisisIds: string[] }[];
+  isBlind?: boolean;
 };
 
 export type GameMessage = {
@@ -111,7 +112,7 @@ interface GamesContextType {
   updateGame: (gameId: string, updatedGame: Partial<Omit<Game, 'id'>>) => Promise<void>;
   updateReport: (gameId: string, round: number, teamName: string, reportData: any) => Promise<void>;
   updateTeamPerformance: (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => Promise<void>;
-  updateRoundSettings: (gameId: string, round: number, settings: RoundSettings) => Promise<void>;
+  updateRoundSettings: (gameId: string, currentRound: number, settings: RoundSettings, nextRoundSettings: Partial<RoundSettings>) => Promise<void>;
   updateTeamKpis: (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => Promise<void>;
   addMessage: (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => Promise<void>;
   markMessageAsRead: (gameId: string, messageId: string, userId: string) => Promise<void>;
@@ -398,54 +399,52 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const updateRoundSettings = async (gameId: string, round: number, settings: RoundSettings) => {
+  const updateRoundSettings = async (gameId: string, currentRound: number, settings: RoundSettings, nextRoundSettings: Partial<RoundSettings>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
+    
+    const updatePayload: Record<string, any> = {
+        [`roundSettings.${currentRound}`]: settings
+    };
+
+    const nextRound = currentRound + 1;
+    if (nextRoundSettings) {
+        updatePayload[`roundSettings.${nextRound}`] = nextRoundSettings;
+    }
+    
+    // Manage crisis messages
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
-
     const gameData = gameDoc.data();
-    const newSettingsState = { ...(gameData.roundSettings || {}) };
     
-    const existingCrises = newSettingsState[round]?.teamCrises || [];
-    const manualCrises = settings.teamCrises;
-    const mergedCrises = [...existingCrises];
-
-    manualCrises.forEach(manualCrisis => {
-      const existingIndex = mergedCrises.findIndex(c => c.teamName === manualCrisis.teamName);
-      if (existingIndex > -1) {
-        const combinedIds = [...new Set([...mergedCrises[existingIndex].crisisIds, ...manualCrisis.crisisIds])];
-        mergedCrises[existingIndex].crisisIds = combinedIds;
-      } else {
-        mergedCrises.push(manualCrisis);
-      }
-    });
-
-    newSettingsState[round] = { ...settings, teamCrises: mergedCrises };
-
     let newMessages: GameMessage[] = [];
     settings.teamCrises.forEach(newTeamCrisis => {
-      if (newTeamCrisis.crisisIds.length > 0) {
-         newMessages.push({
-           id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
-           from: 'system', to: newTeamCrisis.teamName, title: 'ATENCIÓN: ¡CRISIS!',
-           content: 'Se ha presentado un evento de crisis inesperado. Revisa tu dashboard para tomar una decisión crucial.',
-           type: 'crisis', timestamp: Date.now(), readBy: [],
-         });
-      }
+        const previousCrises = gameData.roundSettings?.[currentRound]?.teamCrises.find((tc: any) => tc.teamName === newTeamCrisis.teamName)?.crisisIds || [];
+        const addedCrises = newTeamCrisis.crisisIds.filter(id => !previousCrises.includes(id));
+        
+        if (addedCrises.length > 0) {
+            newMessages.push({
+                id: `msg-crisis-${Date.now()}-${newTeamCrisis.teamName}`,
+                from: 'system', to: newTeamCrisis.teamName, title: 'ATENCIÓN: ¡CRISIS!',
+                content: 'Se ha presentado un evento de crisis inesperado. Revisa tu dashboard para tomar una decisión crucial.',
+                type: 'crisis', timestamp: Date.now(), readBy: [],
+            });
+        }
     });
 
-    const updatedMessages = [...(gameData.messages || []), ...newMessages];
-    const updateData = { roundSettings: newSettingsState, messages: updatedMessages };
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
+    if (newMessages.length > 0) {
+        updatePayload.messages = arrayUnion(...newMessages);
+    }
+    
+    updateDoc(gameRef, updatePayload, { merge: true }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: gameRef.path,
+            operation: 'update',
+            requestResourceData: updatePayload,
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
-  };
+};
 
   const updateTeamKpis = async (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => {
     if (!firestore) return;

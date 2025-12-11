@@ -59,9 +59,10 @@ export function Leaderboard() {
     if (!game || !game.performance) return [];
 
     const currentRound = game.round;
-    const roundForKpis = game.performance[currentRound] ? currentRound : (currentRound > 0 ? currentRound - 1 : 0);
-    const roundDataForKpis = game.performance[roundForKpis];
-    if (!roundDataForKpis) return [];
+    // Show KPIs from the last completed round. If round 0, there are no KPIs to show from a previous round.
+    const roundForKpis = currentRound > 0 ? currentRound - 1 : -1;
+    
+    const roundDataForKpis = roundForKpis !== -1 ? game.performance[roundForKpis] : [];
 
     const allPerformanceHistory = Object.values(game.performance).flat();
     const teamNames = [...new Set(allPerformanceHistory.map(p => p.name))];

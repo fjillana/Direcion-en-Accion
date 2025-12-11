@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/student/kpi-card";
 import { CrisisForm } from "@/components/student/crisis-form";
 import { CenterDataForm } from "@/components/student/center-data-form";
-import { Lock, Info } from "lucide-react";
+import { Lock, Info, EyeOff } from "lucide-react";
 import { KpiChart } from "@/components/student/kpi-chart";
 import { StudentGate } from "@/components/student/student-gate";
 import { XpSummary } from "@/components/student/xp-summary";
@@ -44,7 +44,7 @@ export default function StudentDashboard() {
   const { studentGame, setRoundDecisions } = useStudentGame();
   const { confirmStudentDecisions } = useGames();
 
-  const { decisions, kpis, performanceHistory, round, planConfirmed } = studentGame || {};
+  const { decisions, kpis, performanceHistory, round, planConfirmed, isBlindRound } = studentGame || {};
   
   const roundConfirmed = decisions?.roundConfirmed || false;
 
@@ -151,7 +151,7 @@ export default function StudentDashboard() {
                    </Button>
               </AlertDescription>
            </Alert>
-           <XpSummary performanceHistory={performanceHistory || []} />
+           {!isBlindRound && <XpSummary performanceHistory={performanceHistory || []} />}
         </div>
        </StudentGate>
     )
@@ -200,119 +200,131 @@ export default function StudentDashboard() {
             <p className="text-xs text-muted-foreground mt-2">Esta acción es irreversible para la ronda actual.</p>
           </div>
         </div>
-
-        <XpSummary performanceHistory={performanceHistory || []} />
         
-        <Card>
-          <CardHeader>
-            <CardTitle>KPIs Actuales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                    <KpiCard title="Saldo de tesorería" value={`${(kpis?.cash || 0).toLocaleString('es-ES')} CC`} {...getTrend(kpiHistoryData.cash || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución del Saldo de Tesorería</DialogTitle>
-                    <DialogDescription>
-                      Historial de la tesorería de tu equipo a lo largo de las rondas.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.cash || []} dataKey="value" unit=" CC" />
-                </DialogContent>
-              </Dialog>
+        {isBlindRound && (
+          <Alert variant="destructive">
+            <EyeOff className="h-4 w-4" />
+            <AlertTitle className="font-bold">Ronda a Ciegas Activada</AlertTitle>
+            <AlertDescription>
+              La información de KPIs, reportes y puntuación está oculta en esta ronda. Toma tus decisiones basándote en los datos del centro y los resultados financieros que puedes deducir.
+            </AlertDescription>
+          </Alert>
+        )}
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                    <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income && kpis.income > 0 ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución del Coste de Personal</DialogTitle>
-                    <DialogDescription>
-                      Historial del ratio de coste de personal sobre ingresos.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.personnelCost || []} dataKey="value" unit="%" />
-                </DialogContent>
-              </Dialog>
+        {!isBlindRound && <XpSummary performanceHistory={performanceHistory || []} />}
+        
+        {!isBlindRound && (
+            <Card>
+            <CardHeader>
+                <CardTitle>KPIs Actuales</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Saldo de tesorería" value={`${(kpis?.cash || 0).toLocaleString('es-ES')} CC`} {...getTrend(kpiHistoryData.cash || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución del Saldo de Tesorería</DialogTitle>
+                        <DialogDescription>
+                        Historial de la tesorería de tu equipo a lo largo de las rondas.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.cash || []} dataKey="value" unit=" CC" />
+                    </DialogContent>
+                </Dialog>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                    <KpiCard title="Nota Media Alumnado" value={`${(kpis?.nma || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución de la Nota Media del Alumnado</DialogTitle>
-                    <DialogDescription>
-                      Historial de la nota media de los alumnos.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.nma || []} dataKey="value" />
-                </DialogContent>
-              </Dialog>
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income && kpis.income > 0 ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución del Coste de Personal</DialogTitle>
+                        <DialogDescription>
+                        Historial del ratio de coste de personal sobre ingresos.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.personnelCost || []} dataKey="value" unit="%" />
+                    </DialogContent>
+                </Dialog>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                      <KpiCard title="Cuota de mercado" value={`${(kpis?.marketShare || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.marketShare || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución de la Cuota de Mercado</DialogTitle>
-                    <DialogDescription>
-                      Historial de la cuota de mercado de tu equipo.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.marketShare || []} dataKey="value" unit="%" />
-                </DialogContent>
-              </Dialog>
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Nota Media Alumnado" value={`${(kpis?.nma || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución de la Nota Media del Alumnado</DialogTitle>
+                        <DialogDescription>
+                        Historial de la nota media de los alumnos.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.nma || []} dataKey="value" />
+                    </DialogContent>
+                </Dialog>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                    <KpiCard title="Moral del personal" value={`${(kpis?.morale || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución de la Moral del Personal</DialogTitle>
-                    <DialogDescription>
-                      Historial de la moral del equipo docente.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.morale || []} dataKey="value" unit="%" />
-                </DialogContent>
-              </Dialog>
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Cuota de mercado" value={`${(kpis?.marketShare || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.marketShare || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución de la Cuota de Mercado</DialogTitle>
+                        <DialogDescription>
+                        Historial de la cuota de mercado de tu equipo.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.marketShare || []} dataKey="value" unit="%" />
+                    </DialogContent>
+                </Dialog>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div>
-                    <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.studentTeacherRatio || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Evolución del Ratio Alumnos/Profesor</DialogTitle>
-                    <DialogDescription>
-                      Historial del ratio de alumnos por cada profesor.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <KpiChart data={kpiHistoryData.studentTeacherRatio || []} dataKey="value" />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Moral del personal" value={`${(kpis?.morale || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución de la Moral del Personal</DialogTitle>
+                        <DialogDescription>
+                        Historial de la moral del equipo docente.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.morale || []} dataKey="value" unit="%" />
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog>
+                    <DialogTrigger asChild>
+                    <div>
+                        <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.studentTeacherRatio || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
+                    </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Evolución del Ratio Alumnos/Profesor</DialogTitle>
+                        <DialogDescription>
+                        Historial del ratio de alumnos por cada profesor.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <KpiChart data={kpiHistoryData.studentTeacherRatio || []} dataKey="value" />
+                    </DialogContent>
+                </Dialog>
+                </div>
+            </CardContent>
+            </Card>
+        )}
         
         <CenterDataForm 
           disabled={roundConfirmed} 
@@ -326,7 +338,7 @@ export default function StudentDashboard() {
           previousTuitionPrice={previousTuitionPrice}
         />
         
-        {lastCrisisReport && (
+        {!isBlindRound && lastCrisisReport && (
           <div className="w-full">
             <CrisisReport report={lastCrisisReport} />
           </div>

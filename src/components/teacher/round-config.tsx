@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash2, Eye } from "lucide-react";
+import { PlusCircle, Trash2, Eye, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +31,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useGame } from "@/hooks/use-game-context";
 import { useGames } from "@/hooks/use-games";
+import { Switch } from "../ui/switch";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
 type TeamName = string;
@@ -52,12 +54,20 @@ export function RoundConfig({
 
   const [roundInvestments, setRoundInvestments] = useState<Investment[]>([]);
   const [teamCrises, setTeamCrises] = useState<{ teamName: string; crisisIds: string[] }[]>([]);
+  const [isBlindRound, setIsBlindRound] = useState(false);
 
   useEffect(() => {
     if (activeGame) {
-      const settings = activeGame.roundSettings?.[activeGame.round];
-      setRoundInvestments(settings?.investments || []);
-      const savedCrises = settings?.teamCrises || [];
+      // Settings for NEXT round will determine if it's blind
+      const nextRound = activeGame.round + 1;
+      const settings = activeGame.roundSettings?.[nextRound];
+      setIsBlindRound(settings?.isBlind || false);
+
+      // Investments are for the CURRENT round to be played by students
+      const currentRoundSettings = activeGame.roundSettings?.[activeGame.round];
+      setRoundInvestments(currentRoundSettings?.investments || []);
+      
+      const savedCrises = currentRoundSettings?.teamCrises || [];
       const currentTeamCrises = allTeams.map(teamName => {
         const found = savedCrises.find(sc => sc.teamName === teamName);
         return found ? found : { teamName, crisisIds: [] };
@@ -89,29 +99,30 @@ export function RoundConfig({
     setInvestmentsDialogOpen(false);
   };
   
-  const handleSendInvestments = () => {
+  const handleSaveChanges = () => {
     if (!activeGame) return;
-    updateRoundSettings(activeGame.id, activeGame.round, {
+
+    // The settings object that will be saved
+    const settingsForCurrentRound = {
         investments: roundInvestments,
-        teamCrises: teamCrises
-    });
+        teamCrises: teamCrises,
+        isBlind: false, // The current round itself is never blind from the teacher's PoV
+    };
+
+    // The settings that will apply to the NEXT round
+    const settingsForNextRound = {
+        ...(activeGame.roundSettings?.[activeGame.round + 1] || { investments: [], teamCrises: [] }),
+        isBlind: isBlindRound,
+    };
+    
+    updateRoundSettings(activeGame.id, activeGame.round, settingsForCurrentRound, settingsForNextRound);
+    
     toast({
-        title: "Inversiones Guardadas",
-        description: `${roundInvestments.length} inversiones han sido guardadas para la ronda actual.`,
+        title: "Configuración Guardada",
+        description: `Los ajustes para la ronda actual y la siguiente han sido guardados.`,
     });
   }
-  
-  const handleSendCrises = () => {
-    if (!activeGame) return;
-    updateRoundSettings(activeGame.id, activeGame.round, {
-        investments: roundInvestments,
-        teamCrises: teamCrises
-    });
-    toast({
-        title: "Crisis Guardadas",
-        description: `Las crisis individuales han sido guardadas para los equipos.`,
-    });
-  }
+
 
   const handleInvestmentCheckboxChange = (
     investmentId: string,
@@ -198,13 +209,35 @@ export function RoundConfig({
   return (
     <>
       <div className="space-y-8">
+        {/* Blind Round Section */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Configuración de Ronda a Ciegas</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>¿Cómo funciona la Ronda a Ciegas?</AlertTitle>
+                    <AlertDescription>
+                        Al activar esta opción, la **siguiente** ronda que jueguen los estudiantes será "a ciegas". No verán KPIs, reportes ni el leaderboard, forzándolos a tomar decisiones con información limitada. El efecto se aplica **después** de procesar la ronda actual.
+                    </AlertDescription>
+                </Alert>
+                <div className="flex items-center space-x-2 mt-4 rounded-lg border p-4">
+                    <Switch id="blind-round-mode" checked={isBlindRound} onCheckedChange={setIsBlindRound} />
+                    <Label htmlFor="blind-round-mode" className="text-base font-medium">
+                        Hacer que la siguiente ronda ({activeGame ? activeGame.round + 1 : 'N+1'}) sea a ciegas
+                    </Label>
+                </div>
+            </CardContent>
+        </Card>
+
         {/* Investments Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Inversiones de la Ronda</CardTitle>
+            <CardTitle>Inversiones de la Ronda {activeGame?.round}</CardTitle>
             <CardDescription>
               Define las inversiones que estarán disponibles para todos los
-              equipos en esta ronda.
+              equipos en la ronda actual.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -256,17 +289,14 @@ export function RoundConfig({
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button onClick={handleSendInvestments}>Guardar y Enviar Inversiones</Button>
-          </CardFooter>
         </Card>
 
         {/* Crises Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Crisis de la Ronda</CardTitle>
+            <CardTitle>Crisis de la Ronda {activeGame?.round}</CardTitle>
             <CardDescription>
-              Asigna una o varias crisis específicas para cada equipo en esta ronda.
+              Asigna una o varias crisis específicas para cada equipo en la ronda actual.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -298,10 +328,13 @@ export function RoundConfig({
                 </p>
             )}
           </CardContent>
-          <CardFooter>
-            <Button onClick={handleSendCrises}>Guardar y Enviar Crisis</Button>
-          </CardFooter>
         </Card>
+        
+        <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm p-4 border-t -mx-8 -mb-8">
+            <div className="max-w-7xl mx-auto flex justify-end">
+                <Button size="lg" onClick={handleSaveChanges}>Guardar Configuración de Ronda</Button>
+            </div>
+        </div>
       </div>
 
       {/* Investments Dialog */}

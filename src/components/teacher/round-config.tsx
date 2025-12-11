@@ -59,7 +59,7 @@ export function RoundConfig({
   useEffect(() => {
     if (activeGame) {
       // Settings for NEXT round will determine if it's blind
-      const nextRound = activeGame.round + 1;
+      const nextRound = activeGame.round;
       const settings = activeGame.roundSettings?.[nextRound];
       setIsBlindRound(settings?.isBlind || false);
 
@@ -102,24 +102,21 @@ export function RoundConfig({
   const handleSaveChanges = () => {
     if (!activeGame) return;
 
-    // The settings object that will be saved
+    // The settings object that will be saved for the current round
     const settingsForCurrentRound = {
         investments: roundInvestments,
         teamCrises: teamCrises,
-        isBlind: false, // The current round itself is never blind from the teacher's PoV
-    };
-
-    // The settings that will apply to the NEXT round
-    const settingsForNextRound = {
-        ...(activeGame.roundSettings?.[activeGame.round + 1] || { investments: [], teamCrises: [] }),
-        isBlind: isBlindRound,
+        isBlind: false, 
     };
     
-    updateRoundSettings(activeGame.id, activeGame.round, settingsForCurrentRound, settingsForNextRound);
+    // We are setting the configuration for the *next* round to be blind
+    const nextRoundIndex = activeGame.round; 
+    
+    updateRoundSettings(activeGame.id, nextRoundIndex, settingsForCurrentRound, isBlindRound);
     
     toast({
         title: "Configuración Guardada",
-        description: `Los ajustes para la ronda actual y la siguiente han sido guardados.`,
+        description: `Los ajustes para la ronda actual han sido guardados. La configuración de ronda a ciegas se aplicará a la siguiente.`,
     });
   }
 
@@ -225,7 +222,7 @@ export function RoundConfig({
                 <div className="flex items-center space-x-2 mt-4 rounded-lg border p-4">
                     <Switch id="blind-round-mode" checked={isBlindRound} onCheckedChange={setIsBlindRound} />
                     <Label htmlFor="blind-round-mode" className="text-base font-medium">
-                        Hacer que la siguiente ronda ({activeGame ? activeGame.round + 1 : 'N+1'}) sea a ciegas
+                        Hacer que la ronda {activeGame ? activeGame.round : 'N'} sea a ciegas
                     </Label>
                 </div>
             </CardContent>

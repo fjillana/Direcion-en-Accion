@@ -3,8 +3,38 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+  
+    // Función para verificar si el usuario es el propietario del documento
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Los usuarios pueden leer y actualizar su propio perfil y estado de juego
+    match /users/{userId} {
+      allow read, update: if isOwner(userId);
+    }
+    match /studentGames/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Reglas para la colección de partidas (games)
+    match /games/{gameId} {
+      // Los profesores (creadores) pueden hacer de todo en sus partidas
+      allow read, write, delete: if request.auth.uid == resource.data.createdBy;
+
+      // Los estudiantes pueden LEER una partida si su documento en studentGames
+      // los vincula a esa partida.
+      allow get: if request.auth != null && get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
+
+      // REGLA CLAVE: Los estudiantes pueden LISTAR partidas SIEMPRE Y CUANDO
+      // la consulta pida explícitamente las que están "En curso".
+      // Esto es para la pantalla de "Unirse a una Partida".
+      allow list: if request.auth != null && request.query.get("status") == "En curso";
+    }
+    
+    // Fallback: denegar todo lo demás
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

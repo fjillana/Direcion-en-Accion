@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useGames } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import type { Game } from "@/hooks/use-games";
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { games: teacherGames, loading: gamesLoadingFromHook } = useGames();
   const { studentGame, requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   
   const firestore = useFirestore();
@@ -33,7 +31,10 @@ export default function JoinGamePage() {
   const router = useRouter();
   
   useEffect(() => {
-    if(!firestore) return;
+    if(!firestore || !user) {
+        setGamesLoading(false);
+        return;
+    }
 
     setGamesLoading(true);
     const q = query(collection(firestore, "games"), where("status", "==", "En curso"));
@@ -44,11 +45,12 @@ export default function JoinGamePage() {
         setGamesLoading(false);
     }, (err) => {
         console.error("Failed to fetch available games:", err);
+        setError("No se pudieron cargar las partidas. Es posible que no tengas permisos o que no haya partidas disponibles.");
         setGamesLoading(false);
     });
 
     return () => unsubscribe();
-  }, [firestore]);
+  }, [firestore, user]);
 
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
@@ -110,7 +112,7 @@ export default function JoinGamePage() {
                     <div className="flex justify-between items-center">
                       <span className="font-semibold">{game.name}</span>
                       <Badge variant={selectedGameId === game.id ? 'secondary' : 'outline'}>
-                        {game.teamNames.length} / {game.teams} equipos
+                        {game.teamNames?.length || 0} / {game.teams} equipos
                       </Badge>
                     </div>
                     <p className="text-sm mt-1">Rondas: {game.numRounds}</p>
@@ -118,7 +120,7 @@ export default function JoinGamePage() {
                 ))
               ) : (
                 <div className="flex items-center justify-center h-full py-4">
-                    <p className="text-center text-sm text-muted-foreground">No hay partidas disponibles en este momento.</p>
+                    <p className="text-center text-sm text-muted-foreground">{error || 'No hay partidas disponibles en este momento.'}</p>
                 </div>
               )}
             </div>
@@ -136,7 +138,7 @@ export default function JoinGamePage() {
             </div>
           )}
 
-          {error && (
+          {error && !availableGames.length && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>

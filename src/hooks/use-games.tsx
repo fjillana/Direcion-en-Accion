@@ -143,21 +143,35 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return;
     }
   
+    // If no user, stop loading and clear games.
     if (!user) {
       setGames([]);
       setLoading(false);
       return;
     }
   
+    // For students, we don't fetch all games to avoid permission errors.
+    // The student's specific game data is handled by useStudentGame.
+    // The page to join games will have its own query.
+    if (user.role === 'student') {
+        setGames([]);
+        setLoading(false);
+        return;
+    }
+
+    // For teachers and superadmins, fetch the games they created.
     let q: Query | null = null;
     const gamesCollectionRef = collection(firestore, "games");
   
     if (user.role === 'teacher' || user.role === 'superadmin') {
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-    } else { // For students, let them see games to join
-      q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
   
+    if (!q) {
+        setLoading(false);
+        return;
+    }
+
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -683,3 +697,4 @@ export function useGames() {
   }
   return context;
 }
+

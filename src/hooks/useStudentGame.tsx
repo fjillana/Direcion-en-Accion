@@ -177,12 +177,17 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
 
   const fullStudentState = useMemo<FullStudentState | null>(() => {
-    if (!studentGameState) return null;
-
-    if (!gameData || studentGameState.status !== 'joined') {
-      return { ...studentGameState, decisions: initialRoundDecisions };
+    if (!studentGameState) {
+      setDebugStatus("Componiendo estado... No hay studentGameState.");
+      return null;
     }
 
+    if (!gameData || studentGameState.status !== 'joined') {
+      setDebugStatus(`Componiendo estado... No hay gameData o status no es 'joined' (es ${studentGameState.status}).`);
+      return { ...studentGameState, decisions: initialRoundDecisions };
+    }
+    
+    setDebugStatus("Componiendo estado... con gameData y studentGameState.");
     const { teamName } = studentGameState;
     const serverRound = gameData.round;
     const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || initialRoundDecisions;
@@ -196,13 +201,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
         if (teamPerformance) {
           performanceHistory.push(teamPerformance);
+          // Get KPIs from the previously completed round.
           if (roundNum === serverRound - 1) { 
             currentKpis = teamPerformance.kpis;
           }
         }
       });
     }
-
+    
+    // Default KPIs for Round 0 if no performance history exists
     if (serverRound === 0 && !currentKpis) {
         currentKpis = {
             cash: gameData.initialFunds,
@@ -213,6 +220,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
+    
+    // If it's a blind round, explicitly set kpis and performanceHistory to undefined
+    // so the UI knows to hide related components.
+    const finalKpis = isBlindRound ? undefined : currentKpis;
+    const finalPerformanceHistory = isBlindRound ? [] : performanceHistory;
 
     return {
       ...studentGameState,
@@ -220,8 +232,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       decisions: decisionsForRound,
       roundSettings: gameData.roundSettings,
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
-      performanceHistory,
-      kpis: currentKpis,
+      performanceHistory: finalPerformanceHistory,
+      kpis: finalKpis,
       isBlindRound,
     };
   }, [studentGameState, gameData]);

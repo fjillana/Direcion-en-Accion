@@ -211,7 +211,7 @@ export default function StudentDashboard() {
 
         {!isBlindRound && <XpSummary performanceHistory={performanceHistory || []} />}
         
-        {!isBlindRound && (
+        {!isBlindRound && kpis && (
             <Card>
             <CardHeader>
                 <CardTitle>KPIs Actuales</CardTitle>
@@ -221,7 +221,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Saldo de tesorería" value={`${(kpis?.cash || 0).toLocaleString('es-ES')} CC`} {...getTrend(kpiHistoryData.cash || [])} />
+                        <KpiCard title="Saldo de tesorería" value={`${(kpis.cash || 0).toLocaleString('es-ES')} CC`} {...getTrend(kpiHistoryData.cash || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>
@@ -238,7 +238,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Coste personal / Ingresos" value={`${kpis?.income && kpis.income > 0 ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
+                        <KpiCard title="Coste personal / Ingresos" value={`${kpis.income && kpis.income > 0 ? ((kpis.personnelCost / kpis.income) * 100).toFixed(1) : '0.0'}%`} {...getTrend(kpiHistoryData.personnelCost || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>
@@ -255,7 +255,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Nota Media Alumnado" value={`${(kpis?.nma || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
+                        <KpiCard title="Nota Media Alumnado" value={`${(kpis.nma || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.nma || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>
@@ -272,7 +272,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Cuota de mercado" value={`${(kpis?.marketShare || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.marketShare || [])} />
+                        <KpiCard title="Cuota de mercado" value={`${(kpis.marketShare || 0).toFixed(1)}%`} {...getTrend(kpiHistoryData.marketShare || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>
@@ -289,7 +289,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Moral del personal" value={`${(kpis?.morale || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
+                        <KpiCard title="Moral del personal" value={`${(kpis.morale || 0).toFixed(0)}%`} {...getTrend(kpiHistoryData.morale || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>
@@ -306,7 +306,7 @@ export default function StudentDashboard() {
                 <Dialog>
                     <DialogTrigger asChild>
                     <div>
-                        <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis?.studentTeacherRatio || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
+                        <KpiCard title="Ratio Alumnos/Profesor" value={`${(kpis.studentTeacherRatio || 0).toFixed(1)}`} {...getTrend(kpiHistoryData.studentTeacherRatio || [])} />
                     </div>
                     </DialogTrigger>
                     <DialogContent>

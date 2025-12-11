@@ -5,26 +5,31 @@ import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { studentGame, isLoading: isStudentGameLoading, debugStatus } = useStudentGame();
   const router = useRouter();
+  const pathname = usePathname();
 
   const isLoading = isAuthLoading || isStudentGameLoading;
 
   useEffect(() => {
-    // This gate now primarily handles cases where the user somehow ends up
-    // on a protected route without being logged in. The initial routing logic
-    // is now handled by the root page.tsx.
+    // Redirect unauthenticated users to the login page.
     if (!isAuthLoading && !user) {
-        router.push('/');
+      router.push('/');
     }
-  }, [user, isAuthLoading, router]);
 
-  // Pantalla de carga con diagnóstico visual.
+    // Redirect a 'joined' student away from the 'join-game' page.
+    if (pathname === '/student/join-game' && studentGame?.status === 'joined') {
+      router.push('/student/dashboard');
+    }
+    
+  }, [user, isAuthLoading, router, pathname, studentGame?.status]);
+
+  // Loading screen with diagnostics.
   if (isLoading) {
     return (
       <div className="flex flex-col h-[calc(100vh-10rem)] w-full items-center justify-center bg-gray-50 p-4">
@@ -42,7 +47,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si la carga ha terminado y el estudiante está pendiente de aprobación
+  // Pending approval screen.
   if (studentGame?.status === 'pending') {
      return (
         <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -61,24 +66,19 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Si estamos en la página de unirse a partida, la mostramos sin comprobar si está en una partida
-  if (window.location.pathname === '/student/join-game') {
-      if(studentGame?.status === 'joined'){
-          router.push('/student/dashboard');
-          return null;
-      }
+  // If on the join-game page and not joined, show the page.
+  if (pathname === '/student/join-game') {
       return <>{children}</>;
   }
 
-
-  // Si la carga ha terminado y el estudiante está en una partida
+  // If the student is joined, show the protected content.
   if (studentGame?.status === 'joined') {
     return <>{children}</>;
   }
 
-  // Fallback: si por alguna razón llegamos aquí sin un estado válido
-  // (p. ej., el usuario navega manualmente a una URL protegida sin partida),
-  // mostramos un loader mientras la lógica del useEffect redirige.
+  // Fallback: If for some reason we get here without a valid state
+  // (e.g., user navigates manually to a protected URL without a game),
+  // show a loader while the useEffect logic redirects.
   return (
     <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
        <Loader2 className="h-12 w-12 animate-spin text-primary" />

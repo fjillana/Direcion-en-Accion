@@ -177,6 +177,20 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
     setSelectedRound(latestRoundNumber);
   }, [latestRoundNumber]);
 
+  const selectedRoundData = useMemo(() => {
+    return performanceHistory.find(p => p.round === selectedRound);
+  }, [performanceHistory, selectedRound]);
+
+  const averageXp = useMemo(() => {
+    if (!performanceHistory || performanceHistory.length === 0) return '0.0';
+    const totalXp = performanceHistory.reduce((acc, roundData) => acc + roundData.totalXp, 0);
+    return (totalXp / performanceHistory.length).toFixed(1);
+  }, [performanceHistory]);
+  
+  const availableRounds = useMemo(() => {
+      if (!performanceHistory) return [];
+      return [...new Set(performanceHistory.map(p => p.round))].sort((a,b) => a-b);
+  }, [performanceHistory]);
 
   if (!performanceHistory || performanceHistory.length === 0) {
     return (
@@ -196,21 +210,6 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
         </Card>
     );
   }
-  
-  const selectedRoundData = useMemo(() => {
-    return performanceHistory.find(p => p.round === selectedRound);
-  }, [performanceHistory, selectedRound]);
-
-  const xpRonda = selectedRoundData?.totalXp || 0;
-
-  const averageXp = useMemo(() => {
-    const totalXp = performanceHistory.reduce((acc, roundData) => acc + roundData.totalXp, 0);
-    return (totalXp / performanceHistory.length).toFixed(1);
-  }, [performanceHistory]);
-  
-  const availableRounds = useMemo(() => {
-      return [...new Set(performanceHistory.map(p => p.round))].sort((a,b) => a-b);
-  }, [performanceHistory]);
 
   if (!selectedRoundData) {
       return (
@@ -221,6 +220,7 @@ export function XpSummary({ performanceHistory }: XpSummaryProps) {
       );
   }
 
+  const xpRonda = selectedRoundData?.totalXp || 0;
 
   return (
     <Card>

@@ -6,7 +6,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
@@ -18,33 +17,33 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   const isLoading = isAuthLoading || isStudentGameLoading;
 
   useEffect(() => {
-    // Wait until all loading is complete before making any redirection decisions
+    // This gate now focuses on protecting routes, not initial redirection.
+    // The root page.tsx handles initial redirection.
     if (isLoading) {
       return;
     }
 
-    // If loading is done and there's no user, redirect to login
-    if (!user) {
-      router.push('/');
-      return;
-    }
-
-    // If loading is done and we have the student's game state
-    if (studentGame) {
+    // If student state is loaded, enforce routing rules.
+    if (studentGame && user) {
       const isJoinGamePage = pathname === '/student/join-game';
       
-      if (studentGame.status === 'no-game' && !isJoinGamePage) {
-        // If not in a game, they MUST be on the join game page
-        router.push('/student/join-game');
-      } else if ((studentGame.status === 'joined' || studentGame.status === 'pending') && isJoinGamePage) {
-        // If they are in a game (or pending) and land on the join page, redirect them away
+      // If student has a game but is on the join page, redirect to dashboard.
+      if ((studentGame.status === 'joined' || studentGame.status === 'pending') && isJoinGamePage) {
         router.push('/student/dashboard');
       }
+      
+      // If student has no game but is NOT on the join page, redirect them there.
+      else if (studentGame.status === 'no-game' && !isJoinGamePage) {
+        router.push('/student/join-game');
+      }
+    } else if (!user) {
+      // If no user is logged in, send to login page.
+      router.push('/');
     }
-    
-  }, [user, studentGame, isLoading, router, pathname]);
 
+  }, [studentGame, user, isLoading, router, pathname]);
 
+  // While loading, always show a loader.
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -53,7 +52,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If the user is pending, show the pending message on any page.
+  // If the user is pending, show the pending message on any student page.
   if (studentGame?.status === 'pending') {
     return (
         <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -72,17 +71,13 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If the user is joined, let them see the content.
-  if (studentGame?.status === 'joined' && pathname !== '/student/join-game') {
+  // If state is loaded and routing rules have been checked, show the children.
+  // The useEffect above will handle redirection if the user is on the wrong page.
+  if (studentGame) {
       return <>{children}</>;
   }
 
-  // If the user has no game, only let them see the join game page.
-  if (studentGame?.status === 'no-game' && pathname === '/student/join-game') {
-      return <>{children}</>;
-  }
-
-  // Fallback loader during the brief moment of redirection.
+  // Fallback loader for any brief transitional state.
   return (
     <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
        <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -137,24 +137,30 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const [activeGameId, setActiveGameIdState] = useState<string | null>(null);
   
   useEffect(() => {
-    if (!firestore || isAuthLoading || !user) {
+    if (!firestore || isAuthLoading) {
       setLoading(true);
-      if(!isAuthLoading && !user) {
+      return;
+    }
+    
+    // If no user, no games to fetch.
+    if (!user) {
         setGames([]);
         setLoading(false);
-      }
-      return;
+        return;
     }
   
     const gamesCollectionRef = collection(firestore, "games");
     let q: Query;
-
-    if (user.role === 'student') {
-        // Students should only be able to see games available to join
-        q = query(gamesCollectionRef, where("status", "==", "En curso"));
+    
+    // Teachers and superadmins see the games they created
+    if (user.role === 'teacher' || user.role === 'superadmin') {
+      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-        // Teachers and Superadmins see the games they created
-        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+      // Students don't fetch the global list of games here anymore.
+      // This is handled in `join-game/page.tsx` with a specific query.
+      setGames([]);
+      setLoading(false);
+      return;
     }
   
     const unsubscribe = onSnapshot(
@@ -170,11 +176,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         console.error(`Error fetching games for role ${user.role}:`, error);
         setGames([]);
         setLoading(false);
-        const permissionError = new FirestorePermissionError({
-          path: 'games',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
       }
     );
   
@@ -194,26 +195,13 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         throw new Error("Usuario no autenticado o Firestore no está disponible.");
     }
     const gameWithOwner = { ...game, createdBy: user.id };
-    addDoc(collection(firestore, "games"), gameWithOwner).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: 'games',
-        operation: 'create',
-        requestResourceData: gameWithOwner,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await addDoc(collection(firestore, "games"), gameWithOwner);
   };
 
   const removeGame = async (gameId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "games", gameId);
-    deleteDoc(gameDocRef).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: `games/${gameId}`,
-            operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await deleteDoc(gameDocRef);
   };
   
  const removeTeamFromGame = async (gameId: string, teamNameToRemove: string, userId?: string) => {
@@ -254,34 +242,14 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             unlockedAchievements: [],
         }, { merge: true });
     }
-
-    try {
-        await batch.commit();
-    } catch(error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: gameRef.path,
-                operation: 'update',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            console.error("Error removing team with batch:", error);
-        }
-    }
+    await batch.commit();
 };
 
 
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    updateDoc(gameRef, updatedGame, { merge: true }).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: gameRef.path,
-            operation: 'update',
-            requestResourceData: updatedGame,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updatedGame, { merge: true });
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
@@ -289,44 +257,26 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const gameRef = doc(firestore, "games", gameId);
     
-    try {
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) throw new Error("Game not found");
-        
-        const currentRequests = gameDoc.data().pendingJoinRequests || [];
-        const newTeamNames = requests.map(r => r.teamName);
-        const remainingRequests = currentRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId));
-        
-        // Use a batch to perform all writes atomically
-        const batch = writeBatch(firestore);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) throw new Error("Game not found");
+    
+    const currentRequests = gameDoc.data().pendingJoinRequests || [];
+    const newTeamNames = requests.map(r => r.teamName);
+    const remainingRequests = currentRequests.filter((pr: JoinRequest) => !requests.some(r => r.userId === pr.userId));
+    
+    const batch = writeBatch(firestore);
 
-        // 1. Update the game document
-        batch.update(gameRef, {
-            teamNames: arrayUnion(...newTeamNames),
-            pendingJoinRequests: remainingRequests
-        });
+    batch.update(gameRef, {
+        teamNames: arrayUnion(...newTeamNames),
+        pendingJoinRequests: remainingRequests
+    });
 
-        // 2. Update all student documents
-        for (const req of requests) {
-            const studentRef = doc(firestore, "studentGames", req.userId);
-            // Use set with merge to ensure the document is created if it doesn't exist
-            batch.set(studentRef, { status: "joined" }, { merge: true });
-        }
-
-        // 3. Commit the batch
-        await batch.commit();
-
-    } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: gameRef.path,
-                operation: 'update',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            console.error("Error accepting join requests:", error);
-        }
+    for (const req of requests) {
+        const studentRef = doc(firestore, "studentGames", req.userId);
+        batch.set(studentRef, { status: "joined" }, { merge: true });
     }
+
+    await batch.commit();
   };
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
@@ -356,14 +306,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updateData = { reports: newReports, messages: newMessages };
 
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updateData, { merge: true });
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
@@ -395,14 +338,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         [`roundSettings.${nextRound}`]: existingNextRoundSettings
     };
     
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updateData, { merge: true });
   };
 
   const updateRoundSettings = async (gameId: string, currentRound: number, settings: RoundSettings, isBlindForNextRound: boolean) => {
@@ -417,12 +353,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data();
     
-    const nextRoundIndex = currentRound + 1; 
+    const nextRoundIndex = currentRound; 
     const nextRoundSettings = gameData.roundSettings?.[nextRoundIndex] || { investments: [], teamCrises: [] };
     nextRoundSettings.isBlind = isBlindForNextRound;
     updatePayload[`roundSettings.${nextRoundIndex}`] = nextRoundSettings;
     
-    // Manage crisis messages
     let newMessages: GameMessage[] = [];
     settings.teamCrises.forEach(newTeamCrisis => {
         const previousCrises = gameData.roundSettings?.[currentRound]?.teamCrises.find((tc: any) => tc.teamName === newTeamCrisis.teamName)?.crisisIds || [];
@@ -442,14 +377,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updatePayload.messages = arrayUnion(...newMessages);
     }
     
-    updateDoc(gameRef, updatePayload, { merge: true }).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: gameRef.path,
-            operation: 'update',
-            requestResourceData: updatePayload,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updatePayload, { merge: true });
   };
 
   const updateTeamKpis = async (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => {
@@ -469,15 +397,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const updatedPerformanceData = [...performanceData];
     const currentKpis = updatedPerformanceData[teamIndex].kpis;
     
-    // Merge only the valid number values
     const newKpis = { ...currentKpis };
     for (const key in kpis) {
       const value = kpis[key as keyof TeamKPIs];
       if (typeof value === 'number' && !isNaN(value)) {
         (newKpis as any)[key] = value;
-      } else if (value === null || value === undefined) {
-        // This allows clearing a value if needed, though typically you'd set to 0.
-        // Be cautious with this part.
       }
     }
     updatedPerformanceData[teamIndex].kpis = newKpis;
@@ -497,16 +421,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       ...message, id: `msg-${Date.now()}`, timestamp: Date.now(), readBy: [],
     };
     
-    updateDoc(gameRef, {
+    await updateDoc(gameRef, {
         messages: arrayUnion(newMessage)
-    }, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: { messages: [newMessage] },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    }, { merge: true });
   };
 
   const markMessageAsRead = async (gameId: string, messageId: string, userId: string) => {
@@ -521,31 +438,21 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
       return msg;
     });
-    updateDoc(gameRef, { messages: newMessages }, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: { messages: '...' },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, { messages: newMessages }, { merge: true });
   };
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
 
-    // Create a clean copy of the decisions object
     const decisionsToSave: Partial<TeamDecision> = { ...decisions };
 
-    // Remove any undefined properties to prevent Firestore errors
     Object.keys(decisionsToSave).forEach(keyStr => {
         const key = keyStr as keyof TeamDecision;
         if (decisionsToSave[key] === undefined) {
             delete decisionsToSave[key];
         }
     });
-     // Also clean inside crisisResponse
     if (decisionsToSave.crisisResponse) {
         const crisisResponse: Partial<CrisisDecision> = { ...decisionsToSave.crisisResponse };
         Object.keys(crisisResponse).forEach(keyStr => {
@@ -562,14 +469,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };
   
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: gameRef.path,
-        operation: 'update',
-        requestResourceData: updateData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await updateDoc(gameRef, updateData, { merge: true });
   };
 
   const forceStudentDecisions = async (gameId: string, teamName: string, round: number) => {
@@ -621,20 +521,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const studentGamesRef = collection(firestore, "studentGames");
     const q = query(studentGamesRef, where("gameId", "==", gameId));
 
-    try {
-        const querySnapshot = await getDocs(q);
-        const studentGames = querySnapshot.docs.map(doc => doc.data() as StudentGameState);
-        return studentGames;
-    } catch (error: any) {
-        if(error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: 'studentGames',
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        return [];
-    }
+    const querySnapshot = await getDocs(q);
+    const studentGames = querySnapshot.docs.map(doc => doc.data() as StudentGameState);
+    return studentGames;
+
   }, [firestore]);
 
   const setActiveGameId = (gameId: string | null) => {

@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useGames } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,31 +12,52 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useFirestore } from "@/firebase";
+import { collection, query, where, onSnapshot, type Game } from "firebase/firestore";
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { games, loading: gamesLoading } = useGames();
   const { studentGame, requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const [availableGames, setAvailableGames] = useState<Game[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
+
+  useEffect(() => {
+    if (!firestore) return;
+
+    const q = query(collection(firestore, 'games'), where('status', '==', 'En curso'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
+      setAvailableGames(gamesData);
+      setGamesLoading(false);
+    }, (err) => {
+      console.error("Error fetching available games:", err);
+      setError("No se pudieron cargar las partidas disponibles.");
+      setGamesLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firestore]);
+
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
 
   useEffect(() => {
-    // If the student is already in a game or pending, they should not be on this page.
     if (!isLoading && studentGame?.status && ['joined', 'pending'].includes(studentGame.status)) {
       router.push('/student/dashboard');
     }
   }, [studentGame, isLoading, router]);
 
   useEffect(() => {
-    const availableGames = games.filter(g => g.status === "En curso");
     if (!isLoading && availableGames.length === 1) {
       setSelectedGameId(availableGames[0].id);
     }
-  }, [games, isLoading]);
+  }, [availableGames, isLoading]);
 
   const handleJoinRequest = () => {
     if (!selectedGameId) {
@@ -48,14 +68,11 @@ export default function JoinGamePage() {
       setError("Por favor, introduce un nombre para tu equipo.");
       return;
     }
-    const selectedGame = games.find(g => g.id === selectedGameId);
+    const selectedGame = availableGames.find(g => g.id === selectedGameId);
     if (selectedGame) {
         requestToJoinGame(selectedGameId, selectedGame.name, teamName);
-        // The redirection will be handled by the effect once the state updates to 'pending'
     }
   };
-  
-  const availableGames = games.filter(g => g.status === 'En curso');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">

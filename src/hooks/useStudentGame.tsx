@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, type Game } from "./use-games";
 import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
@@ -99,16 +98,26 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   // Effect 1: Listen to the student's personal game state document
   useEffect(() => {
-    if (!firestore || !user?.id) {
-      if (!isAuthLoading) {
-        setIsLoading(false);
-        setStudentGameState(null);
-      }
+    if (isAuthLoading) {
+      setDebugStatus("Esperando autenticación...");
+      return;
+    }
+    
+    if (!user) {
+      setDebugStatus("Auth lista. No hay usuario.");
+      setIsLoading(false);
+      setStudentGameState(null);
+      setGameData(null);
+      return;
+    }
+
+    if (!firestore) {
+      setDebugStatus("Auth lista. Esperando Firestore...");
       return;
     }
     
     setIsLoading(true);
-    setDebugStatus("Leyendo estado del estudiante...");
+    setDebugStatus(`Usuario detectado (${user.id}). Suscribiendo a studentGames...`);
     const studentGameRef = doc(firestore, "studentGames", user.id);
 
     const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
@@ -117,15 +126,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         setDebugStatus("Estado del estudiante cargado.");
       } else {
         const initialData = { ...initialStudentState, userId: user.id };
-        setDoc(studentGameRef, initialData).catch(async (serverError) => {
-          /* ... error handling ... */
-        });
+        setDoc(studentGameRef, initialData); // Create the doc if it doesn't exist
         setStudentGameState(initialData);
-        setDebugStatus("Creando estado inicial para el estudiante.");
+        setDebugStatus("Documento de estudiante no existía. Creando uno nuevo.");
       }
     }, (error) => {
-      /* ... error handling ... */
-      setIsLoading(false);
+        setDebugStatus(`ERROR en studentGames: ${error.message}`);
+        setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -133,17 +140,24 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   // Effect 2: Once we know the student's gameId, listen to that specific game document
   useEffect(() => {
-    if (!firestore || !studentGameState?.gameId) {
-        if(studentGameState?.status !== 'pending' && studentGameState?.status !== 'joined'){
-            setIsLoading(false);
-            setGameData(null);
-        }
+    if (!firestore || !studentGameState) {
+        return;
+    }
+
+    const { gameId, status } = studentGameState;
+
+    if (!gameId || status !== 'joined') {
+        // If no gameId or not 'joined', we don't need to fetch game data.
+        // We consider the loading process "finished" for now.
+        setGameData(null);
+        setIsLoading(false);
+        setDebugStatus(status === 'pending' ? 'Estado: Pendiente de aprobación' : 'Estado: Sin partida');
         return;
     }
 
     setIsLoading(true);
-    setDebugStatus(`Detectado Game ID: ${studentGameState.gameId}. Suscribiendo a la partida...`);
-    const gameRef = doc(firestore, "games", studentGameState.gameId);
+    setDebugStatus(`Detectado Game ID: ${gameId}. Suscribiendo a la partida...`);
+    const gameRef = doc(firestore, "games", gameId);
 
     const unsubscribe = onSnapshot(gameRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -155,9 +169,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const studentGameRef = doc(firestore, "studentGames", studentGameState.userId);
         setDoc(studentGameRef, { ...initialStudentState, userId: studentGameState.userId }, { merge: true });
       }
-      setIsLoading(false);
+      setIsLoading(false); // Loading is false once we get a response
     }, (error) => {
-      /* ... error handling ... */
+      setDebugStatus(`ERROR en games: ${error.message}`);
       setIsLoading(false);
     });
 
@@ -228,30 +242,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       gameId, gameName, teamName
     };
   
-    setDoc(studentGameRef, studentState, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `studentGames/${user.id}`,
-        operation: 'update',
-        requestResourceData: studentState,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+    await setDoc(studentGameRef, studentState, { merge: true });
   
     const gameRef = doc(firestore, "games", gameId);
     const joinRequestData = {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
     };
   
-    updateDoc(gameRef, joinRequestData, { merge: true }).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: `games/${gameId}`,
-        operation: 'update',
-        requestResourceData: { teamName, userId: user.id },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-    
-    router.push('/student/dashboard');
+    await updateDoc(gameRef, joinRequestData, { merge: true });
+    // No navigation here, useEffect in page.tsx will handle it
   };
   
 
@@ -260,14 +259,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const { gameId, teamName } = studentGameState;
 
-    // First, always reset the student's own state. This ensures they can escape even if the game was deleted.
+    // First, always reset the student's own state.
     const studentGameRef = doc(firestore, "studentGames", user.id);
     await setDoc(studentGameRef, {
         ...initialStudentState,
         userId: user.id,
     }, { merge: true });
 
-    // Then, if the game still exists, try to remove the team from it.
     if (gameId && teamName) {
         const gameDoc = await getDoc(doc(firestore, "games", gameId));
         if (gameDoc.exists()) {
@@ -276,8 +274,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             await updateGame(gameId, { teamNames: updatedTeamNames });
         }
     }
-
-    router.push('/student/join-game');
+    // No navigation here, useEffect in page.tsx will handle it
   };
   
   const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
@@ -297,20 +294,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       };
       confirmStudentDecisions(fullStudentState.gameId!, fullStudentState.teamName!, fullStudentState.round!, finalDecisions);
     }
-    
-    // This is a local update for UI responsiveness before saving to Firestore.
-    // The actual save happens in saveStudentDecisions or when confirming the round.
-    // Re-create the full state object to trigger re-render
-    const newState = {
-      ...fullStudentState,
-      decisions: updatedDecisions
-    };
-    // This part is tricky. In the original code, setFullStudentState was used.
-    // But since fullStudentState is derived, we can't set it directly.
-    // Instead, the decision confirmation triggers a write to Firestore,
-    // which will then be picked up by the onSnapshot listener, updating the state naturally.
-    // For local UI updates, you might need a separate local state for decisions if the latency is an issue.
-    // For now, we rely on the Firestore round-trip.
   };
 
   const saveStudentDecisions = async () => {
@@ -322,7 +305,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const decisionsToSave: Partial<RoundDecisions> = { ...(fullStudentState.decisions || {}) };
 
-    // Firestore does not support `undefined` values.
     if (decisionsToSave.poachingTarget === undefined) {
       delete decisionsToSave.poachingTarget;
     }
@@ -334,15 +316,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave
     };
 
-    updateDoc(gameRef, updateData, { merge: true }).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: gameRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
-    });
+    await updateDoc(gameRef, updateData, { merge: true });
   }
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
@@ -375,26 +349,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         planConfirmed: newPlan.confirmed
     };
 
-    setDoc(studentGameRef, updateData, { merge: true }).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `studentGames/${user.id}`,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    await setDoc(studentGameRef, updateData, { merge: true });
   };
   
   const value = useMemo(() => ({
     studentGame: fullStudentState,
-    isLoading: isAuthLoading || isLoading,
+    isLoading: isLoading,
     requestToJoinGame,
     abandonGame,
     setRoundDecisions,
     saveStudentDecisions,
     setStrategicPlan,
     debugStatus,
-  }), [fullStudentState, isAuthLoading, isLoading, debugStatus]);
+  }), [fullStudentState, isLoading, debugStatus]);
 
   return (
     <StudentGameContext.Provider value={value}>

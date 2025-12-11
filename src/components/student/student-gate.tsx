@@ -1,21 +1,19 @@
 
 "use client";
 
-import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { useAuth } from "@/hooks/use-auth";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isAuthLoading } = useAuth();
   const { studentGame, isLoading: isStudentGameLoading } = useStudentGame();
-  const router = useRouter();
 
   const isLoading = isAuthLoading || isStudentGameLoading;
 
-  // While loading, always show a loader.
+  // Mientras cualquier cosa esté cargando, siempre mostrar un loader.
+  // Este componente ya no se encarga de la redirección, solo de proteger el contenido.
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
@@ -24,17 +22,8 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If loading is finished but there's no user, it means they logged out.
-  // The root page will handle redirection to login. Show a loader to prevent flashes.
-  if (!user) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  // If state is loaded and routing rules have been checked by root page, proceed.
+  // Si la carga ha terminado, la página de inicio ya ha redirigido correctamente.
+  // Ahora solo nos preocupamos de lo que se debe mostrar en esta ruta.
   if (studentGame) {
       if(studentGame.status === 'pending') {
          return (
@@ -54,13 +43,15 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
         );
       }
       
-      // If the student is 'joined', show the content.
+      // Si el estudiante está 'joined', muestra el contenido de la página protegida.
       if (studentGame.status === 'joined') {
         return <>{children}</>;
       }
   }
 
-  // Fallback for any brief transitional state or unexpected issues.
+  // Fallback: si por alguna razón llegamos aquí sin un estado válido
+  // (p. ej., si el usuario navega manualmente a una URL protegida sin partida),
+  // mostramos un loader mientras la página de inicio se encarga de la redirección final.
   return (
     <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
        <Loader2 className="h-12 w-12 animate-spin text-primary" />

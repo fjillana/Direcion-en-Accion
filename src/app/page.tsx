@@ -16,37 +16,36 @@ export default function Home() {
   const isLoading = isAuthLoading || isStudentGameLoading;
 
   useEffect(() => {
-    // Wait until all loading is complete before making any redirection decisions
+    // 1. No tomar ninguna decisión de enrutamiento mientras algo esté cargando.
+    // Esta es la barrera clave contra la condición de carrera.
     if (isLoading) {
       return;
     }
 
-    // SCENARIO 1: User is logged in
+    // 2. Si la carga ha terminado y hay un usuario logueado.
     if (user) {
+      // 3. Tomar decisiones de enrutamiento basadas en el estado final y fiable.
       if (user.role === 'teacher') {
         router.push('/teacher/dashboard');
       } else if (user.role === 'superadmin') {
         router.push('/superadmin/dashboard');
       } else if (user.role === 'student' && studentGame) {
-        // For students, we now have definitive studentGame state
+        // Para estudiantes, studentGame ya tiene su estado definitivo.
         if (studentGame.status === 'joined' || studentGame.status === 'pending') {
           router.push('/student/dashboard');
         } else { // 'no-game'
           router.push('/student/join-game');
         }
       }
-      // If student role but studentGame is somehow null, the loader will continue spinning,
-      // which is a safe state until the data is consistent.
     }
     
-    // SCENARIO 2: No user is logged in (and not loading).
-    // The CourseApp will be rendered, so no action is needed here.
+    // 4. Si la carga ha terminado y no hay usuario, se renderizará CourseApp.
 
   }, [user, studentGame, isLoading, router]);
 
-  // Show a loader if we are in any loading state OR if a user is logged in
-  // but we are still waiting for the redirection logic in useEffect to run.
-  // This prevents any flash of the login page for an already logged-in user.
+  // Muestra un cargador a pantalla completa si estamos en cualquier estado de carga
+  // O si el usuario está logueado pero estamos esperando la redirección.
+  // Esto evita el parpadeo de la página de login para un usuario ya autenticado.
   if (isLoading || user) {
     return (
       <main className="flex min-h-screen w-full items-center justify-center bg-background">
@@ -55,7 +54,7 @@ export default function Home() {
     );
   }
 
-  // Only show the main login page if we're done loading and there is definitively NO user.
+  // Solo muestra la página principal de login si hemos terminado de cargar y está confirmado que NO hay usuario.
   return (
     <main>
       <CourseApp />

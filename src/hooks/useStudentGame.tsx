@@ -85,7 +85,7 @@ const initialRoundDecisions: RoundDecisions = {
 };
 
 
-export function StudentGameProvider({ children }: { children: ReactNode }) {
+export function StudentGameProvider({ children }: { children: React.ReactNode }) {
   const { confirmStudentDecisions, updateGame } = useGames();
   const { user, isLoading: isAuthLoading } = useAuth();
   const firestore = useFirestore();
@@ -147,8 +147,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     const { gameId, status } = studentGameState;
 
     if (!gameId || status !== 'joined') {
-        // If no gameId or not 'joined', we don't need to fetch game data.
-        // We consider the loading process "finished" for now.
         setGameData(null);
         setIsLoading(false);
         setDebugStatus(status === 'pending' ? 'Estado: Pendiente de aprobación' : 'Estado: Sin partida');
@@ -165,11 +163,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         setDebugStatus("Datos de la partida cargados.");
       } else {
         setDebugStatus("La partida del estudiante no existe. Reseteando estado.");
-        // If the game doc doesn't exist, reset the student's state
         const studentGameRef = doc(firestore, "studentGames", studentGameState.userId);
         setDoc(studentGameRef, { ...initialStudentState, userId: studentGameState.userId }, { merge: true });
       }
-      setIsLoading(false); // Loading is false once we get a response
+      setIsLoading(false);
     }, (error) => {
       setDebugStatus(`ERROR en games: ${error.message}`);
       setIsLoading(false);
@@ -179,7 +176,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   }, [firestore, studentGameState]);
 
 
-  // Effect 3: Create the final combined state object for the context
   const fullStudentState = useMemo<FullStudentState | null>(() => {
     if (!studentGameState) return null;
 
@@ -250,7 +246,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     };
   
     await updateDoc(gameRef, joinRequestData, { merge: true });
-    // No navigation here, useEffect in page.tsx will handle it
   };
   
 
@@ -259,7 +254,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     
     const { gameId, teamName } = studentGameState;
 
-    // First, always reset the student's own state.
     const studentGameRef = doc(firestore, "studentGames", user.id);
     await setDoc(studentGameRef, {
         ...initialStudentState,
@@ -274,7 +268,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             await updateGame(gameId, { teamNames: updatedTeamNames });
         }
     }
-    // No navigation here, useEffect in page.tsx will handle it
   };
   
   const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
@@ -377,3 +370,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

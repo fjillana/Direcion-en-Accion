@@ -17,13 +17,20 @@ import { useAuth } from "@/hooks/use-auth";
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { games, loading: gamesLoading } = useGames();
-  const { requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
+  const { studentGame, requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
+
+  useEffect(() => {
+    // If the student is already in a game, redirect them to the dashboard.
+    if (studentGame?.status === 'joined' || studentGame?.status === 'pending') {
+      router.push('/student/dashboard');
+    }
+  }, [studentGame, router]);
 
   useEffect(() => {
     if (!isLoading && games && games.length === 1) {
@@ -43,7 +50,7 @@ export default function JoinGamePage() {
     const selectedGame = games.find(g => g.id === selectedGameId);
     if (selectedGame) {
         requestToJoinGame(selectedGameId, selectedGame.name, teamName);
-        router.push('/student/dashboard');
+        // The redirection will be handled by the effect once the state updates
     }
   };
 
@@ -124,5 +131,3 @@ export default function JoinGamePage() {
     </div>
   );
 }
-
-    

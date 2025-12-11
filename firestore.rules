@@ -3,51 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // --- Helper Functions ---
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isTeacherOrSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'superadmin'];
-    }
-    
-    function isStudentInGame(gameId) {
-      return get(/databases/$(database)/documents/studentGames/$(request.auth.uid)).data.gameId == gameId;
-    }
-
-    // --- Rules for `users` collection ---
-    match /users/{userId} {
-      // A user can read their own profile.
-      // A teacher/superadmin can read any profile (to manage users).
-      allow read: if isOwner(userId) || isTeacherOrSuperAdmin();
-      // A user can create and update their own profile.
-      allow write: if isOwner(userId);
-    }
-    
-    // --- Rules for `studentGames` collection ---
-    match /studentGames/{userId} {
-      // A student can read and write their own game state.
-      // A teacher can also read any student's game state to manage the game.
-      allow read, write: if isOwner(userId) || isTeacherOrSuperAdmin();
-    }
-
-    // --- Rules for `games` collection ---
-    match /games/{gameId} {
-      // READ:
-      // A teacher/superadmin can read any game.
-      // A student can read the specific game they are part of.
-      allow read: if isTeacherOrSuperAdmin() || isStudentInGame(gameId);
-      
-      // WRITE (Create, Update, Delete):
-      // Only a teacher or superadmin who created the game can modify it.
-      allow write: if isTeacherOrSuperAdmin();
-      
-      // LIST:
-      // Allow authenticated users to list games that are currently in progress
-      // This is needed for the "Join Game" screen for students.
-      allow list: if request.auth != null && request.query.where[0][0] == 'status' && request.query.where[0][2] == 'En curso';
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

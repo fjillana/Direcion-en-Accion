@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useGames } from "@/hooks/use-games";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,41 +13,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { useFirestore } from "@/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
 import type { Game } from "@/hooks/use-games";
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { games, loading: gamesLoading } = useGames();
   const { studentGame, requestToJoinGame, isLoading: studentGameLoading } = useStudentGame();
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const firestore = useFirestore();
-
-  const [availableGames, setAvailableGames] = useState<Game[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(true);
-
-  useEffect(() => {
-    if (!firestore) return;
-
-    const q = query(collection(firestore, 'games'), where('status', '==', 'En curso'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const gamesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Game));
-      setAvailableGames(gamesData);
-      setGamesLoading(false);
-    }, (err) => {
-      console.error("Error fetching available games:", err);
-      setError("No se pudieron cargar las partidas disponibles.");
-      setGamesLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore]);
-
 
   const isLoading = gamesLoading || studentGameLoading || isAuthLoading;
+  
+  const availableGames = games.filter(g => g.status === 'En curso');
 
   useEffect(() => {
     if (!isLoading && studentGame?.status && ['joined', 'pending'].includes(studentGame.status)) {
@@ -129,13 +109,13 @@ export default function JoinGamePage() {
             </div>
           )}
 
-          {error && !availableGames.length ? (
+          {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          ): null}
+          )}
 
         </CardContent>
         <CardFooter>

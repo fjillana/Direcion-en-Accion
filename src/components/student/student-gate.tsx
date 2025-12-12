@@ -32,7 +32,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
     if (user.role === 'student') {
         const isJoined = studentGame?.status === 'joined';
         const isPending = studentGame?.status === 'pending';
-        const isOnJoinPage = pathname === '/student/join-game';
+        const isOnJoinPage = pathname.includes('/join-game');
         
         // If joined or pending, they should be on the dashboard, not the join page.
         if ((isJoined || isPending) && isOnJoinPage) {
@@ -40,7 +40,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
         }
         // If not in a game, they should be on the join page.
         else if (!isJoined && !isPending && !isOnJoinPage) {
-            router.push('/student/join-game');
+            router.push('/join-game');
         }
     }
     
@@ -49,7 +49,7 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
   // Loading screen with diagnostics.
   if (isLoading) {
     return (
-      <div className="flex flex-col h-[calc(100vh-10rem)] w-full items-center justify-center bg-gray-50 p-4">
+      <div className="flex flex-col h-[calc(100vh-10rem)] w-full items-center justify-center bg-background p-4">
         <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
             <h1 className="text-xl font-bold">Cargando tu partida...</h1>
@@ -72,11 +72,11 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
                 <CardHeader>
                     <CardTitle>Solicitud Enviada</CardTitle>
                     <CardDescription>
-                        Tu solicitud para unirte a la partida "{studentGame.gameName}" está pendiente de aprobación por parte del profesor.
+                        Tu solicitud para unirte a la partida "{studentGame.gameName}" con el equipo "{studentGame.teamName}" está pendiente de aprobación por parte del profesor.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground mb-4">Por favor, espera a que el profesor acepte tu solicitud. El estado se refrescará automáticamente.</p>
+                    <p className="text-muted-foreground mb-4">Por favor, espera a que el profesor acepte tu solicitud. La página se refrescará automáticamente.</p>
                 </CardContent>
             </Card>
         </div>

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -141,27 +140,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       return;
     }
-    
-    // If no user, no games to fetch.
-    if (!user) {
-        setGames([]);
-        setLoading(false);
-        return;
-    }
   
+    // This listener now fetches ALL games that are "En curso".
+    // It serves both teachers (to see their own games) and students (on the join page).
     const gamesCollectionRef = collection(firestore, "games");
-    let q: Query;
-    
-    // Teachers and superadmins see the games they created
-    if (user.role === 'teacher' || user.role === 'superadmin') {
-      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
-    } else {
-      // Students don't fetch the global list of games here anymore.
-      // This is handled in `join-game/page.tsx` with a specific query.
-      setGames([]);
-      setLoading(false);
-      return;
-    }
+    const q = query(gamesCollectionRef, where("status", "==", "En curso"));
   
     const unsubscribe = onSnapshot(
       q,
@@ -169,11 +152,19 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const gamesData = querySnapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() } as Game)
         );
-        setGames(gamesData);
+        
+        // If the user is a teacher/superadmin, we filter to show only their games.
+        if (user && (user.role === 'teacher' || user.role === 'superadmin')) {
+          setGames(gamesData.filter(g => g.createdBy === user.id));
+        } else {
+          // For students or unauthenticated users, we show all "En curso" games.
+          setGames(gamesData);
+        }
         setLoading(false);
       },
       (error) => {
-        console.error(`Error fetching games for role ${user.role}:`, error);
+        console.error(`Error fetching games:`, error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'games', operation: 'list' }));
         setGames([]);
         setLoading(false);
       }
@@ -249,7 +240,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateGame = async (gameId: string, updatedGame: Partial<Game>) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-    await updateDoc(gameRef, updatedGame, { merge: true });
+    await updateDoc(gameRef, updatedGame);
   };
   
   const acceptJoinRequests = async (gameId: string, requests: JoinRequest[]) => {
@@ -306,7 +297,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const updateData = { reports: newReports, messages: newMessages };
 
-    await updateDoc(gameRef, updateData, { merge: true });
+    await updateDoc(gameRef, updateData);
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
@@ -338,7 +329,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         [`roundSettings.${nextRound}`]: existingNextRoundSettings
     };
     
-    await updateDoc(gameRef, updateData, { merge: true });
+    await updateDoc(gameRef, updateData);
   };
 
   const updateRoundSettings = async (gameId: string, currentRound: number, settings: RoundSettings, isBlindForNextRound: boolean) => {
@@ -377,7 +368,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updatePayload.messages = arrayUnion(...newMessages);
     }
     
-    await updateDoc(gameRef, updatePayload, { merge: true });
+    await updateDoc(gameRef, updatePayload);
   };
 
   const updateTeamKpis = async (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => {
@@ -423,7 +414,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     
     await updateDoc(gameRef, {
         messages: arrayUnion(newMessage)
-    }, { merge: true });
+    });
   };
 
   const markMessageAsRead = async (gameId: string, messageId: string, userId: string) => {
@@ -438,7 +429,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
       return msg;
     });
-    await updateDoc(gameRef, { messages: newMessages }, { merge: true });
+    await updateDoc(gameRef, { messages: newMessages });
   };
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
@@ -469,7 +460,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };
   
-    await updateDoc(gameRef, updateData, { merge: true });
+    await updateDoc(gameRef, updateData);
   };
 
   const forceStudentDecisions = async (gameId: string, teamName: string, round: number) => {

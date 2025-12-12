@@ -1,16 +1,12 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, type Game } from "./use-games";
-import { useRouter } from "next/navigation";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
-import { doc, onSnapshot, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import type { TeamDecision, CrisisDecision } from "@/hooks/use-games";
 
 
@@ -90,22 +86,21 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   const { confirmStudentDecisions, updateGame } = useGames();
   const { user, isLoading: isAuthLoading } = useAuth();
   const firestore = useFirestore();
-  const router = useRouter();
 
   const [studentGameState, setStudentGameState] = useState<StudentGameState | null>(null);
   const [gameData, setGameData] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [debugStatus, setDebugStatus] = useState("Iniciando Hook...");
+  const [debugStatus, setDebugStatus] = useState("Initializing Hook...");
 
   // Effect 1: Listen to the student's personal game state document
   useEffect(() => {
     if (isAuthLoading) {
-      setDebugStatus("Esperando autenticación...");
+      setDebugStatus("Waiting for authentication...");
       return;
     }
     
     if (!user) {
-      setDebugStatus("Auth lista. No hay usuario.");
+      setDebugStatus("Auth ready. No user.");
       setIsLoading(false);
       setStudentGameState(null);
       setGameData(null);
@@ -113,26 +108,26 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
 
     if (!firestore) {
-      setDebugStatus("Auth lista. Esperando Firestore...");
+      setDebugStatus("Auth ready. Waiting for Firestore...");
       return;
     }
     
     setIsLoading(true);
-    setDebugStatus(`Usuario detectado (${user.id}). Suscribiendo a studentGames...`);
+    setDebugStatus(`User detected (${user.id}). Subscribing to studentGames...`);
     const studentGameRef = doc(firestore, "studentGames", user.id);
 
     const unsubscribe = onSnapshot(studentGameRef, (docSnap) => {
       if (docSnap.exists()) {
         setStudentGameState(docSnap.data() as StudentGameState);
-        setDebugStatus("Estado del estudiante cargado.");
+        setDebugStatus("Student state loaded.");
       } else {
         const initialData = { ...initialStudentState, userId: user.id };
         setDoc(studentGameRef, initialData); // Create the doc if it doesn't exist
         setStudentGameState(initialData);
-        setDebugStatus("Documento de estudiante no existía. Creando uno nuevo.");
+        setDebugStatus("Student document did not exist. Creating new one.");
       }
     }, (error) => {
-        setDebugStatus(`ERROR en studentGames: ${error.message}`);
+        setDebugStatus(`ERROR in studentGames: ${error.message}`);
         setIsLoading(false);
     });
 
@@ -150,27 +145,26 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!gameId || status !== 'joined') {
         setGameData(null);
         setIsLoading(false); // We have a definitive state (no-game or pending), so loading is done.
-        setDebugStatus(status === 'pending' ? 'Estado: Pendiente de aprobación' : 'Estado: Sin partida');
+        setDebugStatus(status === 'pending' ? 'Status: Pending Approval' : 'Status: No Game');
         return;
     }
 
     setIsLoading(true);
-    setDebugStatus(`Detectado Game ID: ${gameId}. Suscribiendo a la partida...`);
+    setDebugStatus(`Game ID detected: ${gameId}. Subscribing to game...`);
     const gameRef = doc(firestore, "games", gameId);
 
     const unsubscribe = onSnapshot(gameRef, (docSnap) => {
       if (docSnap.exists()) {
         setGameData({ id: docSnap.id, ...docSnap.data() } as Game);
-        setDebugStatus("Datos de la partida cargados.");
+        setDebugStatus("Game data loaded.");
       } else {
-        setDebugStatus("La partida del estudiante no existe. Reseteando estado.");
+        setDebugStatus("Student's game does not exist. Resetting state.");
         const studentGameRef = doc(firestore, "studentGames", studentGameState.userId);
         setDoc(studentGameRef, { ...initialStudentState, userId: studentGameState.userId }, { merge: true });
       }
-      // Loading is finished only when we have game data.
       setIsLoading(false);
     }, (error) => {
-      setDebugStatus(`ERROR en games: ${error.message}`);
+      setDebugStatus(`ERROR in games: ${error.message}`);
       setIsLoading(false);
     });
 
@@ -179,68 +173,58 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
 
   const fullStudentState = useMemo<FullStudentState | null>(() => {
-    if (!studentGameState) {
-      setDebugStatus("Componiendo estado... No hay studentGameState.");
+    if (isLoading || !studentGameState) {
       return null;
     }
-
-    // If not in a game or pending, the state is simple. Loading is already false from Effect 2.
-    if (!gameData || studentGameState.status !== 'joined') {
-      setDebugStatus(`Componiendo estado... No hay gameData o status no es 'joined' (es ${studentGameState.status}).`);
+  
+    if (studentGameState.status !== 'joined' || !gameData) {
       return { ...studentGameState, decisions: initialRoundDecisions };
     }
-    
-    setDebugStatus("Componiendo estado... con gameData y studentGameState.");
+  
     const { teamName } = studentGameState;
     const serverRound = gameData.round;
     const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || initialRoundDecisions;
-    
+  
     const performanceHistory: TeamPerformanceData[] = [];
-    let currentKpis: TeamKPIs | undefined = undefined;
-
+    let kpisForCurrentRound: TeamKPIs | undefined = undefined;
+  
     if (gameData.performance) {
       Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
         const roundNum = parseInt(roundKey, 10);
         const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
         if (teamPerformance) {
           performanceHistory.push(teamPerformance);
-          // Get KPIs from the previously completed round.
-          if (roundNum === serverRound - 1) { 
-            currentKpis = teamPerformance.kpis;
-          }
         }
       });
     }
-    
-    // Default KPIs for Round 0 or if history is missing for round 1
-    if ((serverRound === 0 || serverRound === 1) && !currentKpis) {
-        currentKpis = {
-            cash: gameData.initialFunds,
-            personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
-            nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
-            studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32, capacity: 810,
-        };
-    }
-    
-    const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
-    
-    // If it's a blind round, explicitly set kpis and performanceHistory to undefined
-    // so the UI knows to hide related components.
-    const finalKpis = isBlindRound ? undefined : currentKpis;
-    const finalPerformanceHistory = isBlindRound ? [] : performanceHistory;
 
+    const lastCompletedRoundPerformance = performanceHistory.find(p => p.round === serverRound - 1);
+    
+    if (lastCompletedRoundPerformance) {
+      kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
+    } else if (serverRound === 0) {
+      kpisForCurrentRound = {
+        cash: gameData.initialFunds,
+        personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
+        nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
+        studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
+        capacity: 810,
+      };
+    }
+  
+    const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
+  
     return {
       ...studentGameState,
       round: serverRound,
       decisions: decisionsForRound,
       roundSettings: gameData.roundSettings,
       messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
-      performanceHistory: finalPerformanceHistory,
-      kpis: finalKpis,
+      performanceHistory: isBlindRound ? [] : performanceHistory,
+      kpis: isBlindRound ? undefined : kpisForCurrentRound,
       isBlindRound,
     };
-  }, [studentGameState, gameData]);
-
+  }, [studentGameState, gameData, isLoading]);
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
@@ -260,7 +244,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
     };
   
-    await updateDoc(gameRef, joinRequestData, { merge: true });
+    await updateDoc(gameRef, joinRequestData);
   };
   
 

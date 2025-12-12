@@ -13,7 +13,8 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useFirestore } from "@/firebase";
-import { collection, query, where, onSnapshot, type Game } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import type { Game } from "@/hooks/use-games";
 
 export default function JoinGamePage() {
   const { user, isLoading: isAuthLoading } = useAuth();

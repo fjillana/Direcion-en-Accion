@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
@@ -148,7 +149,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
     if (!gameId || status !== 'joined') {
         setGameData(null);
-        setIsLoading(false);
+        setIsLoading(false); // We have a definitive state (no-game or pending), so loading is done.
         setDebugStatus(status === 'pending' ? 'Estado: Pendiente de aprobación' : 'Estado: Sin partida');
         return;
     }
@@ -166,6 +167,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const studentGameRef = doc(firestore, "studentGames", studentGameState.userId);
         setDoc(studentGameRef, { ...initialStudentState, userId: studentGameState.userId }, { merge: true });
       }
+      // Loading is finished only when we have game data.
       setIsLoading(false);
     }, (error) => {
       setDebugStatus(`ERROR en games: ${error.message}`);
@@ -182,6 +184,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    // If not in a game or pending, the state is simple. Loading is already false from Effect 2.
     if (!gameData || studentGameState.status !== 'joined') {
       setDebugStatus(`Componiendo estado... No hay gameData o status no es 'joined' (es ${studentGameState.status}).`);
       return { ...studentGameState, decisions: initialRoundDecisions };
@@ -210,7 +213,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     }
     
     // Default KPIs for Round 0 or if history is missing for round 1
-    if ((serverRound === 0 && !currentKpis) || (serverRound === 1 && !currentKpis)) {
+    if ((serverRound === 0 || serverRound === 1) && !currentKpis) {
         currentKpis = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -275,8 +278,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (gameId && teamName) {
         const gameDoc = await getDoc(doc(firestore, "games", gameId));
         if (gameDoc.exists()) {
-            const gameData = gameDoc.data() as Game;
-            const updatedTeamNames = gameData.teamNames.filter(name => name !== teamName);
+            const currentGameData = gameDoc.data() as Game;
+            const updatedTeamNames = currentGameData.teamNames.filter(name => name !== teamName);
             await updateGame(gameId, { teamNames: updatedTeamNames });
         }
     }
@@ -382,5 +385,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

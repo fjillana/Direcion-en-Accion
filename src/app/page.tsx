@@ -34,7 +34,7 @@ export default function Home() {
         if (studentGame?.status === 'joined' || studentGame?.status === 'pending') {
           router.push('/student/dashboard');
         } else { // 'no-game' o null
-          router.push('/student/join-game');
+          router.push('/join-game');
         }
       }
     }

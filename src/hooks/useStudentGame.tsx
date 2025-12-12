@@ -209,8 +209,8 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       });
     }
     
-    // Default KPIs for Round 0 if no performance history exists
-    if (serverRound === 0 && !currentKpis) {
+    // Default KPIs for Round 0 or if history is missing for round 1
+    if ((serverRound === 0 && !currentKpis) || (serverRound === 1 && !currentKpis)) {
         currentKpis = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -382,3 +382,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

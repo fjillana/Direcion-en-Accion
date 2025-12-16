@@ -149,7 +149,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const serverRound = gameData.round;
         const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || initialRoundDecisions;
         
-        const performanceHistory: TeamPerformanceData[] = [];
+        const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
+        
+        const internalPerformanceHistory: TeamPerformanceData[] = [];
         let kpisForCurrentRound: TeamKPIs | undefined = undefined;
 
         if (gameData.performance) {
@@ -157,15 +159,15 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             const roundNum = parseInt(roundKey, 10);
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
             if (teamPerformance) {
-              performanceHistory.push(teamPerformance);
+              internalPerformanceHistory.push(teamPerformance);
             }
           });
         }
-
-        const lastCompletedRoundPerformance = performanceHistory.find(p => p.round === serverRound - 1);
+        
+        const lastCompletedRoundPerformance = internalPerformanceHistory.find(p => p.round === serverRound - 1);
         if (lastCompletedRoundPerformance) {
           kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
-        } else if (serverRound === 0 || serverRound === 1) { // Handle R0 and start of R1
+        } else if (serverRound === 0 || serverRound === 1) { 
           kpisForCurrentRound = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -175,7 +177,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           };
         }
 
-        const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
 
         setFullStudentState({
           ...studentData,
@@ -183,7 +184,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           decisions: decisionsForRound,
           roundSettings: gameData.roundSettings,
           messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
-          performanceHistory: isBlindRound ? [] : performanceHistory,
+          performanceHistory: isBlindRound ? [] : internalPerformanceHistory,
           kpis: isBlindRound ? undefined : kpisForCurrentRound,
           isBlindRound,
         });
@@ -351,3 +352,5 @@ export function useStudentGame() {
   }
   return context;
 }
+
+    

@@ -30,12 +30,20 @@ export function StudentReport() {
       return;
     }
 
-    // Corrected logic:
-    // If the game is over, the report to show is for the final round (numRounds - 1).
-    // Otherwise, it's for the round before the current one.
-    const lastCompletedRoundIndex = game.status === "Finalizado" ? game.numRounds - 1 : game.round - 1 ;
+    // New definitive logic: Find the latest round with performance data for this team.
+    const performanceRounds = game.performance ? Object.keys(game.performance).map(Number) : [];
+    let lastCompletedRoundIndex = -1;
 
-    // The round number to display to the user is always one more than the index.
+    for (const roundNum of performanceRounds) {
+        if (game.performance?.[roundNum]?.some(p => p.name === studentState.teamName)) {
+            if (roundNum > lastCompletedRoundIndex) {
+                lastCompletedRoundIndex = roundNum;
+            }
+        }
+    }
+    
+    // The report is for the last round where performance data exists.
+    // The round to display is always the index + 1.
     setDisplayRound(lastCompletedRoundIndex + 1);
     
     if (lastCompletedRoundIndex >= 0) {
@@ -73,7 +81,7 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            {game && game.round > 0
+            {game && (game.round > 0 || game.status === 'Finalizado')
               ? `El reporte para la ronda ${displayRound} aún no ha sido publicado por el profesor.`
               : "No hay reportes disponibles todavía."
             }

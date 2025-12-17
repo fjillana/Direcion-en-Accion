@@ -28,15 +28,9 @@ export function StudentReport() {
         return;
       }
       
-      let roundToShowIndex: number;
-      
-      if (game.status === 'Finalizado') {
-          // In a finished game of N rounds, the last report is for round N-1.
-          roundToShowIndex = game.numRounds > 0 ? game.numRounds - 1 : 0;
-      } else {
-        // If the game is ongoing, the report to show is for the previously completed round.
-        roundToShowIndex = game.round > 0 ? game.round - 1 : -1;
-      }
+      // NEW SIMPLIFIED LOGIC:
+      // The game.round now correctly represents the last completed round with data.
+      const roundToShowIndex = game.round;
       
       setReportRound(roundToShowIndex);
       
@@ -75,7 +69,7 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            El reporte para la ronda {reportRound >= 0 ? reportRound + 1 : 'anterior'} aún no ha sido publicado.
+            El reporte para la ronda {reportRound >= 0 ? reportRound + 1 : 'actual'} aún no ha sido publicado.
             <br />
             Por favor, espera a que el profesor lo envíe.
           </p>

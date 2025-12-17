@@ -59,14 +59,18 @@ export function AIReportForm() {
   const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
     if (!activeGame) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
     
-    // The report is for the last completed round.
-    if (activeGame.status === 'Finalizado') {
-      const lastPlayedRoundIndex = activeGame.round;
-      return { reportableRoundIndex: lastPlayedRoundIndex, displayRoundNumber: lastPlayedRoundIndex + 1 };
-    }
-    
-    const lastCompletedRoundIndex = activeGame.round > 0 ? activeGame.round - 1 : -1;
-    return { reportableRoundIndex: lastCompletedRoundIndex, displayRoundNumber: lastCompletedRoundIndex >= 0 ? lastCompletedRoundIndex + 1 : 0 };
+    // The report is for the last completed round, which is game.round itself.
+    const lastCompletedRoundIndex = activeGame.round;
+    const isFinished = activeGame.status === "Finalizado";
+
+    // If game is finished, the last playable round is numRounds - 1.
+    // The round counter might be higher, so we cap it.
+    const finalReportableRound = isFinished ? activeGame.numRounds - 1 : lastCompletedRoundIndex;
+
+    return { 
+      reportableRoundIndex: finalReportableRound, 
+      displayRoundNumber: finalReportableRound + 1
+    };
   }, [activeGame]);
 
 
@@ -354,7 +358,10 @@ export function AIReportForm() {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {displayRoundNumber}.
+              {activeGame?.status === "Finalizado" ? 
+                `Genera y edita el informe de rendimiento final (Ronda ${displayRoundNumber}) para cada equipo.` :
+                `Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda ${displayRoundNumber}.`
+              }
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">

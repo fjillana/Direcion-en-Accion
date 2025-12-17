@@ -270,29 +270,33 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
     if (!firestore) return;
-
     const gameRef = doc(firestore, "games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+    const gameData = gameDoc.data() as Game;
+
     const reportPath = `reports.${round}.${teamName}`;
     const updatePayload: { [key: string]: any } = { [reportPath]: reportData };
 
     if (reportData.published) {
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) return;
-        const gameData = gameDoc.data() as Game;
-
         const isFinalRound = (round + 1) === gameData.numRounds;
-        const displayRound = isFinalRound ? gameData.numRounds : round + 1;
+        const displayRound = round + 1;
         const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
         const messageContent = `El reporte para la ronda ${displayRound} ya está disponible en tu sección de Reporte.`;
 
-        const existingMessages = gameData.messages || [];
-        const messageExists = existingMessages.some(
-            msg => msg.to === teamName && msg.title === title && msg.type === 'report'
-        );
+        const existingMessages: GameMessage[] = gameData.messages || [];
+        const messageIdentifier = `report-${round}-${teamName}`;
+        
+        // Find an existing message to update it, or create a new one.
+        let existingMessage = existingMessages.find(m => m.id.startsWith(messageIdentifier));
 
-        if (!messageExists) {
-            const newMessage: GameMessage = {
-                id: `msg-report-${round}-${teamName}-${Date.now()}`,
+        if (existingMessage) {
+            // If message exists, just update it. This is less likely with unique IDs but good practice.
+            const updatedMessages = existingMessages.map(m => m.id === existingMessage!.id ? { ...existingMessage!, content: messageContent, title: title, timestamp: Date.now() } : m);
+            updatePayload.messages = updatedMessages;
+        } else {
+             const newMessage: GameMessage = {
+                id: `${messageIdentifier}-${Date.now()}`,
                 from: 'system',
                 to: teamName,
                 title: title,
@@ -312,39 +316,41 @@ export function GamesProvider({ children }: { children: ReactNode }) {
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
     if (!firestore) return;
     const gameRef = doc(firestore, "games", gameId);
-
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data() as Game;
     
-    const nextRound = round + 1;
+    const isFinalRound = (round + 1) >= gameData.numRounds;
 
     const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
         messages: arrayUnion(...newMessages),
-        round: nextRound,
     };
-
-    if (nextRound >= gameData.numRounds) {
+    
+    if (isFinalRound) {
         updateData.status = "Finalizado";
+        // Keep round number at the last played round index
+        updateData.round = round;
+    } else {
+        updateData.round = round + 1;
     }
 
+    const nextRoundIndexForSettings = round + 1;
     const existingSettings = gameData.roundSettings || {};
-    const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
+    const existingNextRoundSettings = existingSettings[nextRoundIndexForSettings] || { investments: [], teamCrises: [] };
 
-    automaticCrises.forEach(autoCrisis => {
-        const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
-        if (teamCrisisIndex > -1) {
-            const existingIds = existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds;
-            const newIds = [...new Set([...existingIds, ...autoCrisis.crisisIds])];
-            existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds = newIds;
-        } else {
-            existingNextRoundSettings.teamCrises.push(autoCrisis);
-        }
-    });
-
-    if (automaticCrises.length > 0) {
-        updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
+    if (automaticCrises.length > 0 && !isFinalRound) {
+        automaticCrises.forEach(autoCrisis => {
+            const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
+            if (teamCrisisIndex > -1) {
+                const existingIds = existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds;
+                const newIds = [...new Set([...existingIds, ...autoCrisis.crisisIds])];
+                existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds = newIds;
+            } else {
+                existingNextRoundSettings.teamCrises.push(autoCrisis);
+            }
+        });
+        updateData[`roundSettings.${nextRoundIndexForSettings}`] = existingNextRoundSettings;
     }
     
     await updateDoc(gameRef, updateData);

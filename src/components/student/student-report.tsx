@@ -21,6 +21,7 @@ export function StudentReport() {
   const [reportRound, setReportRound] = useState<number>(-1);
 
   useEffect(() => {
+    setIsLoading(true);
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
       if (!game) {
@@ -28,22 +29,21 @@ export function StudentReport() {
         return;
       }
       
-      // NEW SIMPLIFIED LOGIC:
-      // The game.round now correctly represents the last completed round with data.
+      // LOGIC: The report to show is always for the current game round.
+      // If the game is finished, game.round holds the index of the last played round.
       const roundToShowIndex = game.round;
       
       setReportRound(roundToShowIndex);
       
-      if (roundToShowIndex >= 0 && game.reports?.[roundToShowIndex]?.[studentGame.teamName]) {
-        const report = game.reports[roundToShowIndex][studentGame.teamName];
-        if (report.published) {
-          setReportData(report);
-        } else {
-          setReportData(null);
-        }
+      const report = game.reports?.[roundToShowIndex]?.[studentGame.teamName];
+      
+      if (report && report.published) {
+        setReportData(report);
       } else {
         setReportData(null);
       }
+    } else {
+      setReportData(null);
     }
     setIsLoading(false);
   }, [studentGame, getGameById]);

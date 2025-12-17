@@ -1,4 +1,5 @@
 
+
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -82,7 +83,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   const game = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
-  const displayRound = studentGame?.round !== undefined ? studentGame.round + 1 : 1;
+  const displayRound = studentGame ? studentGame.round + 1 : 1;
 
   return (
     <SidebarProvider>

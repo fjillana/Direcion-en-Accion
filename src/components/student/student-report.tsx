@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,10 +30,9 @@ export function StudentReport() {
       
       let roundToShow: number;
       
-      // Correctly identify the last reportable round for a finished game.
       if (game.status === 'Finalizado') {
           // In a finished game of N rounds, the last report is for round N-1.
-          roundToShow = game.numRounds > 0 ? game.numRounds - 1 : 0;
+          roundToShow = game.numRounds > 0 ? game.round -1 : 0;
       } else {
         // If the game is ongoing, the report to show is for the previously completed round.
         roundToShow = game.round > 0 ? game.round - 1 : -1;

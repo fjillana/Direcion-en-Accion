@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
@@ -144,10 +145,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gamesCollectionRef = collection(firestore, "games");
     let q: Query;
 
-    if (user && (user.role === 'teacher' || user.role === 'superadmin')) {
-      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+    if (user?.role === 'teacher' || user?.role === 'superadmin') {
+        // Teacher/Superadmin: Fetch all their games regardless of status.
+        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-      q = query(gamesCollectionRef, where("status", "==", "En curso"));
+        // Student: Fetch only "En curso" games for joining.
+        q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
 
     const unsubscribe = onSnapshot(
@@ -269,27 +272,39 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     
     const gameRef = doc(firestore, "games", gameId);
-    
-    const reportPath = `reports.${round}.${teamName}`;
-    const updatePayload: Record<string, any> = { [reportPath]: reportData };
+    const gameDoc = await getDoc(gameRef);
+    if (!gameDoc.exists()) return;
+    const gameData = gameDoc.data() as Game;
 
-    // If publishing, also create a message.
+    const reportPath = `reports.${round}.${teamName}`;
+    const updatePayload: { [key: string]: any } = { [reportPath]: reportData };
+
     if (reportData.published) {
-        const newMessage: GameMessage = {
-            id: `msg-report-${Date.now()}-${teamName}`,
-            from: 'system',
-            to: teamName,
-            title: 'Reporte Disponible',
-            content: `El reporte de la ronda ${round} ya está disponible.`,
-            type: 'report',
-            timestamp: Date.now(),
-            readBy: [],
-        };
-        updatePayload.messages = arrayUnion(newMessage);
+        const existingMessages = gameData.messages || [];
+        const reportMessageId = `msg-report-${round}-${teamName}`;
+
+        if (!existingMessages.some(msg => msg.id === reportMessageId)) {
+            const isFinalRound = round === gameData.numRounds - 1;
+            const messageContent = isFinalRound 
+                ? 'El Reporte Final ya está disponible.'
+                : `El reporte de la ronda ${round} ya está disponible.`;
+            
+            const newMessage: GameMessage = {
+                id: reportMessageId,
+                from: 'system',
+                to: teamName,
+                title: isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${round}`,
+                content: messageContent,
+                type: 'report',
+                timestamp: Date.now(),
+                readBy: [],
+            };
+            updatePayload.messages = arrayUnion(newMessage);
+        }
     }
 
     await updateDoc(gameRef, updatePayload);
-  };
+};
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
     if (!firestore) return;

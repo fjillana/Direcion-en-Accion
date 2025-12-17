@@ -59,19 +59,19 @@ export function AIReportForm() {
   const reportableRound = useMemo(() => {
     if (!activeGame) return -1;
     // The report is for the last completed round.
-    // If game is at round N, last completed is N-1.
-    // If game is finished at N rounds, last completed is N-1.
     if (activeGame.status === 'Finalizado') {
+      // For a finished game of N rounds, the last report is for round N-1.
       return activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
     }
+    // If game is at round N, last completed is N-1.
     return activeGame.round > 0 ? activeGame.round - 1 : -1;
   }, [activeGame]);
 
-  // This is purely for display purposes on the UI.
   const displayRoundNumber = useMemo(() => {
-    if (reportableRound === -1) return 0;
-    return reportableRound + 1;
-  }, [reportableRound]);
+    if (!activeGame) return 0;
+    if (reportableRound === -1) return activeGame.round;
+    return reportableRound;
+  }, [activeGame, reportableRound]);
 
 
   const teamsData = useMemo(() => {
@@ -142,7 +142,17 @@ export function AIReportForm() {
   const handleGenerateReport = async () => {
     if (!activeGame || !selectedTeam || reportableRound < 0) return;
     
-    const teamPerformance = teamsData.find(t => t.name === selectedTeam);
+    const performanceForRound = activeGame.performance?.[reportableRound];
+    if (!performanceForRound) {
+        toast({
+            variant: "destructive",
+            title: "Error de Datos",
+            description: `No se encontraron datos de rendimiento para la ronda ${reportableRound}.`,
+        });
+        return;
+    }
+
+    const teamPerformance = performanceForRound.find(t => t.name === selectedTeam);
     if (!teamPerformance) {
         toast({
             variant: "destructive",
@@ -152,7 +162,6 @@ export function AIReportForm() {
         return;
     }
     
-    // Find previous round's KPIs for comparison
     const previousRoundForKpi = reportableRound - 1;
     const previousPerformance = activeGame.performance?.[previousRoundForKpi]?.find(p => p.name === selectedTeam);
     const previousKpis = previousPerformance ? previousPerformance.kpis : null;
@@ -203,7 +212,6 @@ export function AIReportForm() {
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       setHasReport(true);
       
-      // Also save this generated report as a draft immediately
       updateReport(activeGame.id, reportableRound, selectedTeam, newReportData);
 
     } catch (error) {

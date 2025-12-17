@@ -11,6 +11,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
+import pLimit from 'p-limit';
+
+// Create a limiter that will execute at most 2 promises concurrently.
+const limit = pLimit(2);
 
 const GenerateRoundReportInputSchema = z.object({
   gameId: z.string().describe('El ID de la partida.'),
@@ -50,7 +54,8 @@ export async function generateRoundReport(input: GenerateRoundReportInput): Prom
     ...input,
     investmentCatalog: JSON.stringify(allInvestments, null, 2)
   };
-  return generateRoundReportFlow(enrichedInput);
+  // Wrap the call to the flow in the limiter
+  return limit(() => generateRoundReportFlow(enrichedInput));
 }
 
 const prompt = ai.definePrompt({

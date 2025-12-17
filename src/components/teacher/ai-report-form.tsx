@@ -58,23 +58,18 @@ export function AIReportForm() {
   
   const reportableRound = useMemo(() => {
     if (!activeGame) return 0;
-    
-    if (activeGame.status === 'Finalizado') {
-        // For a finished game of N rounds, the last report is for round N-1,
-        // but we want to display it as 'Round N' to the user.
-        // However, the data is indexed by N-1. We'll handle the display separately.
-        return activeGame.numRounds - 1;
-    }
-
-    // If the game is ongoing at round N, last completed is N-1.
-    return Math.max(0, activeGame.round - 1);
+    // The last completed round is always the current round number minus one.
+    // If the game is at round 0, there is no reportable round yet, so -1.
+    // If the game is finished at round 6 (meaning 6 rounds played 0-5), the last report is for round 5.
+    return activeGame.round - 1;
   }, [activeGame]);
 
   // This is purely for display purposes on the UI.
   const displayRoundNumber = useMemo(() => {
     if (!activeGame) return 0;
+     // If the game is finished, the "last round" is the total number of rounds.
     if (activeGame.status === 'Finalizado') {
-      return activeGame.numRounds;
+        return activeGame.numRounds;
     }
     // For ongoing games, the report is about the round that just finished.
     return activeGame.round;
@@ -82,7 +77,7 @@ export function AIReportForm() {
 
 
   const teamsData = useMemo(() => {
-    if (!activeGame || !activeGame.performance) return [];
+    if (!activeGame || !activeGame.performance || reportableRound < 0) return [];
     const perf = activeGame.performance[reportableRound];
     if (!perf) return [];
     return perf;
@@ -115,7 +110,7 @@ export function AIReportForm() {
   }, [activeGame, teamsData]);
 
   useEffect(() => {
-    if (activeGame && selectedTeam) {
+    if (activeGame && selectedTeam && reportableRound >= 0) {
         const existingReport = activeGame.reports?.[reportableRound]?.[selectedTeam];
         
         if (existingReport) {
@@ -147,7 +142,7 @@ export function AIReportForm() {
 
 
   const handleGenerateReport = async () => {
-    if (!activeGame || !selectedTeam) return;
+    if (!activeGame || !selectedTeam || reportableRound < 0) return;
     
     const teamPerformance = teamsData.find(t => t.name === selectedTeam);
     if (!teamPerformance) {
@@ -160,8 +155,8 @@ export function AIReportForm() {
     }
     
     // Find previous round's KPIs for comparison
-    const previousRoundNumber = reportableRound - 1;
-    const previousPerformance = activeGame.performance?.[previousRoundNumber]?.find(p => p.name === selectedTeam);
+    const previousRoundForKpi = reportableRound - 1;
+    const previousPerformance = activeGame.performance?.[previousRoundForKpi]?.find(p => p.name === selectedTeam);
     const previousKpis = previousPerformance ? previousPerformance.kpis : null;
 
 
@@ -231,7 +226,7 @@ export function AIReportForm() {
   };
   
   const saveReport = (publish: boolean) => {
-    if (!activeGame || !selectedTeam || !reportData) return;
+    if (!activeGame || !selectedTeam || !reportData || reportableRound < 0) return;
     
     const fullReportData = {
       ...reportData,
@@ -585,7 +580,7 @@ export function AIReportForm() {
                     <p className="text-muted-foreground mb-4">
                     {selectedTeam ? `Aún no se ha generado un reporte para ${selectedTeam}.` : "Selecciona un equipo para generar un reporte."}
                     </p>
-                    <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam}>
+                    <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam || reportableRound < 0}>
                     {isGenerating ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -609,3 +604,4 @@ export function AIReportForm() {
     </Card>
   );
 }
+

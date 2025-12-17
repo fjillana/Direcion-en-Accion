@@ -108,11 +108,6 @@ const generateRoundReportFlow = ai.defineFlow(
     name: 'generateRoundReportFlow',
     inputSchema: GenerateRoundReportInputSchema.extend({ investmentCatalog: z.string() }),
     outputSchema: GenerateRoundReportOutputSchema,
-    retries: (e: Error) => {
-      const delay = /Please retry in ([\d\.]+)s/.exec(e.message || '')?.[1];
-      if (delay) return parseInt(delay) * 1000;
-      return -1; // -1 means no retry for other errors
-    },
   },
   async input => {
     const {output} = await prompt(input);

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -17,25 +18,23 @@ export function StudentReport() {
   const { getGameById } = useGames();
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [reportRound, setReportRound] = useState<number>(-1);
   const [displayRound, setDisplayRound] = useState<number>(0);
 
   useEffect(() => {
     setIsLoading(true);
+
     if (studentGame && studentGame.gameId && studentGame.teamName) {
       const game = getGameById(studentGame.gameId);
       if (!game) {
         setIsLoading(false);
+        setReportData(null);
         return;
       }
       
-      // LOGIC REPLICATED FROM TEACHER PANEL:
-      // Determine the correct round index to fetch the report from.
       const roundIndexToShow = game.status === "Finalizado"
-        ? game.round // For a finished game, the report is AT the final round index.
-        : game.round > 0 ? game.round - 1 : -1; // For an ongoing game, it's the previous round.
+        ? game.round // If game is finished, the index is the final round number.
+        : game.round > 0 ? game.round - 1 : -1;
 
-      setReportRound(roundIndexToShow);
       setDisplayRound(roundIndexToShow >= 0 ? roundIndexToShow + 1 : 0);
       
       if (roundIndexToShow !== -1) {

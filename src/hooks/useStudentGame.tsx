@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
@@ -172,10 +173,11 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         if (lastCompletedRoundPerformance) {
           kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
         } else if (serverRound === 0) { // Fallback for round 0 if no performance data exists
+          const numTotalTeams = (gameData.teamNames.length || 1) * 2;
           kpisForCurrentRound = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
-            nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
+            nma: 7.5, marketShare: 100 / numTotalTeams, morale: 80,
             studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
             capacity: 810,
           };

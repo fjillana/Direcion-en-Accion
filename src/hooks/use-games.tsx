@@ -280,18 +280,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     if (reportData.published) {
         const isFinalRound = (round + 1) === gameData.numRounds;
-        const displayRound = round + 1;
+        const displayRound = isFinalRound ? gameData.numRounds : round + 1;
         const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
         const messageContent = `El reporte para la ronda ${displayRound} ya está disponible en tu sección de Reporte.`;
 
         const existingMessages: GameMessage[] = gameData.messages || [];
         const messageIdentifier = `report-${round}-${teamName}`;
         
-        // Find an existing message to update it, or create a new one.
         let existingMessage = existingMessages.find(m => m.id.startsWith(messageIdentifier));
 
         if (existingMessage) {
-            // If message exists, just update it. This is less likely with unique IDs but good practice.
             const updatedMessages = existingMessages.map(m => m.id === existingMessage!.id ? { ...existingMessage!, content: messageContent, title: title, timestamp: Date.now() } : m);
             updatePayload.messages = updatedMessages;
         } else {
@@ -320,26 +318,21 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data() as Game;
     
-    const isFinalRound = (round + 1) >= gameData.numRounds;
-
     const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
         messages: arrayUnion(...newMessages),
+        round: round + 1,
     };
     
-    if (isFinalRound) {
+    if (round + 1 >= gameData.numRounds) {
         updateData.status = "Finalizado";
-        // Keep round number at the last played round index
-        updateData.round = round;
-    } else {
-        updateData.round = round + 1;
     }
 
     const nextRoundIndexForSettings = round + 1;
     const existingSettings = gameData.roundSettings || {};
     const existingNextRoundSettings = existingSettings[nextRoundIndexForSettings] || { investments: [], teamCrises: [] };
 
-    if (automaticCrises.length > 0 && !isFinalRound) {
+    if (automaticCrises.length > 0 && updateData.status !== "Finalizado") {
         automaticCrises.forEach(autoCrisis => {
             const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
             if (teamCrisisIndex > -1) {
@@ -591,3 +584,4 @@ export function useGames() {
     
 
     
+

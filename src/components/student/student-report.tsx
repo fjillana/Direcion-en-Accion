@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -33,8 +34,8 @@ export function StudentReport() {
     let foundReport = null;
     let reportRound = -1;
 
-    // Start from the last possible round and go backwards.
-    for (let i = game.numRounds; i >= 0; i--) {
+    // Start from the last possible round and go backwards to find the latest published report.
+    for (let i = game.numRounds -1; i >= 0; i--) {
         const report = game.reports?.[i]?.[studentState.teamName];
         if (report && report.published) {
             foundReport = report;
@@ -48,7 +49,8 @@ export function StudentReport() {
         setDisplayRound(reportRound);
     } else {
         setReportData(null);
-        const relevantRound = game.status === 'Finalizado' ? game.round : (game.round > 0 ? game.round -1 : 0);
+        // If no report found, determine a relevant round to display for the "not available" message.
+        const relevantRound = game.status === 'Finalizado' ? game.numRounds - 1 : (game.round > 0 ? game.round -1 : 0);
         setDisplayRound(relevantRound);
     }
     
@@ -151,7 +153,7 @@ export function StudentReport() {
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-                <CardTitle>Análisis de la Ronda {displayRound}</CardTitle>
+                <CardTitle>Análisis de la Ronda {displayRound + 1}</CardTitle>
                 <CardDescription>
                 Este es el análisis de rendimiento de tu equipo para la ronda que acaba de finalizar.
                 </CardDescription>

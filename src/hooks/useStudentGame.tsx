@@ -30,7 +30,6 @@ export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
     poachingSuccess?: boolean;
 }
 
-// This FullStudentState now gets game data from useGames, not by subscribing itself.
 interface FullStudentState extends StudentGameState {
   round?: number;
   decisions: RoundDecisions;

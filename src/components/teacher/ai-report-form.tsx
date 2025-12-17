@@ -57,23 +57,21 @@ export function AIReportForm() {
   const { toast } = useToast();
   
   const reportableRound = useMemo(() => {
-    if (!activeGame) return 0;
-    // The last completed round is always the current round number minus one.
-    // If the game is at round 0, there is no reportable round yet, so -1.
-    // If the game is finished at round 6 (meaning 6 rounds played 0-5), the last report is for round 5.
-    return activeGame.round - 1;
+    if (!activeGame) return -1;
+    // The report is for the last completed round.
+    // If game is at round N, last completed is N-1.
+    // If game is finished at N rounds, last completed is N-1.
+    if (activeGame.status === 'Finalizado') {
+      return activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
+    }
+    return activeGame.round > 0 ? activeGame.round - 1 : -1;
   }, [activeGame]);
 
   // This is purely for display purposes on the UI.
   const displayRoundNumber = useMemo(() => {
-    if (!activeGame) return 0;
-     // If the game is finished, the "last round" is the total number of rounds.
-    if (activeGame.status === 'Finalizado') {
-        return activeGame.numRounds;
-    }
-    // For ongoing games, the report is about the round that just finished.
-    return activeGame.round;
-  }, [activeGame]);
+    if (reportableRound === -1) return 0;
+    return reportableRound + 1;
+  }, [reportableRound]);
 
 
   const teamsData = useMemo(() => {
@@ -604,4 +602,3 @@ export function AIReportForm() {
     </Card>
   );
 }
-

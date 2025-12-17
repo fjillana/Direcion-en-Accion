@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { useGames } from "@/hooks/use-games";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,7 @@ export function StudentReport() {
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [reportRound, setReportRound] = useState<number>(-1);
+  const [displayRound, setDisplayRound] = useState<number>(0);
 
   useEffect(() => {
     setIsLoading(true);
@@ -29,19 +29,26 @@ export function StudentReport() {
         return;
       }
       
-      // LOGIC: The report to show is always for the current game round.
-      // If the game is finished, game.round holds the index of the last played round.
-      const roundToShowIndex = game.round;
+      // LOGIC REPLICATED FROM TEACHER PANEL:
+      // Determine the correct round index to fetch the report from.
+      const roundIndexToShow = game.status === "Finalizado"
+        ? game.round // For a finished game, the report is AT the final round index.
+        : game.round > 0 ? game.round - 1 : -1; // For an ongoing game, it's the previous round.
+
+      setReportRound(roundIndexToShow);
+      setDisplayRound(roundIndexToShow >= 0 ? roundIndexToShow + 1 : 0);
       
-      setReportRound(roundToShowIndex);
-      
-      const report = game.reports?.[roundToShowIndex]?.[studentGame.teamName];
-      
-      if (report && report.published) {
-        setReportData(report);
+      if (roundIndexToShow !== -1) {
+          const report = game.reports?.[roundIndexToShow]?.[studentGame.teamName];
+          if (report && report.published) {
+            setReportData(report);
+          } else {
+            setReportData(null);
+          }
       } else {
-        setReportData(null);
+          setReportData(null);
       }
+
     } else {
       setReportData(null);
     }
@@ -69,7 +76,10 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            El reporte para la ronda {reportRound >= 0 ? reportRound + 1 : 'actual'} aún no ha sido publicado.
+            {displayRound > 0 
+              ? `El reporte para la ronda ${displayRound} aún no ha sido publicado.`
+              : "No hay reportes disponibles todavía."
+            }
             <br />
             Por favor, espera a que el profesor lo envíe.
           </p>
@@ -141,7 +151,7 @@ export function StudentReport() {
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-                <CardTitle>Análisis de la Ronda {reportData.round + 1}</CardTitle>
+                <CardTitle>Análisis de la Ronda {displayRound}</CardTitle>
                 <CardDescription>
                 Este es el análisis de rendimiento de tu equipo para la ronda que acaba de finalizar.
                 </CardDescription>
@@ -317,3 +327,5 @@ export function StudentReport() {
     </Card>
   );
 }
+
+    

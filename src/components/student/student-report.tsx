@@ -28,10 +28,11 @@ export function StudentReport() {
       }
       
       let roundToShow: number;
-      // If the game is finished, the last available report corresponds to the last round played, which is numRounds - 1.
+      
       if (game.status === 'Finalizado') {
-          // A game with N rounds has reports from 0 to N-1.
-          roundToShow = game.numRounds -1;
+          // In a finished game, the last report is for the last playable round, which is numRounds -1.
+          // The game.round value might be game.numRounds or game.numRounds + 1, so we clamp it.
+          roundToShow = game.numRounds; 
       } else {
         // If the game is ongoing, the report to show is for the previously completed round.
         roundToShow = game.round > 0 ? game.round - 1 : -1;
@@ -322,5 +323,7 @@ export function StudentReport() {
     </Card>
   );
 }
+
+    
 
     

@@ -281,13 +281,11 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         const gameData = gameDoc.data() as Game;
 
         const isFinalRound = (round + 1) === gameData.numRounds;
-        // The round number to display to the user.
         const displayRound = isFinalRound ? gameData.numRounds : round + 1;
         const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
         const messageContent = `El reporte para la ronda ${displayRound} ya está disponible en tu sección de Reporte.`;
 
         const existingMessages = gameData.messages || [];
-        // Check if a report message for this team and round already exists.
         const messageExists = existingMessages.some(
             msg => msg.to === teamName && msg.title === title && msg.type === 'report'
         );
@@ -317,40 +315,36 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
-    const gameData = gameDoc.data();
+    const gameData = gameDoc.data() as Game;
     
-    const isFinalRound = (round + 1) >= gameData.numRounds;
-    
+    const nextRound = round + 1;
+
     const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
         messages: arrayUnion(...newMessages),
+        round: nextRound,
     };
 
-    if (isFinalRound) {
+    if (nextRound >= gameData.numRounds) {
         updateData.status = "Finalizado";
-        // On the final round, the game round counter should be equal to numRounds to indicate it's over
-        updateData.round = round + 1;
-    } else {
-        const nextRound = round + 1;
-        updateData.round = nextRound;
-        
-        const existingSettings = gameData.roundSettings || {};
-        const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
+    }
 
-        automaticCrises.forEach(autoCrisis => {
-            const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
-            if (teamCrisisIndex > -1) {
-                const existingIds = existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds;
-                const newIds = [...new Set([...existingIds, ...autoCrisis.crisisIds])];
-                existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds = newIds;
-            } else {
-                existingNextRoundSettings.teamCrises.push(autoCrisis);
-            }
-        });
+    const existingSettings = gameData.roundSettings || {};
+    const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
 
-        if (automaticCrises.length > 0) {
-            updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
+    automaticCrises.forEach(autoCrisis => {
+        const teamCrisisIndex = existingNextRoundSettings.teamCrises.findIndex((tc:any) => tc.teamName === autoCrisis.teamName);
+        if (teamCrisisIndex > -1) {
+            const existingIds = existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds;
+            const newIds = [...new Set([...existingIds, ...autoCrisis.crisisIds])];
+            existingNextRoundSettings.teamCrises[teamCrisisIndex].crisisIds = newIds;
+        } else {
+            existingNextRoundSettings.teamCrises.push(autoCrisis);
         }
+    });
+
+    if (automaticCrises.length > 0) {
+        updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
     }
     
     await updateDoc(gameRef, updateData);
@@ -587,5 +581,7 @@ export function useGames() {
   }
   return context;
 }
+
+    
 
     

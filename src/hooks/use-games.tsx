@@ -140,26 +140,25 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       return;
     }
-  
-    // This listener now fetches ALL games that are "En curso".
-    // It serves both teachers (to see their own games) and students (on the join page).
+
     const gamesCollectionRef = collection(firestore, "games");
-    const q = query(gamesCollectionRef, where("status", "==", "En curso"));
-  
+    let q: Query;
+
+    if (user && (user.role === 'teacher' || user.role === 'superadmin')) {
+      // Teachers/Superadmins see all games they created, regardless of status.
+      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+    } else {
+      // Students (or unauthed on join page) only see games that are "En curso".
+      q = query(gamesCollectionRef, where("status", "==", "En curso"));
+    }
+
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
         const gamesData = querySnapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() } as Game)
         );
-        
-        // If the user is a teacher/superadmin, we filter to show only their games.
-        if (user && (user.role === 'teacher' || user.role === 'superadmin')) {
-          setGames(gamesData.filter(g => g.createdBy === user.id));
-        } else {
-          // For students or unauthenticated users, we show all "En curso" games.
-          setGames(gamesData);
-        }
+        setGames(gamesData);
         setLoading(false);
       },
       (error) => {
@@ -169,7 +168,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     );
-  
+
     return () => unsubscribe();
   }, [isAuthLoading, user, firestore]);
 
@@ -563,3 +562,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

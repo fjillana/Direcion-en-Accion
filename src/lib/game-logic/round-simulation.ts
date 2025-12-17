@@ -22,7 +22,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
         crisisResponse: null,
         roundConfirmed: false,
         investmentCosts: {},
-        poachingTarget: null,
+        poachingTarget: undefined,
         poachingSuccess: false,
         forcedByTeacher: false,
     };
@@ -36,7 +36,7 @@ const getStudentDecisions = (teamName: string, game: Game, studentGames: Student
             roundConfirmed: teamDecision.roundConfirmed || false,
             investmentCosts: teamDecision.investmentCosts || {},
             // Explicitly default optional fields to a valid value (null/false) instead of undefined.
-            poachingTarget: teamDecision.poachingTarget || null,
+            poachingTarget: teamDecision.poachingTarget || undefined,
             poachingSuccess: teamDecision.poachingSuccess || false,
             forcedByTeacher: teamDecision.forcedByTeacher || false,
         };

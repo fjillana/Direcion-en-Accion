@@ -61,12 +61,10 @@ export function AIReportForm() {
     
     // The report is for the last completed round.
     if (activeGame.status === 'Finalizado') {
-      // Game of N rounds is played 0 to N-1. Final report is for index N-1.
-      const lastPlayedRoundIndex = activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
-      return { reportableRoundIndex: lastPlayedRoundIndex, displayRoundNumber: activeGame.numRounds };
+      const lastPlayedRoundIndex = activeGame.round;
+      return { reportableRoundIndex: lastPlayedRoundIndex, displayRoundNumber: lastPlayedRoundIndex + 1 };
     }
     
-    // If game is at round N, last completed is N-1.
     const lastCompletedRoundIndex = activeGame.round > 0 ? activeGame.round - 1 : -1;
     return { reportableRoundIndex: lastCompletedRoundIndex, displayRoundNumber: lastCompletedRoundIndex >= 0 ? lastCompletedRoundIndex + 1 : 0 };
   }, [activeGame]);
@@ -169,7 +167,7 @@ export function AIReportForm() {
     try {
       const reportPayload = {
         gameId: activeGame.id,
-        roundNumber: reportableRoundIndex, // Send the index to AI
+        roundNumber: displayRoundNumber, // Send the display number to AI
         teamPerformanceData: JSON.stringify({
           ...teamPerformance,
           decisions: {
@@ -186,7 +184,7 @@ export function AIReportForm() {
       const teamMarketResult = marketAnalysis[selectedTeam];
 
       const newReportData = {
-          round: reportableRoundIndex,
+          round: reportableRoundIndex, // Save with the correct index
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
           kpiAnalysis: result.kpiAnalysis,

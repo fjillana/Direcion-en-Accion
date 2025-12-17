@@ -272,42 +272,37 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!firestore) return;
     
     const gameRef = doc(firestore, "games", gameId);
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) return;
-    const gameData = gameDoc.data() as Game;
     
     const reportPath = `reports.${round}.${teamName}`;
     const updatePayload: { [key: string]: any } = { [reportPath]: reportData };
 
     if (reportData.published) {
-        const existingMessages = gameData.messages || [];
-        const reportMessageId = `msg-report-${round}-${teamName}`;
+        const gameDoc = await getDoc(gameRef); // Get fresh data
+        if (!gameDoc.exists()) return;
+        const gameData = gameDoc.data() as Game;
+
+        const isFinalRound = (round + 1) === gameData.numRounds;
+        const displayRound = isFinalRound ? gameData.numRounds : round + 1;
+        const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
+        const messageContent = isFinalRound
+            ? `El Reporte Final (Ronda ${displayRound}) ya está disponible en tu sección de Reporte.`
+            : `El reporte de la ronda ${displayRound} ya está disponible.`;
         
-        // Only add a new message if it doesn't already exist.
-        if (!existingMessages.some(msg => msg.id === reportMessageId)) {
-            const isFinalRound = round === gameData.numRounds - 1;
-            const displayRound = isFinalRound ? gameData.numRounds : round + 1;
-            const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
-            const messageContent = isFinalRound
-                ? `El Reporte Final (Ronda ${displayRound}) ya está disponible en tu sección de Reporte.`
-                : `El reporte de la ronda ${displayRound} ya está disponible.`;
-            
-            const newMessage: GameMessage = {
-                id: reportMessageId,
-                from: 'system',
-                to: teamName,
-                title: title,
-                content: messageContent,
-                type: 'report',
-                timestamp: Date.now(),
-                readBy: [],
-            };
-            updatePayload.messages = arrayUnion(newMessage);
-        }
+        const newMessage: GameMessage = {
+            id: `msg-report-${round}-${teamName}-${Date.now()}`,
+            from: 'system',
+            to: teamName,
+            title: title,
+            content: messageContent,
+            type: 'report',
+            timestamp: Date.now(),
+            readBy: [],
+        };
+        updatePayload.messages = arrayUnion(newMessage);
     }
     
     await updateDoc(gameRef, updatePayload);
-  };
+};
 
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
@@ -318,8 +313,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data();
     
+    const isFinalRound = (round + 1) >= gameData.numRounds;
     const nextRound = round + 1;
-    const isFinalRound = nextRound >= gameData.numRounds;
 
     const existingSettings = gameData.roundSettings || {};
     const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
@@ -338,15 +333,17 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
         messages: arrayUnion(...newMessages),
-        round: nextRound, // Always advance the round
     };
-
-    if (automaticCrises.length > 0) {
-        updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
-    }
 
     if (isFinalRound) {
         updateData.status = "Finalizado";
+        // Al finalizar, no avanzamos la ronda. Se queda en la última ronda jugada.
+        updateData.round = round;
+    } else {
+        updateData.round = nextRound;
+        if (automaticCrises.length > 0) {
+            updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
+        }
     }
     
     await updateDoc(gameRef, updateData);

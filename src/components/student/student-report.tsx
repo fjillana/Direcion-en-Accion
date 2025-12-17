@@ -29,13 +29,15 @@ export function StudentReport() {
       
       // Correct logic to determine which report to show
       let roundToShow: number;
+      // If game is finished, the last available report is for the last round played, which is numRounds -1.
+      // If round is 6 and numRounds is 6, it means round 6 has been processed, so we show report for round 5.
       if (game.status === 'Finalizado') {
-        // If game is finished, show the report for the last playable round
-        roundToShow = game.numRounds; 
+        roundToShow = game.numRounds -1; 
       } else {
         // If game is ongoing, show the report for the previously completed round
         roundToShow = game.round > 0 ? game.round - 1 : -1;
       }
+      
       setReportRound(roundToShow);
       
       if (roundToShow >= 0 && game.reports?.[roundToShow]?.[studentGame.teamName]) {

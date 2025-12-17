@@ -275,20 +275,22 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameDoc = await getDoc(gameRef);
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data() as Game;
-
+    
     const reportPath = `reports.${round}.${teamName}`;
     const updatePayload: { [key: string]: any } = { [reportPath]: reportData };
 
     if (reportData.published) {
         const existingMessages = gameData.messages || [];
         const reportMessageId = `msg-report-${round}-${teamName}`;
-
+        
+        // Only add a new message if it doesn't already exist.
         if (!existingMessages.some(msg => msg.id === reportMessageId)) {
             const isFinalRound = round === gameData.numRounds - 1;
-            const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${round + 1}`;
+            const displayRound = isFinalRound ? gameData.numRounds : round + 1;
+            const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${displayRound}`;
             const messageContent = isFinalRound
-                ? 'El Reporte Final ya está disponible en tu sección de Reporte.'
-                : `El reporte de la ronda ${round + 1} ya está disponible.`;
+                ? `El Reporte Final (Ronda ${displayRound}) ya está disponible en tu sección de Reporte.`
+                : `El reporte de la ronda ${displayRound} ya está disponible.`;
             
             const newMessage: GameMessage = {
                 id: reportMessageId,
@@ -303,9 +305,10 @@ export function GamesProvider({ children }: { children: ReactNode }) {
             updatePayload.messages = arrayUnion(newMessage);
         }
     }
-
+    
     await updateDoc(gameRef, updatePayload);
-};
+  };
+
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {
     if (!firestore) return;
@@ -316,6 +319,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameData = gameDoc.data();
     
     const nextRound = round + 1;
+    const isFinalRound = nextRound >= gameData.numRounds;
+
     const existingSettings = gameData.roundSettings || {};
     const existingNextRoundSettings = existingSettings[nextRound] || { investments: [], teamCrises: [] };
 
@@ -330,11 +335,19 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         }
     });
 
-    const updateData = {
+    const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
         messages: arrayUnion(...newMessages),
-        [`roundSettings.${nextRound}`]: existingNextRoundSettings
+        round: nextRound, // Always advance the round
     };
+
+    if (automaticCrises.length > 0) {
+        updateData[`roundSettings.${nextRound}`] = existingNextRoundSettings;
+    }
+
+    if (isFinalRound) {
+        updateData.status = "Finalizado";
+    }
     
     await updateDoc(gameRef, updateData);
   };
@@ -570,3 +583,5 @@ export function useGames() {
   }
   return context;
 }
+
+    

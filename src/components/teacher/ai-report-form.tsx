@@ -58,11 +58,28 @@ export function AIReportForm() {
   
   const reportableRound = useMemo(() => {
     if (!activeGame) return 0;
-    // The report is for the *last completed* round.
-    // If game is ongoing at round N, last completed is N-1.
-    // If game is finished after N rounds (and round counter is N), last completed is also N-1.
+    
+    if (activeGame.status === 'Finalizado') {
+        // For a finished game of N rounds, the last report is for round N-1,
+        // but we want to display it as 'Round N' to the user.
+        // However, the data is indexed by N-1. We'll handle the display separately.
+        return activeGame.numRounds - 1;
+    }
+
+    // If the game is ongoing at round N, last completed is N-1.
     return Math.max(0, activeGame.round - 1);
   }, [activeGame]);
+
+  // This is purely for display purposes on the UI.
+  const displayRoundNumber = useMemo(() => {
+    if (!activeGame) return 0;
+    if (activeGame.status === 'Finalizado') {
+      return activeGame.numRounds;
+    }
+    // For ongoing games, the report is about the round that just finished.
+    return activeGame.round;
+  }, [activeGame]);
+
 
   const teamsData = useMemo(() => {
     if (!activeGame || !activeGame.performance) return [];
@@ -340,7 +357,7 @@ export function AIReportForm() {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {reportableRound}.
+              Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda {displayRoundNumber}.
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">

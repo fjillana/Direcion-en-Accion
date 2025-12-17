@@ -145,10 +145,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     let q: Query;
 
     if (user && (user.role === 'teacher' || user.role === 'superadmin')) {
-      // Teachers/Superadmins see all games they created, regardless of status.
       q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-      // Students (or unauthed on join page) only see games that are "En curso".
       q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
 
@@ -200,7 +198,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     const gameRef = doc(firestore, "games", gameId);
     const batch = writeBatch(firestore);
 
-    // Remove team name from the game's teamNames array
     const gameDoc = await getDoc(gameRef);
     if (gameDoc.exists()) {
         const gameData = gameDoc.data() as Game;
@@ -208,7 +205,6 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         batch.update(gameRef, { teamNames: teamNamesToKeep });
     }
 
-    // If a userId is provided, reset the student's game state
     if (userId) {
         const studentRef = doc(firestore, "studentGames", userId);
         batch.set(studentRef, {
@@ -271,32 +267,28 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
   const updateReport = async (gameId: string, round: number, teamName: string, reportData: any) => {
     if (!firestore) return;
+    
     const gameRef = doc(firestore, "games", gameId);
     
-    const gameDoc = await getDoc(gameRef);
-    if (!gameDoc.exists()) return;
+    const reportPath = `reports.${round}.${teamName}`;
+    const updatePayload: Record<string, any> = { [reportPath]: reportData };
 
-    const gameData = gameDoc.data();
-    const newReports = { ...(gameData.reports || {}) };
-    if (!newReports[round]) newReports[round] = {};
-    newReports[round][teamName] = reportData;
-
-    let newMessages = [...(gameData.messages || [])];
+    // If publishing, also create a message.
     if (reportData.published) {
-        const existingMsgIndex = newMessages.findIndex(msg => msg.type === 'report' && msg.to === teamName && msg.content.includes(`ronda ${round}`));
-        if (existingMsgIndex === -1) {
-            newMessages.push({
-                id: `msg-report-${Date.now()}-${teamName}`,
-                from: 'system', to: teamName, title: 'Reporte Disponible',
-                content: `El reporte de la ronda ${round} ya está disponible.`,
-                type: 'report', timestamp: Date.now(), readBy: [],
-            });
-        }
+        const newMessage: GameMessage = {
+            id: `msg-report-${Date.now()}-${teamName}`,
+            from: 'system',
+            to: teamName,
+            title: 'Reporte Disponible',
+            content: `El reporte de la ronda ${round} ya está disponible.`,
+            type: 'report',
+            timestamp: Date.now(),
+            readBy: [],
+        };
+        updatePayload.messages = arrayUnion(newMessage);
     }
 
-    const updateData = { reports: newReports, messages: newMessages };
-
-    await updateDoc(gameRef, updateData);
+    await updateDoc(gameRef, updatePayload);
   };
 
   const updateTeamPerformance = async (gameId: string, round: number, performanceData: TeamPerformanceData[], newMessages: GameMessage[], automaticCrises: { teamName: string, crisisIds: string[] }[]) => {

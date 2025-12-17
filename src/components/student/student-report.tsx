@@ -30,9 +30,12 @@ export function StudentReport() {
       return;
     }
 
-    // This logic is now aligned with how the teacher's panel determines the reportable round.
-    const lastCompletedRoundIndex = game.round;
+    // Corrected logic:
+    // If the game is over, the report to show is for the final round (numRounds - 1).
+    // Otherwise, it's for the round before the current one.
+    const lastCompletedRoundIndex = game.status === "Finalizado" ? game.numRounds -1 : game.round -1 ;
 
+    // The round number to display to the user is always one more than the index.
     setDisplayRound(lastCompletedRoundIndex + 1);
     
     if (lastCompletedRoundIndex >= 0) {
@@ -320,5 +323,7 @@ export function StudentReport() {
     </Card>
   );
 }
+
+    
 
     

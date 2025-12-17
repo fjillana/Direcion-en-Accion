@@ -30,27 +30,25 @@ export function StudentReport() {
       return;
     }
     
-    // Logic to find the latest published report for the student's team
     let foundReport = null;
     let reportRound = -1;
 
-    // Iterate backwards from the last possible round
-    for (let i = game.numRounds - 1; i >= 0; i--) {
+    // Corrected Loop: Start from the last possible round and go backwards.
+    for (let i = game.numRounds; i >= 0; i--) {
         const report = game.reports?.[i]?.[studentState.teamName];
         if (report && report.published) {
             foundReport = report;
             reportRound = i;
-            break; // Stop as soon as we find the latest one
+            // CRITICAL FIX: The 'break' must be INSIDE the 'if' statement.
+            break; 
         }
     }
 
     if (foundReport) {
         setReportData(foundReport);
-        setDisplayRound(reportRound + 1); // e.g., index 5 is Round 6
+        setDisplayRound(reportRound);
     } else {
         setReportData(null);
-        // If no report is found, what should we display as the "current" round?
-        // Let's show the game's current round or the final round if finished.
         const relevantRound = game.status === 'Finalizado' ? game.numRounds : (game.round || 0);
         setDisplayRound(relevantRound);
     }

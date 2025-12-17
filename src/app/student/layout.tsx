@@ -82,7 +82,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   const game = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
-  const displayRound = game?.status === "Finalizado" ? game.numRounds : (studentGame?.round ?? 0) + 1;
+  const displayRound = studentGame?.round !== undefined ? studentGame.round + 1 : 1;
 
   return (
     <SidebarProvider>

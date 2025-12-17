@@ -1,10 +1,9 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { useStudentGame } from "@/hooks/useStudentGame";
-import { useGames } from "@/hooks/use-games";
+import { useGames } from "@/hooks/use-games"; // Use the same data source as the teacher
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, ServerCrash } from "lucide-react";
@@ -14,47 +13,43 @@ import { CrisisReport } from "./crisis-report";
 import { cn } from "@/lib/utils";
 
 export function StudentReport() {
-  const { studentGame } = useStudentGame();
-  const { getGameById } = useGames();
+  const { studentGame: studentState, isLoading: isStudentLoading } = useStudentGame();
+  const { getGameById, loading: isGamesLoading } = useGames();
+  
   const [reportData, setReportData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [displayRound, setDisplayRound] = useState<number>(0);
 
+  const game = useMemo(() => {
+      if (!studentState?.gameId) return null;
+      return getGameById(studentState.gameId);
+  }, [studentState?.gameId, getGameById]);
+
   useEffect(() => {
-    setIsLoading(true);
-
-    if (studentGame && studentGame.gameId && studentGame.teamName) {
-      const game = getGameById(studentGame.gameId);
-      if (!game) {
-        setIsLoading(false);
-        setReportData(null);
-        return;
-      }
-      
-      const roundIndexToShow = game.status === "Finalizado"
-        ? game.round // If game is finished, the index is the final round number.
-        : game.round > 0 ? game.round - 1 : -1;
-
-      setDisplayRound(roundIndexToShow >= 0 ? roundIndexToShow + 1 : 0);
-      
-      if (roundIndexToShow !== -1) {
-          const report = game.reports?.[roundIndexToShow]?.[studentGame.teamName];
-          if (report && report.published) {
-            setReportData(report);
-          } else {
-            setReportData(null);
-          }
-      } else {
-          setReportData(null);
-      }
-
-    } else {
+    if (!game || !studentState?.teamName) {
       setReportData(null);
+      return;
     }
-    setIsLoading(false);
-  }, [studentGame, getGameById]);
+
+    // This logic is now aligned with how the teacher's panel determines the reportable round.
+    const lastCompletedRoundIndex = game.round;
+
+    setDisplayRound(lastCompletedRoundIndex + 1);
+    
+    if (lastCompletedRoundIndex >= 0) {
+        const report = game.reports?.[lastCompletedRoundIndex]?.[studentState.teamName];
+        if (report && report.published) {
+          setReportData(report);
+        } else {
+          setReportData(null);
+        }
+    } else {
+        setReportData(null);
+    }
+  }, [game, studentState?.teamName]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
+
+  const isLoading = isStudentLoading || isGamesLoading;
 
   if (isLoading) {
     return (
@@ -75,8 +70,8 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            {displayRound > 0 
-              ? `El reporte para la ronda ${displayRound} aún no ha sido publicado.`
+            {game && game.round > 0
+              ? `El reporte para la ronda ${displayRound} aún no ha sido publicado por el profesor.`
               : "No hay reportes disponibles todavía."
             }
             <br />
@@ -87,14 +82,13 @@ export function StudentReport() {
     );
   }
   
-  const gameData = getGameById(studentGame!.gameId!);
   const prevRoundIndex = reportData.round > 0 ? reportData.round - 1 : 0;
   
   let initialCashForRound = 0;
   if(reportData.round === 0) {
-      initialCashForRound = gameData?.initialFunds || 0;
+      initialCashForRound = game?.initialFunds || 0;
   } else {
-      const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === studentGame!.teamName);
+      const prevRoundPerformance = game?.performance?.[prevRoundIndex]?.find(p => p.name === studentState!.teamName);
       initialCashForRound = prevRoundPerformance?.kpis?.cash || 0;
   }
   

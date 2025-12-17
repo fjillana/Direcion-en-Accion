@@ -35,7 +35,7 @@ export function StudentReport() {
     let reportRound = -1;
 
     // Start from the last possible round and go backwards to find the latest published report.
-    for (let i = game.numRounds -1; i >= 0; i--) {
+    for (let i = game.numRounds - 1; i >= 0; i--) {
         const report = game.reports?.[i]?.[studentState.teamName];
         if (report && report.published) {
             foundReport = report;

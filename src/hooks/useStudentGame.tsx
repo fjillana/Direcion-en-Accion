@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
@@ -235,7 +234,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   };
   
   const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
-    if (!fullStudentState) return;
+    if (!fullStudentState || fullStudentState.round === undefined) return;
     
     const currentDecisions = fullStudentState.decisions || initialRoundDecisions;
 
@@ -251,7 +250,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         ...updatedDecisions,
         crisisResponse: updatedDecisions.crisisResponse ? { ...updatedDecisions.crisisResponse, cost: updatedDecisions.crisisResponse.cost || 0, outcomeDescription: "" } : null,
       };
-      confirmStudentDecisions(fullStudentState.gameId!, fullStudentState.teamName!, fullStudentState.round!, finalDecisions);
+      confirmStudentDecisions(fullStudentState.gameId!, fullStudentState.teamName!, fullStudentState.round, finalDecisions);
     }
   };
 

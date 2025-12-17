@@ -164,10 +164,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           });
         }
         
-        const lastCompletedRoundPerformance = internalPerformanceHistory.find(p => p.round === serverRound - 1);
+        const lastCompletedRoundPerformance = internalPerformanceHistory.length > 0 
+            ? internalPerformanceHistory[internalPerformanceHistory.length - 1] 
+            : undefined;
+
         if (lastCompletedRoundPerformance) {
           kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
-        } else if (serverRound === 0 || serverRound === 1) { 
+        } else if (serverRound === 0) { 
           kpisForCurrentRound = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -352,5 +355,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

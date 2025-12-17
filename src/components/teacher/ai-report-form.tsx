@@ -58,9 +58,11 @@ export function AIReportForm() {
   
   const reportableRound = useMemo(() => {
     if (!activeGame) return 0;
+    // If the game is finished, the last report is for the final playable round (numRounds - 1)
     if (activeGame.status === "Finalizado") {
-      return activeGame.numRounds;
+      return activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
     }
+    // If ongoing, the last completed round is round - 1
     return activeGame.round > 0 ? activeGame.round - 1 : 0;
   }, [activeGame]);
 

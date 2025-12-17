@@ -46,15 +46,21 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useGames } from "@/hooks/use-games";
 
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { studentGame, abandonGame } = useStudentGame();
+  const { getGameById } = useGames();
   const { user, logout } = useAuth();
   
   const performanceHistory = studentGame?.performanceHistory || [];
-  const teamBadges = useMemo(() => getAchievementsStatus(performanceHistory), [performanceHistory]);
+  
+  const teamBadges = useMemo(() => {
+    const unlocked = studentGame?.unlockedAchievements || [];
+    return getAchievementsStatus(unlocked);
+  }, [studentGame?.unlockedAchievements]);
   
   const unreadMessagesCount = useMemo(() => {
     if (!studentGame?.messages || !user) return 0;
@@ -74,6 +80,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const handleLogout = async () => {
     await logout();
   }
+
+  const game = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
+  const displayRound = game?.status === "Finalizado" ? game.numRounds : (studentGame?.round ?? 0) + 1;
 
   return (
     <SidebarProvider>
@@ -191,7 +200,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
             <div className="hidden md:flex items-center gap-3">
               <p className="text-sm font-medium">
-                  {studentGame?.teamName || 'Equipo'} - Ronda {studentGame?.round || 0}
+                  {studentGame?.teamName || 'Equipo'} - Ronda {displayRound}
               </p>
               <div className="flex items-center gap-1">
                 <TooltipProvider>

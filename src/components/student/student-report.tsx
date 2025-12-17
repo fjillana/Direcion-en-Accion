@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useStudentGame } from "@/hooks/useStudentGame";
-import { useGames } from "@/hooks/use-games"; // Use the same data source as the teacher
+import { useGames } from "@/hooks/use-games";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, ServerCrash } from "lucide-react";
@@ -29,33 +29,32 @@ export function StudentReport() {
       setReportData(null);
       return;
     }
+    
+    // Logic to find the latest published report for the student's team
+    let foundReport = null;
+    let reportRound = -1;
 
-    // New definitive logic: Find the latest round with performance data for this team.
-    const performanceRounds = game.performance ? Object.keys(game.performance).map(Number) : [];
-    let lastCompletedRoundIndex = -1;
-
-    for (const roundNum of performanceRounds) {
-        if (game.performance?.[roundNum]?.some(p => p.name === studentState.teamName)) {
-            if (roundNum > lastCompletedRoundIndex) {
-                lastCompletedRoundIndex = roundNum;
-            }
+    // Iterate backwards from the last possible round
+    for (let i = game.numRounds - 1; i >= 0; i--) {
+        const report = game.reports?.[i]?.[studentState.teamName];
+        if (report && report.published) {
+            foundReport = report;
+            reportRound = i;
+            break; // Stop as soon as we find the latest one
         }
     }
-    
-    // The report is for the last round where performance data exists.
-    // The round to display is always the index + 1.
-    setDisplayRound(lastCompletedRoundIndex + 1);
-    
-    if (lastCompletedRoundIndex >= 0) {
-        const report = game.reports?.[lastCompletedRoundIndex]?.[studentState.teamName];
-        if (report && report.published) {
-          setReportData(report);
-        } else {
-          setReportData(null);
-        }
+
+    if (foundReport) {
+        setReportData(foundReport);
+        setDisplayRound(reportRound + 1); // e.g., index 5 is Round 6
     } else {
         setReportData(null);
+        // If no report is found, what should we display as the "current" round?
+        // Let's show the game's current round or the final round if finished.
+        const relevantRound = game.status === 'Finalizado' ? game.numRounds : (game.round || 0);
+        setDisplayRound(relevantRound);
     }
+    
   }, [game, studentState?.teamName]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');

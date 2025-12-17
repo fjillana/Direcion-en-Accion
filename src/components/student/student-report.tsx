@@ -14,15 +14,15 @@ import { cn } from "@/lib/utils";
 
 export function StudentReport() {
   const { studentGame: studentState, isLoading: isStudentLoading } = useStudentGame();
-  const { getGameById, loading: isGamesLoading } = useGames();
+  const { games, loading: isGamesLoading } = useGames();
   
   const [reportData, setReportData] = useState<any>(null);
   const [displayRound, setDisplayRound] = useState<number>(0);
 
   const game = useMemo(() => {
       if (!studentState?.gameId) return null;
-      return getGameById(studentState.gameId);
-  }, [studentState?.gameId, getGameById]);
+      return games.find(g => g.id === studentState.gameId);
+  }, [studentState?.gameId, games]);
 
   useEffect(() => {
     if (!game || !studentState?.teamName) {
@@ -33,13 +33,12 @@ export function StudentReport() {
     let foundReport = null;
     let reportRound = -1;
 
-    // Corrected Loop: Start from the last possible round and go backwards.
+    // Start from the last possible round and go backwards.
     for (let i = game.numRounds; i >= 0; i--) {
         const report = game.reports?.[i]?.[studentState.teamName];
         if (report && report.published) {
             foundReport = report;
             reportRound = i;
-            // CRITICAL FIX: The 'break' must be INSIDE the 'if' statement.
             break; 
         }
     }
@@ -49,7 +48,7 @@ export function StudentReport() {
         setDisplayRound(reportRound);
     } else {
         setReportData(null);
-        const relevantRound = game.status === 'Finalizado' ? game.numRounds : (game.round || 0);
+        const relevantRound = game.status === 'Finalizado' ? game.round : (game.round > 0 ? game.round -1 : 0);
         setDisplayRound(relevantRound);
     }
     
@@ -79,7 +78,7 @@ export function StudentReport() {
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
             {game && (game.round > 0 || game.status === 'Finalizado')
-              ? `El reporte para la ronda ${displayRound} aún no ha sido publicado por el profesor.`
+              ? `El reporte para la ronda ${displayRound + 1} aún no ha sido publicado por el profesor.`
               : "No hay reportes disponibles todavía."
             }
             <br />
@@ -328,5 +327,3 @@ export function StudentReport() {
     </Card>
   );
 }
-
-    

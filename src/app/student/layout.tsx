@@ -83,8 +83,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   const game = studentGame?.gameId ? getGameById(studentGame.gameId) : null;
+  
   const displayRound = useMemo(() => {
-    if (!studentGame || !game) return 1;
+    if (!studentGame || !game) {
+      // Return a sensible default or loading state if data is not ready
+      return studentGame?.round ? studentGame.round + 1 : 1;
+    }
     // If the game is over, the round to display is the total number of rounds.
     if (game.status === 'Finalizado') {
       return game.numRounds;

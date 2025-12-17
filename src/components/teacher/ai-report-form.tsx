@@ -58,12 +58,14 @@ export function AIReportForm() {
   
   const reportableRound = useMemo(() => {
     if (!activeGame) return 0;
-    // If the game is finished, the last report is for the final playable round (numRounds - 1)
+    // The last reportable round is the one before the current game round, or the final round if the game is over.
+    const lastCompletedRound = activeGame.round > 0 ? activeGame.round - 1 : 0;
     if (activeGame.status === "Finalizado") {
-      return activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
+        // For a finished game of N rounds, the last performance data is for round N-1.
+        // The game.round value could be N.
+        return activeGame.numRounds - 1;
     }
-    // If ongoing, the last completed round is round - 1
-    return activeGame.round > 0 ? activeGame.round - 1 : 0;
+    return lastCompletedRound;
   }, [activeGame]);
 
   const teamsData = useMemo(() => {

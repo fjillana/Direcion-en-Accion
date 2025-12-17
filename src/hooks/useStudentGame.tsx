@@ -164,13 +164,14 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           });
         }
         
+        // Find the performance data for the latest round available in the history.
         const lastCompletedRoundPerformance = internalPerformanceHistory.length > 0 
-            ? internalPerformanceHistory[internalPerformanceHistory.length - 1] 
+            ? internalPerformanceHistory.reduce((latest, current) => current.round > latest.round ? current : latest)
             : undefined;
 
         if (lastCompletedRoundPerformance) {
           kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
-        } else if (serverRound === 0) { 
+        } else if (serverRound === 0) { // Fallback for round 0 if no performance data exists
           kpisForCurrentRound = {
             cash: gameData.initialFunds,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,

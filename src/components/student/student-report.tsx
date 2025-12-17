@@ -28,20 +28,20 @@ export function StudentReport() {
         return;
       }
       
-      let roundToShow: number;
+      let roundToShowIndex: number;
       
       if (game.status === 'Finalizado') {
           // In a finished game of N rounds, the last report is for round N-1.
-          roundToShow = game.numRounds > 0 ? game.round -1 : 0;
+          roundToShowIndex = game.numRounds > 0 ? game.numRounds - 1 : 0;
       } else {
         // If the game is ongoing, the report to show is for the previously completed round.
-        roundToShow = game.round > 0 ? game.round - 1 : -1;
+        roundToShowIndex = game.round > 0 ? game.round - 1 : -1;
       }
       
-      setReportRound(roundToShow);
+      setReportRound(roundToShowIndex);
       
-      if (roundToShow >= 0 && game.reports?.[roundToShow]?.[studentGame.teamName]) {
-        const report = game.reports[roundToShow][studentGame.teamName];
+      if (roundToShowIndex >= 0 && game.reports?.[roundToShowIndex]?.[studentGame.teamName]) {
+        const report = game.reports[roundToShowIndex][studentGame.teamName];
         if (report.published) {
           setReportData(report);
         } else {
@@ -75,7 +75,7 @@ export function StudentReport() {
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4 text-center">
           <ServerCrash className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            El reporte para la ronda {reportRound >= 0 ? reportRound : 'anterior'} aún no ha sido publicado.
+            El reporte para la ronda {reportRound >= 0 ? reportRound + 1 : 'anterior'} aún no ha sido publicado.
             <br />
             Por favor, espera a que el profesor lo envíe.
           </p>
@@ -147,7 +147,7 @@ export function StudentReport() {
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-                <CardTitle>Análisis de la Ronda {reportData.round}</CardTitle>
+                <CardTitle>Análisis de la Ronda {reportData.round + 1}</CardTitle>
                 <CardDescription>
                 Este es el análisis de rendimiento de tu equipo para la ronda que acaba de finalizar.
                 </CardDescription>
@@ -323,7 +323,3 @@ export function StudentReport() {
     </Card>
   );
 }
-
-    
-
-    

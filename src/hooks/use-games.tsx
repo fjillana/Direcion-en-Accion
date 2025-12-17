@@ -142,15 +142,15 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const gamesCollectionRef = collection(firestore, "games");
     let q: Query;
+    const gamesCollectionRef = collection(firestore, "games");
 
     if (user?.role === 'teacher' || user?.role === 'superadmin') {
-        // Teacher/Superadmin: Fetch all their games regardless of status.
-        q = query(gamesCollectionRef, where("createdBy", "==", user.id));
+      // Teacher/Superadmin: Fetch all games they created.
+      q = query(gamesCollectionRef, where("createdBy", "==", user.id));
     } else {
-        // Student: Fetch only "En curso" games for joining.
-        q = query(gamesCollectionRef, where("status", "==", "En curso"));
+      // Student: Fetch only "En curso" games for joining purposes.
+      q = query(gamesCollectionRef, where("status", "==", "En curso"));
     }
 
     const unsubscribe = onSnapshot(
@@ -285,15 +285,16 @@ export function GamesProvider({ children }: { children: ReactNode }) {
 
         if (!existingMessages.some(msg => msg.id === reportMessageId)) {
             const isFinalRound = round === gameData.numRounds - 1;
-            const messageContent = isFinalRound 
-                ? 'El Reporte Final ya está disponible.'
-                : `El reporte de la ronda ${round} ya está disponible.`;
+            const title = isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${round + 1}`;
+            const messageContent = isFinalRound
+                ? 'El Reporte Final ya está disponible en tu sección de Reporte.'
+                : `El reporte de la ronda ${round + 1} ya está disponible.`;
             
             const newMessage: GameMessage = {
                 id: reportMessageId,
                 from: 'system',
                 to: teamName,
-                title: isFinalRound ? 'Reporte Final Disponible' : `Reporte Disponible: Ronda ${round}`,
+                title: title,
                 content: messageContent,
                 type: 'report',
                 timestamp: Date.now(),
@@ -569,5 +570,3 @@ export function useGames() {
   }
   return context;
 }
-
-    

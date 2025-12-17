@@ -56,30 +56,28 @@ export function AIReportForm() {
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
   
-  const reportableRound = useMemo(() => {
-    if (!activeGame) return -1;
+  const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
+    if (!activeGame) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
+    
     // The report is for the last completed round.
     if (activeGame.status === 'Finalizado') {
-      // For a finished game of N rounds, the last report is for round N-1.
-      return activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
+      // Game of N rounds is played 0 to N-1. Final report is for index N-1.
+      const lastPlayedRoundIndex = activeGame.numRounds > 0 ? activeGame.numRounds - 1 : 0;
+      return { reportableRoundIndex: lastPlayedRoundIndex, displayRoundNumber: activeGame.numRounds };
     }
+    
     // If game is at round N, last completed is N-1.
-    return activeGame.round > 0 ? activeGame.round - 1 : -1;
+    const lastCompletedRoundIndex = activeGame.round > 0 ? activeGame.round - 1 : -1;
+    return { reportableRoundIndex: lastCompletedRoundIndex, displayRoundNumber: lastCompletedRoundIndex >= 0 ? lastCompletedRoundIndex + 1 : 0 };
   }, [activeGame]);
-
-  const displayRoundNumber = useMemo(() => {
-    if (!activeGame) return 0;
-    if (reportableRound === -1) return activeGame.round;
-    return reportableRound;
-  }, [activeGame, reportableRound]);
 
 
   const teamsData = useMemo(() => {
-    if (!activeGame || !activeGame.performance || reportableRound < 0) return [];
-    const perf = activeGame.performance[reportableRound];
+    if (!activeGame || !activeGame.performance || reportableRoundIndex < 0) return [];
+    const perf = activeGame.performance[reportableRoundIndex];
     if (!perf) return [];
     return perf;
-  }, [activeGame, reportableRound]);
+  }, [activeGame, reportableRoundIndex]);
 
 
   const humanTeams = useMemo(() => teamsData.filter(t => t.type === 'H'), [teamsData]);
@@ -108,8 +106,8 @@ export function AIReportForm() {
   }, [activeGame, teamsData]);
 
   useEffect(() => {
-    if (activeGame && selectedTeam && reportableRound >= 0) {
-        const existingReport = activeGame.reports?.[reportableRound]?.[selectedTeam];
+    if (activeGame && selectedTeam && reportableRoundIndex >= 0) {
+        const existingReport = activeGame.reports?.[reportableRoundIndex]?.[selectedTeam];
         
         if (existingReport) {
             setReportData(existingReport);
@@ -128,7 +126,7 @@ export function AIReportForm() {
       setHasReport(false);
       setReportData(null);
     }
-  }, [selectedTeam, activeGame, reportableRound]);
+  }, [selectedTeam, activeGame, reportableRoundIndex]);
 
   useEffect(() => {
     if (!selectedTeam && humanTeams.length > 0) {
@@ -140,14 +138,14 @@ export function AIReportForm() {
 
 
   const handleGenerateReport = async () => {
-    if (!activeGame || !selectedTeam || reportableRound < 0) return;
+    if (!activeGame || !selectedTeam || reportableRoundIndex < 0) return;
     
-    const performanceForRound = activeGame.performance?.[reportableRound];
+    const performanceForRound = activeGame.performance?.[reportableRoundIndex];
     if (!performanceForRound) {
         toast({
             variant: "destructive",
             title: "Error de Datos",
-            description: `No se encontraron datos de rendimiento para la ronda ${reportableRound}.`,
+            description: `No se encontraron datos de rendimiento para la ronda con índice ${reportableRoundIndex}.`,
         });
         return;
     }
@@ -162,7 +160,7 @@ export function AIReportForm() {
         return;
     }
     
-    const previousRoundForKpi = reportableRound - 1;
+    const previousRoundForKpi = reportableRoundIndex - 1;
     const previousPerformance = activeGame.performance?.[previousRoundForKpi]?.find(p => p.name === selectedTeam);
     const previousKpis = previousPerformance ? previousPerformance.kpis : null;
 
@@ -171,7 +169,7 @@ export function AIReportForm() {
     try {
       const reportPayload = {
         gameId: activeGame.id,
-        roundNumber: reportableRound,
+        roundNumber: reportableRoundIndex, // Send the index to AI
         teamPerformanceData: JSON.stringify({
           ...teamPerformance,
           decisions: {
@@ -188,7 +186,7 @@ export function AIReportForm() {
       const teamMarketResult = marketAnalysis[selectedTeam];
 
       const newReportData = {
-          round: reportableRound,
+          round: reportableRoundIndex,
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
           kpiAnalysis: result.kpiAnalysis,
@@ -212,7 +210,7 @@ export function AIReportForm() {
       setPedagogicalSuggestions(result.sugerenciasPedagogicas);
       setHasReport(true);
       
-      updateReport(activeGame.id, reportableRound, selectedTeam, newReportData);
+      updateReport(activeGame.id, reportableRoundIndex, selectedTeam, newReportData);
 
     } catch (error) {
       console.error("Error generating report:", error);
@@ -232,7 +230,7 @@ export function AIReportForm() {
   };
   
   const saveReport = (publish: boolean) => {
-    if (!activeGame || !selectedTeam || !reportData || reportableRound < 0) return;
+    if (!activeGame || !selectedTeam || !reportData || reportableRoundIndex < 0) return;
     
     const fullReportData = {
       ...reportData,
@@ -242,7 +240,7 @@ export function AIReportForm() {
       published: publish,
     };
     
-    updateReport(activeGame.id, reportableRound, selectedTeam, fullReportData);
+    updateReport(activeGame.id, reportableRoundIndex, selectedTeam, fullReportData);
 
     toast({
       title: publish ? "Reporte Publicado" : "Borrador Guardado",
@@ -586,7 +584,7 @@ export function AIReportForm() {
                     <p className="text-muted-foreground mb-4">
                     {selectedTeam ? `Aún no se ha generado un reporte para ${selectedTeam}.` : "Selecciona un equipo para generar un reporte."}
                     </p>
-                    <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam || reportableRound < 0}>
+                    <Button onClick={handleGenerateReport} disabled={isGenerating || !selectedTeam || reportableRoundIndex < 0}>
                     {isGenerating ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (

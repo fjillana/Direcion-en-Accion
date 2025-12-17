@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
-import pLimit from 'p-limit';
+const pLimit = require('p-limit');
 
 // Create a limiter that will execute at most 2 promises concurrently.
 const limit = pLimit(2);

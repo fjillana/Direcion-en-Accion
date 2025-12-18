@@ -57,11 +57,13 @@ export function AIReportForm() {
   const { toast } = useToast();
   
   const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
-    if (!activeGame || activeGame.round === 0) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
+    if (!activeGame || activeGame.round === 0) {
+      return { reportableRoundIndex: -1, displayRoundNumber: 0 };
+    }
     
     // The report is for the last *completed* round.
     // If the game is at round 5, the last completed round is 4.
-    const lastCompletedRoundIndex = activeGame.round -1;
+    const lastCompletedRoundIndex = activeGame.round - 1;
 
     return { 
       reportableRoundIndex: lastCompletedRoundIndex,
@@ -72,6 +74,7 @@ export function AIReportForm() {
 
   const teamsData = useMemo(() => {
     if (!activeGame || !activeGame.performance || reportableRoundIndex < 0) return [];
+    // CRITICAL FIX: Use reportableRoundIndex to get the performance of the last COMPLETED round.
     const perf = activeGame.performance[reportableRoundIndex];
     if (!perf) return [];
     return perf;
@@ -105,6 +108,7 @@ export function AIReportForm() {
 
   useEffect(() => {
     if (activeGame && selectedTeam && reportableRoundIndex >= 0) {
+        // CRITICAL FIX: Use reportableRoundIndex to get the existing report
         const existingReport = activeGame.reports?.[reportableRoundIndex]?.[selectedTeam];
         
         if (existingReport) {
@@ -138,17 +142,9 @@ export function AIReportForm() {
   const handleGenerateReport = async () => {
     if (!activeGame || !selectedTeam || reportableRoundIndex < 0) return;
     
-    const performanceForRound = activeGame.performance?.[reportableRoundIndex];
-    if (!performanceForRound) {
-        toast({
-            variant: "destructive",
-            title: "Error de Datos",
-            description: `No se encontraron datos de rendimiento para la ronda con índice ${reportableRoundIndex}.`,
-        });
-        return;
-    }
+    // CRITICAL FIX: Use teamsData which is already scoped to the correct reportableRoundIndex
+    const teamPerformance = teamsData.find(t => t.name === selectedTeam);
 
-    const teamPerformance = performanceForRound.find(t => t.name === selectedTeam);
     if (!teamPerformance) {
         toast({
             variant: "destructive",
@@ -158,8 +154,11 @@ export function AIReportForm() {
         return;
     }
     
+    // CRITICAL FIX: Look for previous KPIs in the round before the reportable one.
     const previousRoundForKpi = reportableRoundIndex - 1;
-    const previousPerformance = activeGame.performance?.[previousRoundForKpi]?.find(p => p.name === selectedTeam);
+    const previousPerformance = previousRoundForKpi >= 0 
+      ? activeGame.performance?.[previousRoundForKpi]?.find(p => p.name === selectedTeam)
+      : null;
     const previousKpis = previousPerformance ? previousPerformance.kpis : null;
 
 
@@ -288,8 +287,9 @@ export function AIReportForm() {
     const gameData = getGameById(activeGame.id);
     let cashAtStart = gameData?.initialFunds || 0;
 
-    if (reportData.round > 0) {
-      const prevRoundIndex = reportData.round - 1;
+    // CRITICAL FIX: Use reportableRoundIndex
+    if (reportableRoundIndex > 0) {
+      const prevRoundIndex = reportableRoundIndex - 1;
       const prevRoundPerformance = gameData?.performance?.[prevRoundIndex]?.find(p => p.name === selectedTeam);
       if (prevRoundPerformance) {
         cashAtStart = prevRoundPerformance.kpis.cash;
@@ -301,7 +301,7 @@ export function AIReportForm() {
         totalIncome: kpis.income || 0,
         initialCashForRound: cashAtStart,
     };
-  }, [reportData, activeGame, getGameById, selectedTeam]);
+  }, [reportData, activeGame, getGameById, selectedTeam, reportableRoundIndex]);
 
   const totalDecisionsCost = useMemo(() => {
     if (!reportData || !reportData.decisions) return 0;

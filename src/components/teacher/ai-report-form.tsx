@@ -59,17 +59,13 @@ export function AIReportForm() {
   const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
     if (!activeGame) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
     
-    // The report is for the last completed round, which is game.round itself.
-    const lastCompletedRoundIndex = activeGame.round;
-    const isFinished = activeGame.status === "Finalizado";
-
-    // If game is finished, the last playable round is numRounds - 1.
-    // The round counter might be higher, so we cap it.
-    const finalReportableRound = isFinished ? activeGame.numRounds - 1 : lastCompletedRoundIndex;
+    // The report is for the last *completed* round.
+    // If the game is at round 5, the last completed round is 4.
+    const lastCompletedRoundIndex = activeGame.status === "Finalizado" ? activeGame.numRounds - 1 : activeGame.round -1;
 
     return { 
-      reportableRoundIndex: finalReportableRound, 
-      displayRoundNumber: finalReportableRound + 1
+      reportableRoundIndex: Math.max(0, lastCompletedRoundIndex), // Ensure it's not negative
+      displayRoundNumber: Math.max(1, lastCompletedRoundIndex + 1)
     };
   }, [activeGame]);
 

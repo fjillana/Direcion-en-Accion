@@ -57,15 +57,15 @@ export function AIReportForm() {
   const { toast } = useToast();
   
   const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
-    if (!activeGame) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
+    if (!activeGame || activeGame.round === 0) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
     
     // The report is for the last *completed* round.
     // If the game is at round 5, the last completed round is 4.
-    const lastCompletedRoundIndex = activeGame.status === "Finalizado" ? activeGame.numRounds - 1 : activeGame.round -1;
+    const lastCompletedRoundIndex = activeGame.round -1;
 
     return { 
-      reportableRoundIndex: Math.max(0, lastCompletedRoundIndex), // Ensure it's not negative
-      displayRoundNumber: Math.max(1, lastCompletedRoundIndex + 1)
+      reportableRoundIndex: lastCompletedRoundIndex,
+      displayRoundNumber: lastCompletedRoundIndex + 1
     };
   }, [activeGame]);
 
@@ -354,10 +354,7 @@ export function AIReportForm() {
               Asistente de Reportes IA
             </CardTitle>
             <CardDescription>
-              {activeGame?.status === "Finalizado" ? 
-                `Genera y edita el informe de rendimiento final (Ronda ${displayRoundNumber}) para cada equipo.` :
-                `Genera y edita el informe de rendimiento y las preguntas de debriefing para cada equipo en la Ronda ${displayRoundNumber}.`
-              }
+              {`Genera y edita el informe de rendimiento para la Ronda ${displayRoundNumber}.`}
             </CardDescription>
           </div>
           <div className="w-full sm:w-auto">

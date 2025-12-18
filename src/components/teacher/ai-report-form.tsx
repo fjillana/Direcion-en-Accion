@@ -61,13 +61,13 @@ export function AIReportForm() {
       return { reportableRoundIndex: -1, displayRoundNumber: 0 };
     }
     
-    // The report is for the last *completed* round.
-    // If the game is at round 5, the last completed round is 4.
+    // The report is always for the last *completed* round.
+    // If the game is at round 6, the last completed round is 5.
     const lastCompletedRoundIndex = activeGame.round - 1;
 
     return { 
       reportableRoundIndex: lastCompletedRoundIndex,
-      displayRoundNumber: lastCompletedRoundIndex + 1
+      displayRoundNumber: lastCompletedRoundIndex + 1 // Show "Ronda 5" to the user
     };
   }, [activeGame]);
 

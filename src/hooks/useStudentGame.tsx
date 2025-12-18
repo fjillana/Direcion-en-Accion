@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
@@ -121,7 +120,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         setDebugStatus("Student state loaded.");
       } else {
         studentData = { ...initialStudentState, userId: user.id };
-        setDoc(studentGameRef, studentData); // Create if not exists
+        setDoc(studentGameRef, studentData); 
         setDebugStatus("Student document did not exist. Creating new one.");
       }
       
@@ -147,45 +146,54 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const { teamName } = studentData;
         const serverRound = gameData.round;
         
-        // CORRECCIÓN: Gestión segura de índices para partidas finalizadas
-        const maxRoundIndex = gameData.numRounds ? gameData.numRounds - 1 : 0;
-        const effectiveRoundIndex = gameData.status === 'Finalizado' 
-            ? maxRoundIndex 
-            : Math.min(serverRound, maxRoundIndex);
-
-        // Fallback robusto para las decisiones
-        const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
-                                  gameData.decisions?.[effectiveRoundIndex]?.[teamName!] || 
-                                  initialRoundDecisions;
-        
-        const isBlindRound = !!gameData.roundSettings?.[effectiveRoundIndex]?.isBlind;
-        
+        // --- 1. CONSTRUCCIÓN DEL HISTORIAL ---
         const internalPerformanceHistory: TeamPerformanceData[] = [];
-        let kpisForCurrentRound: TeamKPIs | undefined = undefined;
-
+        
         if (gameData.performance) {
+          // Ordenamos las claves numéricamente (0, 1, 2, 3...)
           Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
             const roundNum = parseInt(roundKey, 10);
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
+            
             if (teamPerformance) {
-              internalPerformanceHistory.push(teamPerformance);
+              // INYECCIÓN DE RONDA: Aseguramos que el objeto tenga la propiedad 'round' correcta.
+              // Esto arregla los gráficos y la lógica de búsqueda.
+              internalPerformanceHistory.push({
+                  ...teamPerformance,
+                  round: roundNum 
+              });
             }
           });
         }
-        
-        // CORRECCIÓN: Obtención de KPIs buscando el índice efectivo
+
+        // --- 2. SELECCIÓN DE LOS KPIs A MOSTRAR ---
+        let kpisForCurrentRound: TeamKPIs | undefined = undefined;
+
         if (internalPerformanceHistory.length > 0) {
-            const targetPerf = internalPerformanceHistory.find(p => p.round === effectiveRoundIndex);
-            if (targetPerf) {
-                kpisForCurrentRound = targetPerf.kpis;
+            if (gameData.status === 'Finalizado') {
+                 // LÓGICA FINALIZADA: Si el juego terminó, cogemos SIEMPRE el último dato disponible.
+                 // No importa si es ronda 5, 6 o 20. Cogemos el último del array.
+                 const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
+                 kpisForCurrentRound = lastPerf.kpis;
             } else {
-                // Fallback al último disponible si no encontramos el exacto
-                const lastCompletedRoundPerformance = internalPerformanceHistory.reduce((latest, current) => 
-                    current.round > latest.round ? current : latest
-                );
-                kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
+                 // LÓGICA EN JUEGO: Mostramos los resultados de la ronda anterior (la que acaba de terminar).
+                 // Si estamos en Ronda 5, queremos ver los resultados de Ronda 4.
+                 // Usamos Math.max(0, ...) para no pedir índices negativos.
+                 const targetRoundIndex = Math.max(0, serverRound - 1);
+                 
+                 // Intentamos encontrar esa ronda exacta
+                 const targetPerf = internalPerformanceHistory.find(p => p.round === targetRoundIndex);
+                 
+                 if (targetPerf) {
+                     kpisForCurrentRound = targetPerf.kpis;
+                 } else {
+                     // Fallback: Si no existe la exacta (raro), cogemos la última disponible para que no salga vacío.
+                     const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
+                     kpisForCurrentRound = lastPerf.kpis;
+                 }
             }
         } else if (serverRound === 0) { 
+          // Valores iniciales por defecto si no hay historial
           kpisForCurrentRound = {
             cash: gameData.initialFunds || 25000,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -194,6 +202,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
             capacity: 810,
           };
         }
+
+        // --- 3. GESTIÓN DE DECISIONES ---
+        // Intentamos cargar las decisiones de la ronda actual.
+        // Si estamos finalizados, cargamos las de la última ronda jugada por si quieren consultarlas.
+        const decisionsIndex = gameData.status === 'Finalizado' && gameData.numRounds 
+            ? gameData.numRounds - 1 
+            : serverRound;
+
+        const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
+                                  gameData.decisions?.[decisionsIndex]?.[teamName!] || 
+                                  initialRoundDecisions;
+        
+        const isBlindRound = !!gameData.roundSettings?.[decisionsIndex]?.isBlind;
 
         setFullStudentState({
           ...studentData,

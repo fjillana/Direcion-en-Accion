@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -25,36 +24,42 @@ export function StudentReport() {
       return games.find(g => g.id === studentState.gameId);
   }, [studentState?.gameId, games]);
 
-  useEffect(() => {
-    if (!game || !studentState?.teamName) {
+  // Dentro de student-report.tsx
+useEffect(() => {
+  if (!game || !studentState?.teamName) {
+    setReportData(null);
+    return;
+  }
+  
+  let foundReport = null;
+  let reportRound = -1;
+
+  // LÓGICA REFORZADA: 
+  // Si el juego está finalizado, el límite es numRounds - 1.
+  // Si no, es la ronda actual del servidor - 1.
+  const maxSearchIndex = game.status === 'Finalizado' 
+    ? game.numRounds - 1 
+    : game.round - 1;
+
+  for (let i = maxSearchIndex; i >= 0; i--) {
+      const report = game.reports?.[i]?.[studentState.teamName];
+      if (report && report.published) {
+          foundReport = report;
+          reportRound = i;
+          break; 
+      }
+  }
+
+  if (foundReport) {
+      setReportData(foundReport);
+      setDisplayRound(reportRound);
+  } else {
       setReportData(null);
-      return;
-    }
-    
-    let foundReport = null;
-    let reportRound = -1;
-
-    // Start from the last possible round and go backwards to find the latest published report.
-    for (let i = game.numRounds - 1; i >= 0; i--) {
-        const report = game.reports?.[i]?.[studentState.teamName];
-        if (report && report.published) {
-            foundReport = report;
-            reportRound = i;
-            break; 
-        }
-    }
-
-    if (foundReport) {
-        setReportData(foundReport);
-        setDisplayRound(reportRound);
-    } else {
-        setReportData(null);
-        // If no report found, determine a relevant round to display for the "not available" message.
-        const relevantRound = game.status === 'Finalizado' ? game.numRounds - 1 : (game.round > 0 ? game.round -1 : 0);
-        setDisplayRound(relevantRound);
-    }
-    
-  }, [game, studentState?.teamName]);
+      // Aquí estaba el error de visualización del mensaje
+      const relevantRound = game.status === 'Finalizado' ? game.numRounds - 1 : (game.round > 0 ? game.round -1 : 0);
+      setDisplayRound(relevantRound);
+  }
+}, [game, studentState?.teamName, game?.status, game?.round]); // Añadimos dependencias clave
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 

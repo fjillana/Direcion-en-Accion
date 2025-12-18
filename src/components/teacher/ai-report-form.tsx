@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -56,20 +55,24 @@ export function AIReportForm() {
   const { updateReport, getGameById } = useGames();
   const { toast } = useToast();
   
-  const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
-    if (!activeGame || activeGame.round === 0) {
-      return { reportableRoundIndex: -1, displayRoundNumber: 0 };
-    }
-    
-    // The report is always for the last *completed* round.
-    // If the game is at round 6, the last completed round is 5.
-    const lastCompletedRoundIndex = activeGame.round - 1;
+  // Dentro de ai-report-form.tsx
+const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
+  if (!activeGame) return { reportableRoundIndex: -1, displayRoundNumber: 0 };
 
-    return { 
-      reportableRoundIndex: lastCompletedRoundIndex,
-      displayRoundNumber: lastCompletedRoundIndex + 1 // Show "Ronda 5" to the user
-    };
-  }, [activeGame]);
+  // En lugar de confiar en activeGame.round, buscamos el índice más alto en performance
+  const performanceIndices = Object.keys(activeGame.performance || {})
+    .map(Number)
+    .sort((a, b) => b - a); // Orden descendente
+
+  const lastProcessedIndex = performanceIndices.length > 0 ? performanceIndices[0] : -1;
+
+  // Si el juego está en curso, el reporte es de la ronda que acaba de terminar.
+  // Si está finalizado, es de la última ronda definida en numRounds - 1.
+  return { 
+    reportableRoundIndex: lastProcessedIndex,
+    displayRoundNumber: lastProcessedIndex + 1 
+  };
+}, [activeGame]);
 
 
   const teamsData = useMemo(() => {

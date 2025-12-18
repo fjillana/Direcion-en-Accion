@@ -9,7 +9,6 @@ import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, getDoc } from "firebase
 import { useFirestore } from "@/firebase";
 import type { TeamDecision, CrisisDecision } from "@/hooks/use-games";
 
-
 type StudentGameStatus = "no-game" | "pending" | "joined";
 
 export interface StudentGameState {
@@ -81,9 +80,8 @@ const initialRoundDecisions: RoundDecisions = {
   poachingTarget: undefined,
 };
 
-
 export function StudentGameProvider({ children }: { children: ReactNode }) {
-  const { games, confirmStudentDecisions, updateGame } = useGames();
+  const { confirmStudentDecisions, updateGame } = useGames();
   const { user, isLoading: isAuthLoading } = useAuth();
   const firestore = useFirestore();
 
@@ -131,11 +129,12 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         setFullStudentState({ ...studentData, decisions: initialRoundDecisions });
         setIsLoading(false);
         setDebugStatus(studentData.status === 'pending' ? 'Status: Pending Approval' : 'Status: No Game');
-        return; // No need to subscribe to game data yet
+        return; 
       }
       
       setDebugStatus(`Game ID detected: ${studentData.gameId}. Subscribing to game...`);
       const gameRef = doc(firestore, "games", studentData.gameId);
+      
       const gameUnsubscribe = onSnapshot(gameRef, (gameDoc) => {
         if (!gameDoc.exists()) {
            setDebugStatus("Student's game does not exist. Resetting state.");
@@ -148,17 +147,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const { teamName } = studentData;
         const serverRound = gameData.round;
         
-        // CORRECCIÓN 1: Gestión segura de índices
-        // Si la partida ha terminado (status === 'Finalizado'), el índice de datos es numRounds - 1.
-        // Si no, es la ronda actual.
-        // Usamos Math.min para asegurar que nunca pedimos un índice que no existe.
+        // CORRECCIÓN: Gestión segura de índices para partidas finalizadas
         const maxRoundIndex = gameData.numRounds ? gameData.numRounds - 1 : 0;
         const effectiveRoundIndex = gameData.status === 'Finalizado' 
             ? maxRoundIndex 
             : Math.min(serverRound, maxRoundIndex);
 
-        // Usamos decisions del serverRound real para permitir lectura, 
-        // pero si estamos finalizados, el UI podría querer ver las últimas decisiones tomadas.
+        // Fallback robusto para las decisiones
         const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
                                   gameData.decisions?.[effectiveRoundIndex]?.[teamName!] || 
                                   initialRoundDecisions;
@@ -178,15 +173,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           });
         }
         
-        // CORRECCIÓN 2: Obtención robusta de KPIs
-        // Buscamos los KPIs de la ronda efectiva calculada arriba.
+        // CORRECCIÓN: Obtención de KPIs buscando el índice efectivo
         if (internalPerformanceHistory.length > 0) {
-            // Intentamos buscar exactamente la ronda que queremos mostrar
             const targetPerf = internalPerformanceHistory.find(p => p.round === effectiveRoundIndex);
             if (targetPerf) {
                 kpisForCurrentRound = targetPerf.kpis;
             } else {
-                // Si no existe, fallback al último disponible (lo que tenías antes)
+                // Fallback al último disponible si no encontramos el exacto
                 const lastCompletedRoundPerformance = internalPerformanceHistory.reduce((latest, current) => 
                     current.round > latest.round ? current : latest
                 );
@@ -204,7 +197,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
         setFullStudentState({
           ...studentData,
-          round: serverRound, // Mantenemos el round real del servidor para lógica de flujo
+          round: serverRound, 
           decisions: decisionsForRound,
           roundSettings: gameData.roundSettings,
           messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
@@ -220,14 +213,12 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       });
       
-      // Return the game subscription cleanup function
       return () => { gameUnsubscribe() };
     }, (error) => {
       setDebugStatus(`ERROR in studentGames subscription: ${error.message}`);
       setIsLoading(false);
     });
   
-    // Return the student subscription cleanup function
     return () => { studentUnsubscribe() };
   }, [firestore, user, isAuthLoading]);
 
@@ -252,7 +243,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     await updateDoc(gameRef, joinRequestData);
   };
   
-
   const abandonGame = async () => {
     if (!firestore || !user || !fullStudentState) return;
     

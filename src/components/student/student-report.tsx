@@ -13,7 +13,7 @@ import { CrisisReport } from "./crisis-report";
 import { cn } from "@/lib/utils";
 
 export function StudentReport() {
-  const { studentGame: studentState, isLoading: isStudentLoading } from useStudentGame();
+  const { studentGame: studentState, isLoading: isStudentLoading } = useStudentGame();
   const { games, loading: isGamesLoading } = useGames();
   
   const [reportData, setReportData] = useState<any>(null);
@@ -24,7 +24,6 @@ export function StudentReport() {
       return games.find(g => g.id === studentState.gameId);
   }, [studentState?.gameId, games]);
 
-  // Dentro de student-report.tsx
   useEffect(() => {
     // Si no hay juego o equipo, limpiamos y salimos
     if (!game || !studentState?.teamName) {
@@ -35,23 +34,21 @@ export function StudentReport() {
     let foundReport = null;
     let reportRound = -1;
 
-    // ESTRATEGIA A PRUEBA DE FALLOS:
+    // ESTRATEGIA ROBUSTA:
     // En lugar de calcular matemáticamente dónde debería estar el reporte,
     // miramos qué reportes existen realmente en el objeto 'game.reports'.
-    // Obtenemos todos los índices de reportes disponibles (ej: ["0", "1", "2", "3", "4", "5"])
     const availableReportIndices = game.reports 
-        ? Object.keys(game.reports).map(Number).sort((a, b) => b - a) // Ordenamos de mayor a menor (5, 4, 3...)
+        ? Object.keys(game.reports).map(Number).sort((a, b) => b - a) // Ordenamos de mayor a menor
         : [];
 
     // Iteramos desde el índice más alto encontrado hacia abajo
     for (const i of availableReportIndices) {
         const report = game.reports?.[i]?.[studentState.teamName];
-        // Si el reporte existe y está publicado, ¡ese es el que queremos!
-        // (Asumimos que el alumno siempre quiere ver el último disponible)
+        // Si el reporte existe y está publicado, ese es el que mostramos
         if (report && report.published) {
             foundReport = report;
             reportRound = i;
-            break; // Encontramos el más reciente, dejamos de buscar
+            break; 
         }
     }
 
@@ -61,14 +58,13 @@ export function StudentReport() {
     } else {
         setReportData(null);
         // Lógica de fallback solo para mostrar el mensaje de "Esperando ronda X"
-        // Si está finalizado, esperamos el numRounds. Si no, la ronda actual.
         const relevantRound = game.status === 'Finalizado' 
             ? (game.numRounds ? game.numRounds - 1 : 0) 
             : Math.max(0, game.round - 1);
         setDisplayRound(relevantRound);
     }
     
-  }, [game, studentState?.teamName]); // Dependencias limpias
+  }, [game, studentState?.teamName]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value).replace('€', 'CC');
 

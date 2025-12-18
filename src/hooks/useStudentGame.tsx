@@ -147,11 +147,27 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         const gameData = { id: gameDoc.id, ...gameDoc.data() } as Game;
         const { teamName } = studentData;
         const serverRound = gameData.round;
-        const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || initialRoundDecisions;
         
-        const isBlindRound = !!gameData.roundSettings?.[serverRound]?.isBlind;
+        // CORRECCIÓN 1: Gestión segura de índices
+        // Si la partida ha terminado (status === 'Finalizado'), el índice de datos es numRounds - 1.
+        // Si no, es la ronda actual.
+        // Usamos Math.min para asegurar que nunca pedimos un índice que no existe.
+        const maxRoundIndex = gameData.numRounds ? gameData.numRounds - 1 : 0;
+        const effectiveRoundIndex = gameData.status === 'Finalizado' 
+            ? maxRoundIndex 
+            : Math.min(serverRound, maxRoundIndex);
+
+        // Usamos decisions del serverRound real para permitir lectura, 
+        // pero si estamos finalizados, el UI podría querer ver las últimas decisiones tomadas.
+        const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
+                                  gameData.decisions?.[effectiveRoundIndex]?.[teamName!] || 
+                                  initialRoundDecisions;
+        
+        const isBlindRound = !!gameData.roundSettings?.[effectiveRoundIndex]?.isBlind;
         
         const internalPerformanceHistory: TeamPerformanceData[] = [];
+        let kpisForCurrentRound: TeamKPIs | undefined = undefined;
+
         if (gameData.performance) {
           Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
             const roundNum = parseInt(roundKey, 10);
@@ -162,31 +178,33 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           });
         }
         
-        let kpisForCurrentRound: TeamKPIs | undefined = undefined;
-
-        // Determine the correct round to source KPIs from
-        const lastPerformanceRound = internalPerformanceHistory.length > 0
-            ? Math.max(...internalPerformanceHistory.map(p => p.round))
-            : -1;
-        
-        const performanceSource = internalPerformanceHistory.find(p => p.round === lastPerformanceRound);
-
-        if (performanceSource) {
-            kpisForCurrentRound = performanceSource.kpis;
-        } else if (serverRound === 0) { // Fallback for round 0 if no performance data exists
-            const numTotalTeams = (gameData.teamNames.length > 0 ? gameData.teamNames.length : 1) * 2;
-            kpisForCurrentRound = {
-                cash: gameData.initialFunds,
-                personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
-                nma: 7.5, marketShare: 100 / numTotalTeams, morale: 80,
-                studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
-                capacity: 810,
-            };
+        // CORRECCIÓN 2: Obtención robusta de KPIs
+        // Buscamos los KPIs de la ronda efectiva calculada arriba.
+        if (internalPerformanceHistory.length > 0) {
+            // Intentamos buscar exactamente la ronda que queremos mostrar
+            const targetPerf = internalPerformanceHistory.find(p => p.round === effectiveRoundIndex);
+            if (targetPerf) {
+                kpisForCurrentRound = targetPerf.kpis;
+            } else {
+                // Si no existe, fallback al último disponible (lo que tenías antes)
+                const lastCompletedRoundPerformance = internalPerformanceHistory.reduce((latest, current) => 
+                    current.round > latest.round ? current : latest
+                );
+                kpisForCurrentRound = lastCompletedRoundPerformance.kpis;
+            }
+        } else if (serverRound === 0) { 
+          kpisForCurrentRound = {
+            cash: gameData.initialFunds || 25000,
+            personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
+            nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
+            studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
+            capacity: 810,
+          };
         }
 
         setFullStudentState({
           ...studentData,
-          round: serverRound,
+          round: serverRound, // Mantenemos el round real del servidor para lógica de flujo
           decisions: decisionsForRound,
           roundSettings: gameData.roundSettings,
           messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
@@ -360,5 +378,3 @@ export function useStudentGame() {
   }
   return context;
 }
-
-    

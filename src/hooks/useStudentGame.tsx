@@ -35,6 +35,9 @@ interface FullStudentState extends StudentGameState {
   performanceHistory?: TeamPerformanceData[];
   kpis?: TeamKPIs;
   isBlindRound?: boolean;
+  reports?: any; // <--- AÑADIDO: Para que el alumno pueda ver sus reportes
+  numRounds?: number; // <--- AÑADIDO: Para saber el total de rondas
+  gameStatus?: string; // <--- AÑADIDO: Para saber si está finalizado
 }
 
 interface StudentGameContextType {
@@ -154,14 +157,10 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
             const roundNum = parseInt(roundKey, 10);
             const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
-            
             if (teamPerformance) {
               // INYECCIÓN DE RONDA: Aseguramos que el objeto tenga la propiedad 'round' correcta.
               // Esto arregla los gráficos y la lógica de búsqueda.
-              internalPerformanceHistory.push({
-                  ...teamPerformance,
-                  round: roundNum 
-              });
+              internalPerformanceHistory.push({ ...teamPerformance, round: roundNum });
             }
           });
         }
@@ -171,29 +170,22 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
         if (internalPerformanceHistory.length > 0) {
             if (gameData.status === 'Finalizado') {
-                 // LÓGICA FINALIZADA: Si el juego terminó, cogemos SIEMPRE el último dato disponible.
-                 // No importa si es ronda 5, 6 o 20. Cogemos el último del array.
+                 // Si finalizado, cogemos el último del array
                  const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
                  kpisForCurrentRound = lastPerf.kpis;
             } else {
-                 // LÓGICA EN JUEGO: Mostramos los resultados de la ronda anterior (la que acaba de terminar).
-                 // Si estamos en Ronda 5, queremos ver los resultados de Ronda 4.
-                 // Usamos Math.max(0, ...) para no pedir índices negativos.
                  const targetRoundIndex = Math.max(0, serverRound - 1);
-                 
-                 // Intentamos encontrar esa ronda exacta
                  const targetPerf = internalPerformanceHistory.find(p => p.round === targetRoundIndex);
                  
                  if (targetPerf) {
                      kpisForCurrentRound = targetPerf.kpis;
                  } else {
-                     // Fallback: Si no existe la exacta (raro), cogemos la última disponible para que no salga vacío.
+                     // Fallback al último disponible si no encontramos el exacto
                      const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
                      kpisForCurrentRound = lastPerf.kpis;
                  }
             }
         } else if (serverRound === 0) { 
-          // Valores iniciales por defecto si no hay historial
           kpisForCurrentRound = {
             cash: gameData.initialFunds || 25000,
             personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
@@ -204,8 +196,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
         }
 
         // --- 3. GESTIÓN DE DECISIONES ---
-        // Intentamos cargar las decisiones de la ronda actual.
-        // Si estamos finalizados, cargamos las de la última ronda jugada por si quieren consultarlas.
         const decisionsIndex = gameData.status === 'Finalizado' && gameData.numRounds 
             ? gameData.numRounds - 1 
             : serverRound;
@@ -225,6 +215,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
           performanceHistory: isBlindRound ? [] : internalPerformanceHistory,
           kpis: isBlindRound ? undefined : kpisForCurrentRound,
           isBlindRound,
+          reports: gameData.reports, // <--- INYECTAMOS LOS REPORTES AQUÍ
+          numRounds: gameData.numRounds,
+          gameStatus: gameData.status
         });
 
         setIsLoading(false);
@@ -245,36 +238,19 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
     if (!firestore || !user) return;
-  
     const studentGameRef = doc(firestore, "studentGames", user.id);
-    const studentState: StudentGameState = {
-      ...initialStudentState,
-      userId: user.id,
-      status: 'pending',
-      gameId, gameName, teamName
-    };
-  
+    const studentState: StudentGameState = { ...initialStudentState, userId: user.id, status: 'pending', gameId, gameName, teamName };
     await setDoc(studentGameRef, studentState, { merge: true });
-  
     const gameRef = doc(firestore, "games", gameId);
-    const joinRequestData = {
-      pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() })
-    };
-  
+    const joinRequestData = { pendingJoinRequests: arrayUnion({ userId: user.id, teamName: teamName, requestedAt: Date.now() }) };
     await updateDoc(gameRef, joinRequestData);
   };
   
   const abandonGame = async () => {
     if (!firestore || !user || !fullStudentState) return;
-    
     const { gameId, teamName } = fullStudentState;
-
     const studentGameRef = doc(firestore, "studentGames", user.id);
-    await setDoc(studentGameRef, {
-        ...initialStudentState,
-        userId: user.id,
-    }, { merge: true });
-
+    await setDoc(studentGameRef, { ...initialStudentState, userId: user.id, }, { merge: true });
     if (gameId && teamName) {
         const gameDoc = await getDoc(doc(firestore, "games", gameId));
         if (gameDoc.exists()) {
@@ -287,16 +263,13 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
   
   const setRoundDecisions = (newDecisions: Partial<RoundDecisions>) => {
     if (!fullStudentState) return;
-    
     const currentDecisions = fullStudentState.decisions || initialRoundDecisions;
-
     const updatedDecisions: RoundDecisions = {
         ...currentDecisions,
         ...newDecisions,
         actions: newDecisions.actions !== undefined ? newDecisions.actions : currentDecisions.actions,
         investmentCosts: { ...(currentDecisions.investmentCosts || {}), ...newDecisions.investmentCosts },
     };
-
     if (newDecisions.roundConfirmed) {
       const finalDecisions: TeamDecision = {
         ...updatedDecisions,
@@ -304,7 +277,6 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       };
       confirmStudentDecisions(fullStudentState.gameId!, fullStudentState.teamName!, fullStudentState.round!, finalDecisions);
     }
-
      setFullStudentState(prev => prev ? ({ ...prev, decisions: updatedDecisions }) : null);
   };
 
@@ -312,55 +284,29 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (!firestore || !user || !fullStudentState || !fullStudentState.gameId || !fullStudentState.teamName || fullStudentState.round === undefined) {
       throw new Error("Cannot save decisions: missing game or user state.");
     }
-  
     const gameRef = doc(firestore, "games", fullStudentState.gameId);
-    
     const decisionsToSave: Partial<RoundDecisions> = { ...(fullStudentState.decisions || {}) };
-
-    if (decisionsToSave.poachingTarget === undefined) {
-      delete decisionsToSave.poachingTarget;
-    }
-    if (decisionsToSave.poachingSuccess === undefined) {
-      delete decisionsToSave.poachingSuccess;
-    }
-
-    const updateData = {
-      [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave
-    };
-
+    if (decisionsToSave.poachingTarget === undefined) delete decisionsToSave.poachingTarget;
+    if (decisionsToSave.poachingSuccess === undefined) delete decisionsToSave.poachingSuccess;
+    const updateData = { [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave };
     await updateDoc(gameRef, updateData, { merge: true });
   }
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {
     if (!firestore || !user || !fullStudentState) return;
-
     const newPlan = JSON.parse(JSON.stringify(fullStudentState.strategicPlan || initialStudentState.strategicPlan));
-
     if (plan.targets) {
         for (const key in plan.targets) {
             const k = key as keyof StrategicPlan['targets'];
             if (newPlan.targets[k]) {
-                newPlan.targets[k] = {
-                    ...newPlan.targets[k],
-                    target: (plan.targets as any)[k].target
-                };
+                newPlan.targets[k] = { ...newPlan.targets[k], target: (plan.targets as any)[k].target };
             }
         }
     }
-
-    if (plan.rankingGoal !== undefined) {
-        newPlan.rankingGoal = plan.rankingGoal;
-    }
-    if (plan.confirmed !== undefined) {
-        newPlan.confirmed = plan.confirmed;
-    }
-
+    if (plan.rankingGoal !== undefined) newPlan.rankingGoal = plan.rankingGoal;
+    if (plan.confirmed !== undefined) newPlan.confirmed = plan.confirmed;
     const studentGameRef = doc(firestore, "studentGames", user.id);
-    const updateData = {
-        strategicPlan: newPlan,
-        planConfirmed: newPlan.confirmed
-    };
-
+    const updateData = { strategicPlan: newPlan, planConfirmed: newPlan.confirmed };
     await setDoc(studentGameRef, updateData, { merge: true });
   };
   

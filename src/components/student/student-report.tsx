@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, ServerCrash } from "lucide-react";
+import { Loader2, ServerCrash, Printer } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { Button } from "@/components/ui/button";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import { CrisisReport } from "./crisis-report";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,7 @@ export function StudentReport() {
             return sum + (investmentInfo.cost.value as number);
         }
         if(investmentInfo.cost.type === 'range') {
-            return sum + (reportData.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+            return sum + (reportData.decisions.investmentCosts?.[actionId] || ((investmentInfo.cost.value as [number, number])[1]));
         }
     }
 
@@ -128,7 +129,7 @@ export function StudentReport() {
   const totalIncome = reportData.kpis.income || 0;
   const crisisImpact = reportData.kpis.crisisImpact || 0;
   
-  const totalCosts = (reportData.kpis.personnelCost || 0) + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(crisisImpact < 0 ? crisisImpact : 0);
+  const totalCosts = (reportData.kpis.personnelCost || 0) + totalDecisionsCost + (reportData.kpis.loanInterest || 0) + Math.abs(crisisImpact < 0 ? crisisImpact : 0) + (reportData.kpis.loanRepayment || 0);
   
   const finalCash = reportData.kpis.cash || 0;
 
@@ -153,7 +154,7 @@ export function StudentReport() {
 
 
   return (
-     <Card>
+     <Card className="print-container">
         <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -162,6 +163,10 @@ export function StudentReport() {
                 Este es el análisis de rendimiento de tu equipo para la ronda que acaba de finalizar.
                 </CardDescription>
             </div>
+            <Button onClick={() => window.print()} variant="outline" className="no-print flex items-center gap-2 border-primary text-primary hover:bg-primary/10">
+                <Printer className="h-4 w-4" />
+                Descargar PDF / Imprimir
+            </Button>
             </div>
         </CardHeader>
         <CardContent>
@@ -184,6 +189,7 @@ export function StudentReport() {
                             <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
                             {crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(crisisImpact)}</span></div>}
                             {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
+                            {reportData.kpis.loanRepayment > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Devolución de Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanRepayment)}</span></div>}
                             <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                        </div>
                     </AccordionContent>

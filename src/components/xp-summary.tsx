@@ -6,9 +6,9 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { DollarSign, Shield, Heart, Info } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import type { TeamPerformanceData } from "@/hooks/use-games";
-import { Alert, AlertTitle } from "../ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { investments as allInvestments } from '@/app/teacher/catalog/investment-data';
 import type { Investment } from "@/components/teacher/catalog-editor";
 

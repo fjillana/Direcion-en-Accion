@@ -119,12 +119,6 @@ export default function GameDetailsPage() {
       const nextRound = game.round + 1;
 
       await updateTeamPerformance(game.id, game.round, performanceData, newMessages, automaticCrises);
-
-      if (nextRound > game.numRounds) {
-        await updateGame(game.id, { status: "Finalizado" });
-      } else {
-        await updateGame(game.id, { round: nextRound });
-      }
     }
     setIsProcessing(false);
   };
@@ -561,7 +555,8 @@ export default function GameDetailsPage() {
                                         const name = investmentInfo?.name || centerActionInfo?.name || actionId;
                                         
                                         const cost = fullDecisionsForDialog.investmentCosts?.[actionId] ?? 
-                                                     (investmentInfo?.cost.type === 'fixed' ? investmentInfo.cost.value :
+                                                     (investmentInfo?.cost.type === 'fixed' ? investmentInfo.cost.value as number :
+                                                      investmentInfo?.cost.type === 'range' ? (investmentInfo.cost.value as [number, number])[1] :
                                                       centerActionInfo ? centerActionInfo.cost : undefined);
 
                                         return (

@@ -296,43 +296,46 @@ export default function TeacherLeaderboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets && selectedTeam.kpis ? Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
-                       if (!goal) return null;
-                       const kpiKey = key as keyof typeof kpiConfig;
-                       const kpiInfo = kpiConfig[kpiKey];
-                       if (!kpiInfo) return null;
-                       
-                       let currentValue: number;
-                       let formattedValue: string;
-                       let formattedGoal: string;
-
-                       if (kpiKey === 'personnelCost') {
-                           currentValue = selectedTeam.kpis.income > 0 ? (selectedTeam.kpis.personnelCost / selectedTeam.kpis.income) * 100 : 0;
-                           formattedValue = kpiInfo.format(currentValue);
-                           formattedGoal = kpiInfo.format(goal.target);
-                       } else {
-                           currentValue = selectedTeam.kpis[kpiKey as keyof typeof selectedTeam.kpis] as number;
-                           // @ts-ignore
-                           formattedValue = kpiInfo.format(currentValue);
-                           // @ts-ignore
-                           formattedGoal = kpiInfo.format(goal.target);
-                       }
-                       const progress = getProgress(currentValue, goal);
-
-                       return (
-                         <TableRow key={`${selectedTeam.name}-${key}`}>
-                           <TableCell>{kpiInfo.label}</TableCell>
-                           <TableCell className="font-mono">{`${goal.operator === 'min' ? '>' : '<'} ${formattedGoal}`}</TableCell>
-                           <TableCell className="font-mono">{formattedValue}</TableCell>
-                           <TableCell>
-                             <div className="flex items-center gap-2">
-                               <Progress value={progress} className="w-[120px]" />
-                               <span className="text-xs font-mono text-muted-foreground">{Math.round(progress)}%</span>
-                             </div>
-                           </TableCell>
-                         </TableRow>
-                       )
-                     }) : (
+                     {selectedTeam.type === 'H' && selectedTeam.strategicPlan?.targets && selectedTeam.kpis ? (() => {
+                       const kpis = selectedTeam.kpis;
+                       return Object.entries(selectedTeam.strategicPlan.targets).map(([key, goal]) => {
+                         if (!goal) return null;
+                         const kpiKey = key as keyof typeof kpiConfig;
+                         const kpiInfo = kpiConfig[kpiKey];
+                         if (!kpiInfo) return null;
+                         
+                         let currentValue: number;
+                         let formattedValue: string;
+                         let formattedGoal: string;
+ 
+                         if (kpiKey === 'personnelCost') {
+                             currentValue = kpis.income > 0 ? (kpis.personnelCost / kpis.income) * 100 : 0;
+                             formattedValue = kpiInfo.format(currentValue);
+                             formattedGoal = kpiInfo.format(goal.target);
+                         } else {
+                             currentValue = kpis[kpiKey as keyof typeof kpis] as number;
+                             // @ts-ignore
+                             formattedValue = kpiInfo.format(currentValue);
+                             // @ts-ignore
+                             formattedGoal = kpiInfo.format(goal.target);
+                         }
+                         const progress = getProgress(currentValue, goal);
+ 
+                         return (
+                           <TableRow key={`${selectedTeam.name}-${key}`}>
+                             <TableCell>{kpiInfo.label}</TableCell>
+                             <TableCell className="font-mono">{`${goal.operator === 'min' ? '>' : '<'} ${formattedGoal}`}</TableCell>
+                             <TableCell className="font-mono">{formattedValue}</TableCell>
+                             <TableCell>
+                               <div className="flex items-center gap-2">
+                                 <Progress value={progress} className="w-[120px]" />
+                                 <span className="text-xs font-mono text-muted-foreground">{Math.round(progress)}%</span>
+                               </div>
+                             </TableCell>
+                           </TableRow>
+                         )
+                       });
+                     })() : (
                         <TableRow>
                             <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                                 {selectedTeam.type === 'IA' ? 'Los equipos de IA no tienen un plan estratégico definido.' : 'No se han definido objetivos estratégicos o no hay datos de KPI para este equipo en la ronda seleccionada.'}

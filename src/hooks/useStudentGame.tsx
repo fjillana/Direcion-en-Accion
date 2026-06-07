@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
-import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, type Game } from "./use-games";
+import { useGames, type RoundSettings, type GameMessage, TeamPerformanceData, type Game, type RoundDecisions } from "./use-games";
 import { StrategicPlan, TeamKPIs } from "@/lib/game-logic/types";
 import { useAuth } from "./use-auth";
 import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
@@ -21,11 +21,7 @@ export interface StudentGameState {
   unlockedAchievements?: string[];
 }
 
-export interface RoundDecisions extends Omit<TeamDecision, 'crisisResponse'> {
-    crisisResponse: (Omit<CrisisDecision, 'cost'> & { cost?: number }) | null;
-    poachingTarget?: string;
-    poachingSuccess?: boolean;
-}
+
 
 interface FullStudentState extends StudentGameState {
   round?: number;
@@ -115,6 +111,9 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     setDebugStatus(`User detected (${user.id}). Subscribing to studentGames...`);
     const studentGameRef = doc(firestore, "studentGames", user.id);
   
+    let activeGameId: string | null = null;
+    let gameUnsubscribe: (() => void) | null = null;
+
     const studentUnsubscribe = onSnapshot(studentGameRef, (studentDoc) => {
       let studentData: StudentGameState;
   
@@ -128,112 +127,128 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
       }
       
       if (studentData.status !== 'joined' || !studentData.gameId) {
+        if (gameUnsubscribe) {
+          gameUnsubscribe();
+          gameUnsubscribe = null;
+          activeGameId = null;
+        }
         setFullStudentState({ ...studentData, decisions: initialRoundDecisions });
         setIsLoading(false);
         setDebugStatus(studentData.status === 'pending' ? 'Status: Pending Approval' : 'Status: No Game');
         return; 
       }
       
-      setDebugStatus(`Game ID detected: ${studentData.gameId}. Subscribing to game...`);
-      const gameRef = doc(firestore, "games", studentData.gameId);
-      
-      const gameUnsubscribe = onSnapshot(gameRef, (gameDoc) => {
-        if (!gameDoc.exists()) {
-           setDebugStatus("Student's game does not exist. Resetting state.");
-           setDoc(studentGameRef, { ...initialStudentState, userId: user.id }, { merge: true });
-           setIsLoading(false);
-           return;
+      if (studentData.gameId !== activeGameId) {
+        if (gameUnsubscribe) {
+          gameUnsubscribe();
+          gameUnsubscribe = null;
         }
+        activeGameId = studentData.gameId;
 
-        const gameData = { id: gameDoc.id, ...gameDoc.data() } as Game;
-        const { teamName } = studentData;
-        const serverRound = gameData.round;
+        setDebugStatus(`Game ID detected: ${studentData.gameId}. Subscribing to game...`);
+        const gameRef = doc(firestore, "games", studentData.gameId);
         
-        // --- 1. CONSTRUCCIÓN DEL HISTORIAL ---
-        const internalPerformanceHistory: TeamPerformanceData[] = [];
-        
-        if (gameData.performance) {
-          // Ordenamos las claves numéricamente (0, 1, 2, 3...)
-          Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
-            const roundNum = parseInt(roundKey, 10);
-            const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
-            if (teamPerformance) {
-              // INYECCIÓN DE RONDA: Aseguramos que el objeto tenga la propiedad 'round' correcta.
-              // Esto arregla los gráficos y la lógica de búsqueda.
-              internalPerformanceHistory.push({ ...teamPerformance, round: roundNum });
-            }
+        gameUnsubscribe = onSnapshot(gameRef, (gameDoc) => {
+          if (!gameDoc.exists()) {
+             setDebugStatus("Student's game does not exist. Resetting state.");
+             setDoc(studentGameRef, { ...initialStudentState, userId: user.id }, { merge: true });
+             setIsLoading(false);
+             return;
+          }
+
+          const gameData = { id: gameDoc.id, ...gameDoc.data() } as Game;
+          const { teamName } = studentData;
+          const serverRound = gameData.round;
+          
+          // --- 1. CONSTRUCCIÓN DEL HISTORIAL ---
+          const internalPerformanceHistory: TeamPerformanceData[] = [];
+          
+          if (gameData.performance) {
+            // Ordenamos las claves numéricamente (0, 1, 2, 3...)
+            Object.keys(gameData.performance).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundKey => {
+              const roundNum = parseInt(roundKey, 10);
+              const teamPerformance = gameData.performance![roundNum].find(p => p.name === teamName);
+              if (teamPerformance) {
+                // INYECCIÓN DE RONDA: Aseguramos que el objeto tenga la propiedad 'round' correcta.
+                // Esto arregla los gráficos y la lógica de búsqueda.
+                internalPerformanceHistory.push({ ...teamPerformance, round: roundNum });
+              }
+            });
+          }
+
+          // --- 2. SELECCIÓN DE LOS KPIs A MOSTRAR ---
+          let kpisForCurrentRound: TeamKPIs | undefined = undefined;
+
+          if (internalPerformanceHistory.length > 0) {
+              if (gameData.status === 'Finalizado') {
+                   // Si finalizado, cogemos el último del array
+                   const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
+                   kpisForCurrentRound = lastPerf.kpis;
+              } else {
+                   const targetRoundIndex = Math.max(0, serverRound - 1);
+                   const targetPerf = internalPerformanceHistory.find(p => p.round === targetRoundIndex);
+                   
+                   if (targetPerf) {
+                       kpisForCurrentRound = targetPerf.kpis;
+                   } else {
+                       // Fallback al último disponible si no encontramos el exacto
+                       const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
+                       kpisForCurrentRound = lastPerf.kpis;
+                   }
+              }
+          } else if (serverRound === 0) { 
+            kpisForCurrentRound = {
+              cash: gameData.initialFunds || 25000,
+              personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
+              nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
+              studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
+              capacity: 810,
+            };
+          }
+
+          // --- 3. GESTIÓN DE DECISIONES ---
+          const decisionsIndex = gameData.status === 'Finalizado' && gameData.numRounds 
+              ? gameData.numRounds - 1 
+              : serverRound;
+
+          const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
+                                    gameData.decisions?.[decisionsIndex]?.[teamName!] || 
+                                    initialRoundDecisions;
+          
+          const isBlindRound = !!gameData.roundSettings?.[decisionsIndex]?.isBlind;
+
+          setFullStudentState({
+            ...studentData,
+            round: serverRound, 
+            decisions: decisionsForRound,
+            roundSettings: gameData.roundSettings,
+            messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
+            performanceHistory: isBlindRound ? [] : internalPerformanceHistory,
+            kpis: isBlindRound ? undefined : kpisForCurrentRound,
+            isBlindRound,
+            reports: gameData.reports, // <--- INYECTAMOS LOS REPORTES AQUÍ
+            numRounds: gameData.numRounds,
+            gameStatus: gameData.status
           });
-        }
 
-        // --- 2. SELECCIÓN DE LOS KPIs A MOSTRAR ---
-        let kpisForCurrentRound: TeamKPIs | undefined = undefined;
-
-        if (internalPerformanceHistory.length > 0) {
-            if (gameData.status === 'Finalizado') {
-                 // Si finalizado, cogemos el último del array
-                 const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
-                 kpisForCurrentRound = lastPerf.kpis;
-            } else {
-                 const targetRoundIndex = Math.max(0, serverRound - 1);
-                 const targetPerf = internalPerformanceHistory.find(p => p.round === targetRoundIndex);
-                 
-                 if (targetPerf) {
-                     kpisForCurrentRound = targetPerf.kpis;
-                 } else {
-                     // Fallback al último disponible si no encontramos el exacto
-                     const lastPerf = internalPerformanceHistory[internalPerformanceHistory.length - 1];
-                     kpisForCurrentRound = lastPerf.kpis;
-                 }
-            }
-        } else if (serverRound === 0) { 
-          kpisForCurrentRound = {
-            cash: gameData.initialFunds || 25000,
-            personnelCost: 240000, income: 0, privateIncome: 0, publicIncome: 0,
-            nma: 7.5, marketShare: 100 / (gameData.teams * 2 || 1), morale: 80,
-            studentTeacherRatio: 25.0, numStudents: 800, numTeachers: 32,
-            capacity: 810,
-          };
-        }
-
-        // --- 3. GESTIÓN DE DECISIONES ---
-        const decisionsIndex = gameData.status === 'Finalizado' && gameData.numRounds 
-            ? gameData.numRounds - 1 
-            : serverRound;
-
-        const decisionsForRound = gameData.decisions?.[serverRound]?.[teamName!] || 
-                                  gameData.decisions?.[decisionsIndex]?.[teamName!] || 
-                                  initialRoundDecisions;
-        
-        const isBlindRound = !!gameData.roundSettings?.[decisionsIndex]?.isBlind;
-
-        setFullStudentState({
-          ...studentData,
-          round: serverRound, 
-          decisions: decisionsForRound,
-          roundSettings: gameData.roundSettings,
-          messages: gameData.messages?.filter(m => m.to === 'all' || m.to === teamName || m.from === teamName),
-          performanceHistory: isBlindRound ? [] : internalPerformanceHistory,
-          kpis: isBlindRound ? undefined : kpisForCurrentRound,
-          isBlindRound,
-          reports: gameData.reports, // <--- INYECTAMOS LOS REPORTES AQUÍ
-          numRounds: gameData.numRounds,
-          gameStatus: gameData.status
+          setIsLoading(false);
+          setDebugStatus("Game data loaded. State is complete.");
+        }, (error) => {
+          setDebugStatus(`ERROR in games subscription: ${error.message}`);
+          setIsLoading(false);
         });
-
-        setIsLoading(false);
-        setDebugStatus("Game data loaded. State is complete.");
-      }, (error) => {
-        setDebugStatus(`ERROR in games subscription: ${error.message}`);
-        setIsLoading(false);
-      });
-      
-      return () => { gameUnsubscribe() };
+      }
     }, (error) => {
       setDebugStatus(`ERROR in studentGames subscription: ${error.message}`);
       setIsLoading(false);
     });
   
-    return () => { studentUnsubscribe() };
+    return () => {
+      studentUnsubscribe();
+      if (gameUnsubscribe) {
+        gameUnsubscribe();
+      }
+    };
   }, [firestore, user, isAuthLoading]);
 
   const requestToJoinGame = async (gameId: string, gameName: string, teamName: string) => {
@@ -289,7 +304,7 @@ export function StudentGameProvider({ children }: { children: ReactNode }) {
     if (decisionsToSave.poachingTarget === undefined) delete decisionsToSave.poachingTarget;
     if (decisionsToSave.poachingSuccess === undefined) delete decisionsToSave.poachingSuccess;
     const updateData = { [`decisions.${fullStudentState.round}.${fullStudentState.teamName}`]: decisionsToSave };
-    await updateDoc(gameRef, updateData, { merge: true });
+    await updateDoc(gameRef, updateData);
   }
 
   const setStrategicPlan = async (plan: Partial<StrategicPlan>) => {

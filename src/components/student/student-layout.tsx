@@ -69,7 +69,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           <div className="hidden md:block">
             <p className="text-sm font-medium">Equipo Beta - Ronda 3</p>
           </div>
-          <UserNav userType="student" />
+          <UserNav />
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
       </SidebarInset>

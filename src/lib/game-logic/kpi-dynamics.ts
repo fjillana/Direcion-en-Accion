@@ -64,7 +64,7 @@ export function updateKpisForNextRound(
   }
   
   // --- Apply dynamic investment effects ---
-  actions.forEach(actionId => {
+  actions.forEach((actionId: string) => {
       const investment = allInvestments.find(inv => inv.id === actionId);
       if (investment) {
           if (investment.effects.nma) updatedNma += investment.effects.nma;
@@ -292,7 +292,7 @@ export function updateKpisForNextRound(
 
   personnelCost *= personnelCostMultiplier; // Apply reductions from investments like ERP
   
-  const totalDecisionsCost = actions.reduce((sum, actionId) => {
+  const totalDecisionsCost = actions.reduce((sum: number, actionId: string) => {
     // F4 (Negociación Agresiva) is cash injection, not a cost.
     if (actionId === 'F4') return sum;
     // Poaching only costs if successful
@@ -304,7 +304,7 @@ export function updateKpisForNextRound(
             return sum + (investmentInfo.cost.value as number);
         }
         if (investmentInfo.cost.type === 'range') {
-            return sum + (teamState.decisions.investmentCosts?.[actionId] || (investmentInfo.cost.value[1]));
+            return sum + (teamState.decisions.investmentCosts?.[actionId] || ((investmentInfo.cost.value as [number, number])[1]));
         }
     }
 
@@ -321,23 +321,46 @@ export function updateKpisForNextRound(
     return sum;
   }, 0);
   
-  // Calculate interest cost if loan was taken previously
+  // Calculate interest cost and principal repayments if loans were taken previously
   let interestCost = 0;
-  const hasC2Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C2_op1');
-  const hasC3Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C3_op3');
-  const hasC6Loan = performanceHistory.some(p => p.decisions.crisisResponse?.optionId === 'C6_op3') || decisions.crisisResponse?.optionId === 'C6_op3';
+  let loanRepayments = 0;
+  const currentRound = performanceHistory.length;
 
-  if (hasC2Loan) {
-    interestCost += 25000 * 0.10; // 10% interest on 25k loan
-  }
-  if (hasC3Loan) {
-    interestCost += 10000 * 0.10; // 10% interest on 10k loan
-  }
-  if (hasC6Loan) {
-    interestCost += 10000 * 0.10; // 10% interest on 10k loan for C6
-  }
+  performanceHistory.forEach(pastRound => {
+    const pastOptionId = pastRound.decisions.crisisResponse?.optionId;
+    const pastRoundNum = pastRound.round;
+    const roundsElapsed = currentRound - pastRoundNum;
+
+    if (pastOptionId === 'C2_op1') {
+      const principal = 25000;
+      if (roundsElapsed === 1 || roundsElapsed === 2) {
+        interestCost += principal * 0.05; // 5% interest
+      }
+      if (roundsElapsed === 2) {
+        loanRepayments += principal;
+      }
+    }
+    else if (pastOptionId === 'C3_op3') {
+      const principal = 10000;
+      if (roundsElapsed === 1 || roundsElapsed === 2) {
+        interestCost += principal * 0.05; // 5% interest
+      }
+      if (roundsElapsed === 2) {
+        loanRepayments += principal;
+      }
+    }
+    else if (pastOptionId === 'C6_op3') {
+      const principal = 10000;
+      if (roundsElapsed === 1 || roundsElapsed === 2) {
+        interestCost += principal * 0.05; // 5% interest
+      }
+      if (roundsElapsed === 2) {
+        loanRepayments += principal;
+      }
+    }
+  });
   
-  const totalExpenses = personnelCost + totalDecisionsCost + interestCost + (crisisFinancialImpact < 0 ? Math.abs(crisisFinancialImpact) : 0);
+  const totalExpenses = personnelCost + totalDecisionsCost + interestCost + (crisisFinancialImpact < 0 ? Math.abs(crisisFinancialImpact) : 0) + loanRepayments;
   
   let updatedCash = teamState.kpis.cash + income - totalExpenses;
   
@@ -360,7 +383,7 @@ export function updateKpisForNextRound(
   // --- NEW RULE: Inaction in HR ---
   // If no investment in personnel area is made, apply penalty.
   const hrInvestmentIds = ['P1', 'P2', 'P3', 'P4', 'P5'];
-  const hasHrInvestment = actions.some(actionId => hrInvestmentIds.includes(actionId));
+  const hasHrInvestment = actions.some((actionId: string) => hrInvestmentIds.includes(actionId));
   if (!hasHrInvestment && decisions.crisisResponse?.crisisId !== 'C1') {
     updatedMorale -= 10;
   }
@@ -385,6 +408,7 @@ export function updateKpisForNextRound(
       publicIncome: currentPublicIncome,
       loanInterest: interestCost,
       loanIncome: loanIncome,
+      loanRepayment: loanRepayments,
       crisisImpact: crisisFinancialImpact,
       cashInjection: cashInjection,
   };

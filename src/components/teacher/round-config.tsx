@@ -176,7 +176,8 @@ export function RoundConfig({
     if(investment.cost.type === 'fixed') {
         effects.push(`Coste: ${investment.cost.value.toLocaleString('es-ES')} CC`);
     } else {
-        effects.push(`Coste: ${investment.cost.value[0].toLocaleString('es-ES')} - ${investment.cost.value[1].toLocaleString('es-ES')} CC`);
+        const [min, max] = investment.cost.value as [number, number];
+        effects.push(`Coste: ${min.toLocaleString('es-ES')} - ${max.toLocaleString('es-ES')} CC`);
     }
 
     const kpiEffects = Object.entries(investment.effects)

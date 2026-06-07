@@ -104,7 +104,16 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
 
   useEffect(() => {
     if (activeGame && teamsData.length > 0) {
-        const fullMarketAnalysis = calculateMarketAttractiveness(teamsData.map(t => ({...t, kpis: t.kpis, decisions: t.decisions})), activeGame);
+        const fullMarketAnalysis = calculateMarketAttractiveness(teamsData.map(t => ({
+          name: t.name,
+          type: t.type,
+          kpis: t.kpis,
+          decisions: t.decisions,
+          archetype: t.archetype,
+          performanceHistory: activeGame.performance 
+            ? Object.values(activeGame.performance).flat().filter(p => p.name === t.name) 
+            : []
+        })), activeGame);
         setMarketAnalysis(fullMarketAnalysis);
     }
   }, [activeGame, teamsData]);
@@ -330,7 +339,7 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
         if (investment.cost.type === 'fixed') {
           return acc + (investment.cost.value as number);
         }
-        return acc + (investmentCosts?.[actionId] || investment.cost.value[1]);
+        return acc + (investmentCosts?.[actionId] || (investment.cost.value as [number, number])[1]);
       }
       return acc;
     }, 0);
@@ -339,7 +348,7 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
   const totalCosts = useMemo(() => {
     if (!reportData) return 0;
     const kpis = reportData.kpis || {};
-    return (kpis.personnelCost || 0) + (kpis.loanInterest || 0) + totalDecisionsCost + Math.abs((kpis.crisisImpact || 0) < 0 ? kpis.crisisImpact : 0);
+    return (kpis.personnelCost || 0) + (kpis.loanInterest || 0) + totalDecisionsCost + Math.abs((kpis.crisisImpact || 0) < 0 ? kpis.crisisImpact : 0) + (kpis.loanRepayment || 0);
   }, [reportData, totalDecisionsCost]);
   
   const publicIncomeText = reportData?.kpis ? `(Base: 224.000 CC${reportData.kpis.publicIncome < 224000 ? ` - Crisis: ${(224000 - reportData.kpis.publicIncome).toLocaleString('es-ES')} CC` : ''})` : '';
@@ -409,6 +418,7 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
                                     <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Decisiones:</span> <span className="font-mono">{formatCurrency(totalDecisionsCost)}</span></div>
                                     {reportData.kpis.crisisImpact < 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Impacto Crisis:</span> <span className="font-mono">{formatCurrency(reportData.kpis.crisisImpact)}</span></div>}
                                     {reportData.kpis.loanInterest > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Coste Intereses Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanInterest)}</span></div>}
+                                    {reportData.kpis.loanRepayment > 0 && <div className="pl-4 flex justify-between text-destructive/80"><span>&bull; Devolución de Préstamo:</span> <span className="font-mono">{formatCurrency(reportData.kpis.loanRepayment)}</span></div>}
                                     <div className="flex justify-between font-bold pt-2 border-t mt-1"><span>(=) Tesorería Final:</span> <span className="font-mono">{formatCurrency(finalCash)}</span></div>
                                </div>
                             </AccordionContent>

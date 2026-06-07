@@ -24,7 +24,7 @@ export default function StrategicPlanPage() {
 
   const kpiDefinitions = useMemo(() => {
     const initialKpis = studentGame?.kpis;
-    const initialCash = studentGame?.performanceHistory && studentGame.performanceHistory.length > 0 ? studentGame.performanceHistory[0].kpis.cash : (studentGame?.round === 0 ? studentGame?.kpis?.cash : 50000);
+    const initialCash = (studentGame?.performanceHistory && studentGame.performanceHistory.length > 0 ? studentGame.performanceHistory[0].kpis.cash : (studentGame?.round === 0 ? studentGame?.kpis?.cash : 50000)) ?? 25000;
 
     return [
     {
@@ -96,16 +96,18 @@ export default function StrategicPlanPage() {
   const isRoundZero = studentGame?.round === 0;
 
   const handleTargetChange = (key: string, value: number) => {
+    if (!strategicPlan) return;
     setStrategicPlan({
         ...strategicPlan,
         targets: {
-            ...strategicPlan?.targets,
-            [key]: { ...strategicPlan?.targets?.[key as keyof typeof strategicPlan.targets], target: value }
+            ...strategicPlan.targets,
+            [key]: { ...strategicPlan.targets[key as keyof typeof strategicPlan.targets], target: value }
         }
     });
   };
 
   const handleRankingChange = (value: string) => {
+    if (!strategicPlan) return;
     setStrategicPlan({
         ...strategicPlan,
         rankingGoal: value
@@ -113,6 +115,7 @@ export default function StrategicPlanPage() {
   };
   
   const handleConfirmPlan = () => {
+    if (!strategicPlan) return;
     setStrategicPlan({ ...strategicPlan, confirmed: true });
   };
   

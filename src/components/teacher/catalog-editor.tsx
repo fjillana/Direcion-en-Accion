@@ -194,7 +194,7 @@ function InvestmentForm({ isOpen, onOpenChange, initialData, onSave }: Investmen
                         {investment.cost.type === 'fixed' ? (
                             <div>
                                 <Label htmlFor="cost-fixed">Coste Fijo (CC)</Label>
-                                <Input id="cost-fixed" type="number" value={investment.cost.value || ''} onChange={e => handleNumericChange('cost.value', e.target.value)} />
+                                <Input id="cost-fixed" type="number" value={typeof investment.cost.value === 'number' ? investment.cost.value : ''} onChange={e => handleNumericChange('cost.value', e.target.value)} />
                             </div>
                         ) : (
                             <div className="flex gap-4">

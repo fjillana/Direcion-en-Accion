@@ -3,6 +3,7 @@
 import type { Game, RoundDecisions } from "@/hooks/use-games";
 import type { TeamState, TeamDecisions, InvestmentDecision } from "./types";
 import { investments as fullInvestmentsList } from '@/app/teacher/catalog/investment-data';
+import { crises as fullCrisesList } from '@/app/teacher/catalog/crises-data';
 
 
 /**
@@ -73,7 +74,9 @@ export function getAIDecisions(teamState: TeamState, game: Game): RoundDecisions
         const investmentInfo = fullInvestmentsList.find(i => i.id === investment.id);
         if (!investmentInfo) continue;
 
-        const [minCost, maxCost] = investmentInfo.cost.type === 'range' ? investmentInfo.cost.value : [investmentInfo.cost.value, investmentInfo.cost.value];
+        const [minCost, maxCost] = investmentInfo.cost.type === 'range'
+            ? (investmentInfo.cost.value as [number, number])
+            : [investmentInfo.cost.value as number, investmentInfo.cost.value as number];
 
         if (budget < minCost) continue;
 
@@ -86,6 +89,9 @@ export function getAIDecisions(teamState: TeamState, game: Game): RoundDecisions
             
             if (budget >= investmentAmount) {
                 decisions.actions.push(investment.id);
+                if (!decisions.investmentCosts) {
+                    decisions.investmentCosts = {};
+                }
                 decisions.investmentCosts[investment.id] = investmentAmount;
                 budget -= investmentAmount;
             }
@@ -103,6 +109,45 @@ export function getAIDecisions(teamState: TeamState, game: Game): RoundDecisions
     // Fire teacher (only if finances are dire and AI is rational enough)
     else if (kpis.cash < game.initialFunds * 0.1 && kpis.studentTeacherRatio < 24.0 && rationality > 0.7) {
         decisions.actions.push('P7');
+    }
+
+    // --- 4. Crisis Response ---
+    const teamCrisisSetting = roundSettings?.[round]?.teamCrises.find(tc => tc.teamName === teamState.name);
+    if (teamCrisisSetting && teamCrisisSetting.crisisIds.length > 0) {
+        const crisisId = teamCrisisSetting.crisisIds[0];
+        const crisisData = fullCrisesList.find(c => c.id === crisisId);
+        if (crisisData && crisisData.options.length > 0) {
+            let chosenOption = crisisData.options[0];
+            
+            if (rationality > 0.4) {
+                let availableOptions = crisisData.options;
+                if (crisisId === 'C1') {
+                    // Filter out C1_op3 (ignore) and C1_op5 (dismiss leaders)
+                    availableOptions = crisisData.options.filter(o => o.id !== 'C1_op3' && o.id !== 'C1_op5');
+                }
+                
+                if (archetype === 'FINANCE_CONSERVATIVE') {
+                    availableOptions = [...availableOptions].sort((a, b) => a.cost - b.cost);
+                    chosenOption = availableOptions[0];
+                } else {
+                    const idx = Math.floor(Math.random() * availableOptions.length);
+                    chosenOption = availableOptions[idx];
+                }
+            } else {
+                const idx = Math.floor(Math.random() * crisisData.options.length);
+                chosenOption = crisisData.options[idx];
+            }
+
+            decisions.crisisResponse = {
+                crisisId: crisisData.id,
+                crisisName: crisisData.name,
+                option: chosenOption.label,
+                optionId: chosenOption.id,
+                cost: chosenOption.cost,
+                justification: `Decisión tomada por la IA Rival (${archetype}).`,
+                outcomeDescription: "",
+            };
+        }
     }
 
     return decisions;

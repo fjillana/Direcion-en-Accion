@@ -256,7 +256,8 @@ export function simulateRound(game: Game, studentGames: StudentGameState[]): { p
     if (teamPerformance.type === 'H') {
       const student = studentGames.find(s => s.teamName === teamPerformance.name);
       if (student) {
-        const fullHistory = [...(student.performanceHistory || []), teamPerformance];
+        const teamHistory = game.performance ? Object.values(game.performance).flat().filter(p => p.name === teamPerformance.name) : [];
+        const fullHistory = [...teamHistory, teamPerformance];
         const currentAchievements = getAchievementsStatus(fullHistory).filter(a => a.unlocked).map(a => a.name);
         const previousAchievements = student.unlockedAchievements || [];
         

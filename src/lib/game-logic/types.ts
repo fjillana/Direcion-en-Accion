@@ -37,6 +37,7 @@ export interface TeamKPIs {
     capacity: number;
     loanInterest?: number;
     loanIncome?: number;
+    loanRepayment?: number;
     crisisImpact?: number;
     cashInjection?: number;
 }

@@ -44,12 +44,12 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     }
     
     // c. Componente de Marketing: Se calcula en base a la inversión en la campaña "R1".
-    const marketingActionId = (team.decisions?.actions || []).find(id => id === 'R1');
+    const marketingActionId = (team.decisions?.actions || []).find((id: string) => id === 'R1');
     let marketingPoints = 0;
     if (marketingActionId) {
         const investmentInfo = allInvestments.find(inv => inv.id === 'R1');
         if (investmentInfo) {
-            const cost = team.decisions.investmentCosts?.['R1'] || (investmentInfo.cost.type === 'range' ? investmentInfo.cost.value[1] : investmentInfo.cost.value as number);
+            const cost = team.decisions.investmentCosts?.['R1'] || (investmentInfo.cost.type === 'range' ? (investmentInfo.cost.value as [number, number])[1] : investmentInfo.cost.value as number);
             marketingPoints = cost / 1000;
         }
     }

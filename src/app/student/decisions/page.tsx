@@ -84,7 +84,7 @@ export default function DecisionsPage() {
             // If newly selected, set a default cost.
             // For 'range', default to max cost. For 'fixed', set the fixed value.
             if (investment.cost.type === 'range') {
-                newCosts[actionId] = investment.cost.value[1];
+                newCosts[actionId] = (investment.cost.value as [number, number])[1];
             } else {
                 newCosts[actionId] = investment.cost.value as number;
             }

@@ -56,3 +56,52 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide navigation, sidebars, tabs, buttons, and headers when printing */
+  .no-print,
+  button,
+  nav,
+  header,
+  aside,
+  [role="tablist"],
+  .border-b {
+    display: none !important;
+  }
+
+  /* Optimize page layout for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main, 
+  .print-container,
+  .card {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Force Radix Accordion items to expand and print all content */
+  [data-state="closed"] {
+    display: block !important;
+  }
+  [role="region"] {
+    display: block !important;
+    height: auto !important;
+  }
+  
+  /* Avoid page breaks inside individual report sections */
+  .accordion-item, 
+  .card, 
+  .border {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+}

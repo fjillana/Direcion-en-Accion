@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateUser = async (updatedData: Partial<User>) => {
-    if (!user || !auth.currentUser || !firestore) return;
+    if (!user || !auth || !auth.currentUser || !firestore) return;
 
     await updateProfile(auth.currentUser, { 
       displayName: updatedData.name, 

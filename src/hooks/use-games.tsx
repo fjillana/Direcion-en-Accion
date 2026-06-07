@@ -34,6 +34,8 @@ export interface TeamDecision {
   forcedByTeacher?: boolean;
 }
 
+export interface RoundDecisions extends TeamDecision {}
+
 export interface TeamPerformanceData {
   name: string;
   type: 'H' | 'IA';
@@ -81,6 +83,7 @@ export interface StudentGameState {
   teamName: string | null;
   planConfirmed?: boolean;
   strategicPlan?: StrategicPlan;
+  unlockedAchievements?: string[];
 }
 
 export interface Game {
@@ -324,7 +327,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         round: round + 1,
     };
     
-    if (round + 1 >= gameData.numRounds) {
+    if (round >= gameData.numRounds) {
         updateData.status = "Finalizado";
     }
 
@@ -487,7 +490,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data() as Game;
 
-    const roundDecisions = gameData.decisions?.[round]?.[teamName] || {};
+    const roundDecisions = (gameData.decisions?.[round]?.[teamName] || {}) as Partial<TeamDecision>;
     const roundSettings = gameData.roundSettings?.[round];
     
     let crisisResponse: CrisisDecision | null = null;

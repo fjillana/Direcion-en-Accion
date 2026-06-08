@@ -3,14 +3,15 @@
 
 import { useStudentGame } from "@/hooks/useStudentGame";
 import { Loader2 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../ui/card";
+import { Button } from "../ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export function StudentGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { studentGame, isLoading: isStudentGameLoading, debugStatus } = useStudentGame();
+  const { studentGame, isLoading: isStudentGameLoading, debugStatus, abandonGame } = useStudentGame();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -78,6 +79,11 @@ export function StudentGate({ children }: { children: React.ReactNode }) {
                 <CardContent>
                     <p className="text-muted-foreground mb-4">Por favor, espera a que el profesor acepte tu solicitud. La página se refrescará automáticamente.</p>
                 </CardContent>
+                <CardFooter className="justify-center pb-6">
+                    <Button variant="outline" onClick={abandonGame} className="border-primary text-primary hover:bg-primary/10">
+                        Cancelar Solicitud
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );

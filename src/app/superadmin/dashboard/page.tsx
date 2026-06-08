@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCollection } from "@/firebase";
 import { useFirestore } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, type UserRole } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -67,13 +67,30 @@ export default function SuperAdminDashboard() {
     });
   };
 
-  const handleDeleteUser = (userId: string) => {
-    toast({
+  const handleDeleteUser = async (userId: string) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, "users", userId);
+    
+    try {
+      await deleteDoc(userRef);
+      toast({
+        title: "Usuario eliminado",
+        description: "El perfil del usuario ha sido eliminado de la base de datos Firestore.",
+      });
+    } catch (serverError) {
+      const permissionError = new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      
+      toast({
         variant: "destructive",
-        title: "Función no implementada",
-        description: "La eliminación de usuarios debe realizarse desde la consola de Firebase por seguridad.",
-    });
-  }
+        title: "Error al eliminar",
+        description: "No se pudo eliminar el usuario de la base de datos.",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     await logout();

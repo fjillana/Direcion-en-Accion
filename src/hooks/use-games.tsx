@@ -364,8 +364,8 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     if (!gameDoc.exists()) return;
     const gameData = gameDoc.data();
     
-    const nextRoundIndex = currentRound; 
-    const nextRoundSettings = gameData.roundSettings?.[nextRoundIndex] || { investments: [], teamCrises: [] };
+    const nextRoundIndex = currentRound + 1; 
+    const nextRoundSettings = gameData.roundSettings?.[nextRoundIndex] || { investments: [], teamCrises: [], isBlind: false };
     nextRoundSettings.isBlind = isBlindForNextRound;
     updatePayload[`roundSettings.${nextRoundIndex}`] = nextRoundSettings;
     

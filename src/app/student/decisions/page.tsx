@@ -142,7 +142,7 @@ export default function DecisionsPage() {
           availableInvestments={availableInvestments}
           selectedActions={selectedActions}
           investmentCosts={investmentCosts}
-          poachingTarget={poachingTarget}
+          poachingTarget={poachingTarget || undefined}
           onActionChange={handleActionChange}
           onCostChange={handleCostChange}
           onPoachingTargetChange={handlePoachingTargetChange}

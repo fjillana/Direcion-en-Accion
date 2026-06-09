@@ -29,8 +29,8 @@ export interface TeamDecision {
   actions: string[];
   roundConfirmed: boolean;
   investmentCosts?: Record<string, number>;
-  poachingTarget?: string;
-  poachingSuccess?: boolean;
+  poachingTarget?: string | null;
+  poachingSuccess?: boolean | null;
   forcedByTeacher?: boolean;
 }
 
@@ -131,6 +131,22 @@ interface GamesContextType {
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
 
 const ACTIVE_GAME_ID_STORAGE_KEY = 'activeGameId';
+
+function cleanUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefined);
+  }
+  const cleanObj: any = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      cleanObj[key] = cleanUndefined(obj[key]);
+    }
+  }
+  return cleanObj;
+}
 
 export function GamesProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
@@ -352,7 +368,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updateData[`roundSettings.${nextRoundIndexForSettings}`] = existingNextRoundSettings;
     }
     
-    await updateDoc(gameRef, updateData);
+    await updateDoc(gameRef, cleanUndefined(updateData));
   };
 
   const updateRoundSettings = async (gameId: string, currentRound: number, settings: RoundSettings, isBlindForNextRound: boolean) => {

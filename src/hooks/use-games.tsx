@@ -139,6 +139,9 @@ function cleanUndefined(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(cleanUndefined);
   }
+  if (obj.constructor !== Object) {
+    return obj; // Preserve instances of classes like Firebase FieldValue
+  }
   const cleanObj: any = {};
   for (const key in obj) {
     if (obj[key] !== undefined) {
@@ -326,7 +329,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         }
     }
     
-    await updateDoc(gameRef, updatePayload);
+    await updateDoc(gameRef, cleanUndefined(updatePayload));
   };
 
 
@@ -407,7 +410,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
         updatePayload.messages = arrayUnion(...newMessages);
     }
     
-    await updateDoc(gameRef, updatePayload);
+    await updateDoc(gameRef, cleanUndefined(updatePayload));
   };
 
   const updateTeamKpis = async (gameId: string, round: number, teamName: string, kpis: Partial<TeamKPIs>) => {
@@ -440,7 +443,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       [`performance.${round}`]: updatedPerformanceData,
     };
     
-    await updateDoc(gameRef, updatePayload);
+    await updateDoc(gameRef, cleanUndefined(updatePayload));
   };
 
   const addMessage = async (gameId: string, message: Omit<GameMessage, 'id' | 'timestamp' | 'readBy'>) => {
@@ -451,9 +454,9 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       ...message, id: `msg-${Date.now()}`, timestamp: Date.now(), readBy: [],
     };
     
-    await updateDoc(gameRef, {
+    await updateDoc(gameRef, cleanUndefined({
         messages: arrayUnion(newMessage)
-    });
+    }));
   };
 
   const markMessageAsRead = async (gameId: string, messageId: string, userId: string) => {
@@ -468,7 +471,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       }
       return msg;
     });
-    await updateDoc(gameRef, { messages: newMessages });
+    await updateDoc(gameRef, cleanUndefined({ messages: newMessages }));
   };
   
   const confirmStudentDecisions = async (gameId: string, teamName: string, round: number, decisions: TeamDecision) => {
@@ -499,7 +502,7 @@ export function GamesProvider({ children }: { children: ReactNode }) {
       [`decisions.${round}.${teamName}`]: decisionsToSave
     };
   
-    await updateDoc(gameRef, updateData);
+    await updateDoc(gameRef, cleanUndefined(updateData));
   };
 
   const forceStudentDecisions = async (gameId: string, teamName: string, round: number) => {

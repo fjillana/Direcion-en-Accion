@@ -111,16 +111,30 @@ export default function GameDetailsPage() {
 
   const handleProcessRound = async () => {
     setIsProcessing(true);
-    if (game) {
-      const studentGames = await getStudentGamesByGameId(game.id);
+    try {
+      if (game) {
+        const studentGames = await getStudentGamesByGameId(game.id);
 
-      console.log(`[GPS] 2. Processing Round ${game.round} for Game "${game.name}"`);
-      const { performanceData, newMessages, automaticCrises } = simulateRound(game, studentGames);
-      const nextRound = game.round + 1;
+        console.log(`[GPS] 2. Processing Round ${game.round} for Game "${game.name}"`);
+        const { performanceData, newMessages, automaticCrises } = simulateRound(game, studentGames);
 
-      await updateTeamPerformance(game.id, game.round, performanceData, newMessages, automaticCrises);
+        await updateTeamPerformance(game.id, game.round, performanceData, newMessages, automaticCrises);
+        
+        toast({
+          title: "Ronda Procesada",
+          description: `La ronda ${game.round} ha sido procesada con éxito.`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error processing round:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al procesar ronda",
+        description: error.message || "Ocurrió un error inesperado al simular la ronda.",
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
   
   const handleTeamRowClick = (team: TeamPerformanceData) => {

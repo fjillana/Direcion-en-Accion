@@ -323,9 +323,12 @@ export function GamesProvider({ children }: { children: ReactNode }) {
     
     const updateData: Record<string, any> = {
         [`performance.${round}`]: performanceData,
-        messages: arrayUnion(...newMessages),
         round: round + 1,
     };
+    
+    if (newMessages && newMessages.length > 0) {
+        updateData.messages = arrayUnion(...newMessages);
+    }
     
     if (round >= gameData.numRounds) {
         updateData.status = "Finalizado";

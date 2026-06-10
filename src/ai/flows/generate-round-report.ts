@@ -44,13 +44,18 @@ const GenerateRoundReportOutputSchema = z.object({
 });
 export type GenerateRoundReportOutput = z.infer<typeof GenerateRoundReportOutputSchema>;
 
-export async function generateRoundReport(input: GenerateRoundReportInput): Promise<GenerateRoundReportOutput> {
+export async function generateRoundReport(input: GenerateRoundReportInput): Promise<{ success: boolean; data?: GenerateRoundReportOutput; error?: string }> {
   // We enrich the input with the full investment catalog so the AI knows the names of the investments.
   const enrichedInput = {
     ...input,
     investmentCatalog: JSON.stringify(allInvestments, null, 2)
   };
-  return generateRoundReportFlow(enrichedInput);
+  try {
+    const res = await generateRoundReportFlow(enrichedInput);
+    return { success: true, data: res };
+  } catch (e: any) {
+    return { success: false, error: e.message || e.toString() };
+  }
 }
 
 const prompt = ai.definePrompt({

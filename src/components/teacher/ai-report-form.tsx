@@ -192,13 +192,17 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
       
       const result = await generateRoundReport(reportPayload);
       
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Error desconocido en Genkit");
+      }
+      
       const teamMarketResult = marketAnalysis[selectedTeam];
 
       const newReportData = {
           round: reportableRoundIndex, // Save with the correct index
           kpis: teamPerformance.kpis,
           decisions: teamPerformance.decisions,
-          kpiAnalysis: result.kpiAnalysis,
+          kpiAnalysis: result.data.kpiAnalysis,
           marketAnalysis: {
             iam: teamMarketResult.iam,
             iamBreakdown: teamMarketResult.points,
@@ -207,9 +211,9 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
             capacity: teamPerformance.kpis.capacity || 810,
             finalStudents: Math.min(teamPerformance.kpis.numStudents + teamMarketResult.newStudents, teamPerformance.kpis.capacity || 810),
           },
-          qualitativeAnalysis: result.reporteCualitativo,
-          debriefingQuestions: result.preguntasMayeuticas,
-          pedagogicalSuggestions: result.sugerenciasPedagogicas,
+          qualitativeAnalysis: result.data.reporteCualitativo,
+          debriefingQuestions: result.data.preguntasMayeuticas,
+          pedagogicalSuggestions: result.data.sugerenciasPedagogicas,
           published: false, // Default to not published
       };
 

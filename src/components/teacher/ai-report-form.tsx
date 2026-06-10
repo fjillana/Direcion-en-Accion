@@ -221,12 +221,12 @@ const { reportableRoundIndex, displayRoundNumber } = useMemo(() => {
       
       updateReport(activeGame.id, reportableRoundIndex, selectedTeam, newReportData);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating report:", error);
       toast({
         variant: "destructive",
         title: "Error al generar el informe",
-        description: "No se pudo comunicar con el servicio de IA. Inténtalo de nuevo.",
+        description: `Error detallado: ${error.message || error.toString()}`,
       });
     } finally {
       setIsGenerating(false);

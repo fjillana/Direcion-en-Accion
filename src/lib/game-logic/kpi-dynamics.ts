@@ -364,6 +364,13 @@ export function updateKpisForNextRound(
   
   let updatedCash = teamState.kpis.cash + income - totalExpenses;
   
+  // --- NEW RULE: Bailout Loans (Rescate de Emergencia) ---
+  let bailoutFunds = 0;
+  if (updatedCash < 0) {
+      bailoutFunds = Math.abs(updatedCash);
+      updatedCash = 0; // The state rescues the school but at a massive PEB penalty
+  }
+  
   // 3. Calcular nuevos KPIs de Reputación y Moral
   let updatedStudentTeacherRatio = updatedNumTeachers > 0 ? updatedNumStudents / updatedNumTeachers : 0;
   let finalNma = updatedNma;
@@ -411,6 +418,7 @@ export function updateKpisForNextRound(
       loanRepayment: loanRepayments,
       crisisImpact: crisisFinancialImpact,
       cashInjection: cashInjection,
+      bailoutFunds: bailoutFunds,
   };
   
   return finalKPIs;

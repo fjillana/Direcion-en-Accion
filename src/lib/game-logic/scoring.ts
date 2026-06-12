@@ -329,6 +329,9 @@ export function calculateTeamPerformance(teamState: TeamState) {
     if (hasC6Loan) { // Specific PEB penalty for C6 loan
         pebFinanzas *= 0.5;
     }
+    if (kpis.bailoutFunds && kpis.bailoutFunds > 0) {
+        pebFinanzas *= 0.2; // 80% penalty to Finances PEB for being rescued from bankruptcy
+    }
     pebFinanzas = Math.min(110, pebFinanzas);
 
 

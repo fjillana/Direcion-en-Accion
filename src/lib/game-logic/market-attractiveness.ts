@@ -99,45 +99,74 @@ export function calculateMarketAttractiveness(teams: TeamState[], game: Game) {
     totalIamPoints += finalIam;
   }
   
-  type UnroundedResult = { team: TeamState; unroundedStudents: number; };
+  type UnroundedResult = { team: TeamState; retainedStudents: number; poolShareStudents: number; unroundedTotal: number; };
   let unroundedResults: UnroundedResult[] = [];
 
-  // 3. Distribuir los nuevos alumnos en base a la cuota de IAM de cada equipo.
+  // 3. Sistema de Fuga y Retención (Churn & Pool)
+  let marketPool = NEW_STUDENTS_POOL;
+  const teamRetention: Record<string, number> = {};
+
+  for (const team of teams) {
+      let retentionRate = 0.8; // 80% base retention
+
+      // Penalización por precio abusivo
+      const priceRatio = team.decisions.tuitionPrice / averageTuition;
+      if (priceRatio > 1.25) {
+          retentionRate -= (priceRatio - 1.25) * 1.5; // Escala la fuga si el precio es absurdo
+      }
+
+      // Penalización por mala calidad
+      if ((team.kpis.baseNma || team.kpis.nma) < 5.0) {
+          retentionRate -= 0.15;
+      }
+
+      // Límite de retención entre 0% y 100%
+      retentionRate = Math.max(0, Math.min(1, retentionRate));
+      teamRetention[team.name] = retentionRate;
+
+      const retained = team.kpis.numStudents * retentionRate;
+      const churned = team.kpis.numStudents - retained;
+      marketPool += churned;
+  }
+
+  // 4. Distribuir la Bolsa de Mercado en base a la cuota de IAM
   if (totalIamPoints > 0) {
     unroundedResults = teams.map(team => {
         const iamShare = teamIamResults[team.name].iam / totalIamPoints;
-        const unroundedStudents = iamShare * NEW_STUDENTS_POOL;
-        return { team, unroundedStudents };
+        const poolShareStudents = iamShare * marketPool;
+        const retainedStudents = team.kpis.numStudents * teamRetention[team.name];
+        return { team, retainedStudents, poolShareStudents, unroundedTotal: retainedStudents + poolShareStudents };
     });
   } else {
-    // Caso improbable: si ningún equipo tiene puntos IAM, los alumnos se reparten equitativamente.
-    const unroundedStudentsPerTeam = NEW_STUDENTS_POOL / teams.length;
-    unroundedResults = teams.map(team => ({ team, unroundedStudents: unroundedStudentsPerTeam }));
+    const unroundedStudentsPerTeam = marketPool / teams.length;
+    unroundedResults = teams.map(team => {
+        const retainedStudents = team.kpis.numStudents * teamRetention[team.name];
+        return { team, retainedStudents, poolShareStudents: unroundedStudentsPerTeam, unroundedTotal: retainedStudents + unroundedStudentsPerTeam };
+    });
   }
   
-  // Identificar el equipo con más y menos alumnos (antes de redondear)
+  // Identificar el equipo con más y menos alumnos para ajustar el redondeo
   if (unroundedResults.length > 1) {
-    unroundedResults.sort((a, b) => b.unroundedStudents - a.unroundedStudents);
+    unroundedResults.sort((a, b) => b.unroundedTotal - a.unroundedTotal);
   }
 
   const finalResults: Record<string, { iam: number; points: { nma: number; price: number; marketing: number, facilities: number, sustainability: number, crisis: number }; newStudents: number, name: string, type: 'H' | 'IA' }> = {};
 
   unroundedResults.forEach((result, index) => {
-    let newStudents: number;
+    let finalStudents: number;
     if (unroundedResults.length > 1 && index === 0) {
-      // Equipo con más alumnos: redondear hacia arriba
-      newStudents = Math.ceil(result.unroundedStudents);
+      finalStudents = Math.ceil(result.unroundedTotal);
     } else if (unroundedResults.length > 1 && index === unroundedResults.length - 1) {
-      // Equipo con menos alumnos: redondear hacia abajo
-      newStudents = Math.floor(result.unroundedStudents);
+      finalStudents = Math.floor(result.unroundedTotal);
     } else {
-      // Resto de equipos: redondeo estándar
-      newStudents = Math.round(result.unroundedStudents);
+      finalStudents = Math.round(result.unroundedTotal);
     }
+
+    const netChange = finalStudents - result.team.kpis.numStudents;
 
     finalResults[result.team.name] = {
       ...teamIamResults[result.team.name],
-      newStudents: newStudents,
+      newStudents: netChange, // Represents the net gain or loss of students
       name: result.team.name,
       type: result.team.type
     };

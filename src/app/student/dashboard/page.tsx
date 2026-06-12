@@ -133,6 +133,27 @@ export default function StudentDashboard() {
     return lastRoundPerformance?.decisions.tuitionPrice;
   }, [performanceHistory, round]);
 
+  const canUseCrisisLayoff = useMemo(() => {
+      if (!performanceHistory || round < 2) return false;
+      const r1 = performanceHistory.find(p => p.round === round - 1);
+      const r2 = performanceHistory.find(p => p.round === round - 2);
+      const r3 = performanceHistory.find(p => p.round === round - 3);
+      
+      if (!r1 || !r2) return false;
+
+      const r1Students = r1.kpis.numStudents;
+      const r2Students = r2.kpis.numStudents;
+      const r3Students = r3 ? r3.kpis.numStudents : 800; // baseline
+
+      const lostStudentsR1 = r1Students < r2Students;
+      const lostStudentsR2 = r2Students < r3Students;
+
+      const redR1 = r1.kpis.cash < 0 || (r1.kpis.bailoutFunds && r1.kpis.bailoutFunds > 0);
+      const redR2 = r2.kpis.cash < 0 || (r2.kpis.bailoutFunds && r2.kpis.bailoutFunds > 0);
+
+      return (lostStudentsR1 && lostStudentsR2) || (redR1 && redR2);
+  }, [performanceHistory, round]);
+
 
   if (isRoundZero && !planConfirmed) {
     return (
@@ -334,6 +355,7 @@ export default function StudentDashboard() {
           numTeachers={kpis?.numTeachers || 0}
           capacity={kpis?.capacity || 810}
           previousTuitionPrice={previousTuitionPrice}
+          canUseCrisisLayoff={canUseCrisisLayoff}
         />
         
         {!isBlindRound && lastCrisisReport && (

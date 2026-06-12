@@ -50,17 +50,25 @@ export function updateKpisForNextRound(
 
   const actions = decisions.actions || [];
 
-  // --- Apply static decisions effects ---
-  if (actions.includes('P2')) { // Contratar
-    updatedNumTeachers += 1;
-    updatedMorale += 15; // Direct effect from hiring
+  const p2Count = actions.filter((a: string) => a === 'P2').length;
+  const p7Count = actions.filter((a: string) => a === 'P7').length;
+  const p8Count = actions.filter((a: string) => a === 'P8').length;
+  const f5Count = actions.filter((a: string) => a === 'F5').length;
+
+  if (p2Count > 0) { // Contratar
+    updatedNumTeachers += p2Count;
+    updatedMorale += p2Count * 15; // Direct effect from hiring
   }
-  if (actions.includes('P7')) { // Despedir
-    updatedNumTeachers -= 1;
-    updatedMorale -= 25; // Direct effect from firing
+  if (p7Count > 0) { // Despedir
+    updatedNumTeachers -= p7Count;
+    updatedMorale -= p7Count * 25; // Direct effect from firing
   }
-  if (actions.includes('F5')) { // Ampliación Aulas
-    updatedCapacity += 50;
+  if (p8Count > 0) { // Ajuste por crisis (ERE)
+    updatedNumTeachers -= p8Count;
+    // No morale penalty
+  }
+  if (f5Count > 0) { // Ampliación Aulas
+    updatedCapacity += f5Count * 50;
   }
   
   // --- Apply dynamic investment effects ---
@@ -311,6 +319,7 @@ export function updateKpisForNextRound(
     const centerActionsCostMap: Record<string, number> = {
       'P2': 7500, // Contratar
       'P7': 7500, // Despedir
+      'P8': 7500, // Ajuste crisis
       'F5': 50000, // Ampliar
     };
 

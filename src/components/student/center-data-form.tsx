@@ -24,6 +24,7 @@ interface CenterDataFormProps {
   numTeachers: number;
   capacity: number;
   previousTuitionPrice?: number;
+  canUseCrisisLayoff?: boolean;
 }
 
 const personnelActions = [
@@ -44,7 +45,8 @@ export function CenterDataForm({
   numStudents, 
   numTeachers,
   capacity,
-  previousTuitionPrice
+  previousTuitionPrice,
+  canUseCrisisLayoff = false
 }: CenterDataFormProps) {
   const { toast } = useToast();
 
@@ -52,6 +54,16 @@ export function CenterDataForm({
     const newActions = checked 
       ? [...selectedActions, actionId]
       : selectedActions.filter(id => id !== actionId);
+    onActionChange(newActions);
+  };
+
+  const getActionCount = (actionId: string) => selectedActions.filter(id => id === actionId).length;
+
+  const handleActionCountChange = (actionId: string, count: number) => {
+    const newActions = selectedActions.filter(id => id !== actionId);
+    for (let i = 0; i < count; i++) {
+        newActions.push(actionId);
+    }
     onActionChange(newActions);
   };
   
@@ -109,20 +121,49 @@ export function CenterDataForm({
               <div>
                 <h4 className="font-medium mb-2 text-lg">Personal Docente</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {personnelActions.map((action) => (
-                        <div key={action.id} className="flex items-start space-x-3 rounded-md border p-4">
-                            <Checkbox 
-                                id={action.id} 
-                                checked={selectedActions.includes(action.id)}
-                                onCheckedChange={(checked) => handleCheckboxChange(action.id, !!checked)}
-                            />
-                            <div className="grid flex-1 gap-1.5 leading-none">
-                                <label htmlFor={action.id} className="font-medium cursor-pointer">{action.name}</label>
+                    {personnelActions.map((action) => {
+                        const count = getActionCount(action.id);
+                        return (
+                        <div key={action.id} className="flex items-center space-x-3 rounded-md border p-4">
+                            <div className="flex-1 space-y-1">
+                                <label className="font-medium">{action.name}</label>
                                 <p className="text-sm text-muted-foreground">Efecto: {action.effect}</p>
                             </div>
-                            <div className="font-mono text-right">{action.cost.toLocaleString('es-ES')} CC</div>
+                            <div className="flex items-center space-x-2">
+                                <Input 
+                                    type="number" 
+                                    min="0" 
+                                    max="10" 
+                                    className="w-20 text-center"
+                                    value={count} 
+                                    onChange={(e) => handleActionCountChange(action.id, Number(e.target.value) || 0)}
+                                />
+                                <div className="font-mono text-right w-24">{(action.cost * count).toLocaleString('es-ES')} CC</div>
+                            </div>
                         </div>
-                    ))}
+                    )})}
+                    
+                    {canUseCrisisLayoff && (() => {
+                        const count = getActionCount("P8");
+                        return (
+                        <div className="flex items-center space-x-3 rounded-md border p-4 bg-destructive/10 border-destructive/20">
+                            <div className="flex-1 space-y-1">
+                                <label className="font-medium text-destructive">Ajuste de plantilla por crisis</label>
+                                <p className="text-sm text-muted-foreground">Efecto: −5 XP Personal por docente, sin pérdida de moral.</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Input 
+                                    type="number" 
+                                    min="0" 
+                                    max="10" 
+                                    className="w-20 text-center"
+                                    value={count} 
+                                    onChange={(e) => handleActionCountChange("P8", Number(e.target.value) || 0)}
+                                />
+                                <div className="font-mono text-right w-24 text-destructive">{(7500 * count).toLocaleString('es-ES')} CC</div>
+                            </div>
+                        </div>
+                    )})()}
                 </div>
               </div>
               <div>

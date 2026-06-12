@@ -126,6 +126,9 @@ function getXpBonusFromDecisions(decisions: TeamDecision, negotiationSuccess?: b
         if (actionId === 'P7') { // Despedir Docente
             bonus.morale -= 15;
         }
+        if (actionId === 'P8') { // Ajuste por crisis (ERE)
+            bonus.morale -= 5;
+        }
         if (actionId === 'F5') { // Ampliación de Aulas
             bonus.finances += 10;
         }
